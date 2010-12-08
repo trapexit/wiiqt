@@ -53,7 +53,7 @@ public:
 
     //TODO!  this function is far from complete
     //starts getting all the titles involved for a given update
-    //expects strings like "4.2u" and "3.3e"
+    //expects strings like "4.2u" and "3.4e" ( any of the updates listed below should be working )
     //returns false if it doesnt know the IOS for the given string
     // The boot2 update is not uncluded in this.  ask for it separately if you want it
     bool GetUpdate( const QString & upd, bool decrypt = true );
@@ -63,6 +63,7 @@ public:
     //to keep people from bulk DLing and installing and messing something up, any boot2 upudate will not be included
     //in the list, ask for it specifically
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
+    static QMap< quint64, quint16 > List20u();
     static QMap< quint64, quint16 > List30u();
     static QMap< quint64, quint16 > List31u();
     static QMap< quint64, quint16 > List32u();
@@ -73,25 +74,32 @@ public:
     static QMap< quint64, quint16 > List42u();
     static QMap< quint64, quint16 > List43u();
 
-   /* static QMap< quint64, quint16 > List30e();
+    static QMap< quint64, quint16 > List21e();
+    static QMap< quint64, quint16 > List30e();
     static QMap< quint64, quint16 > List31e();
-    static QMap< quint64, quint16 > List32e();
-    static QMap< quint64, quint16 > List33e();
+    //static QMap< quint64, quint16 > List32e();
+    //static QMap< quint64, quint16 > List33e();
     static QMap< quint64, quint16 > List34e();
     static QMap< quint64, quint16 > List40e();
     static QMap< quint64, quint16 > List41e();
     static QMap< quint64, quint16 > List42e();
     static QMap< quint64, quint16 > List43e();
 
-    static QMap< quint64, quint16 > List30j();
+    static QMap< quint64, quint16 > List35k();
+    static QMap< quint64, quint16 > List41k();
+    static QMap< quint64, quint16 > List42k();
+    static QMap< quint64, quint16 > List43k();
+
+    static QMap< quint64, quint16 > List20j();
+    //static QMap< quint64, quint16 > List30j();
     static QMap< quint64, quint16 > List31j();
-    static QMap< quint64, quint16 > List32j();
-    static QMap< quint64, quint16 > List33j();
+    //static QMap< quint64, quint16 > List32j();
+    //static QMap< quint64, quint16 > List33j();
     static QMap< quint64, quint16 > List34j();
     static QMap< quint64, quint16 > List40j();
     static QMap< quint64, quint16 > List41j();
     static QMap< quint64, quint16 > List42j();
-    static QMap< quint64, quint16 > List43j();*/
+    static QMap< quint64, quint16 > List43j();
 
 private:
 

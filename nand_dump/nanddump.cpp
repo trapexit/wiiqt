@@ -298,7 +298,7 @@ bool NandDump::RecurseDeleteFolder( const QString &path )
 
 bool NandDump::InstallNusItem( NusJob job )
 {
-    if( !job.tid || !job.version || job.data.size() < 3 )
+    if( !job.tid || job.data.size() < 3 )
     {
 	qWarning() << "NandDump::InstallNusItem -> invalid item";
 	return false;

@@ -6,10 +6,12 @@
 #include "tiktmd.h"
 #include "tools.h"
 #include "aes.h"
+#include "wad.h"
 
 MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::MainWindow ), nus ( this )
 {
     ui->setupUi(this);
+    Wad::SetGlobalCert( QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) );
 
     //connect to the nus object so we can respond to what it is saying with pretty stuff in the gui
     connect( &nus, SIGNAL( SendDownloadProgress( int ) ), ui->progressBar_dl, SLOT( setValue( int ) ) );
@@ -23,8 +25,10 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     //TODO, really get these paths from settings
     ui->lineEdit_cachePath->setText( cachePath );
     ui->lineEdit_nandPath->setText( nandPath );
-    nand.SetPath( nandPath );
+    //nand.SetPath( nandPath );
     nus.SetCachePath( cachePath );
+
+
 }
 
 MainWindow::~MainWindow()
@@ -70,6 +74,18 @@ void MainWindow::NusIsDone()
     {
 	ui->lineEdit_nandPath->setEnabled( true );
 	ui->pushButton_nandPath->setEnabled( true );
+
+	//write the uid.sys and content.map to disc
+	nand.Flush();
+
+	//make sure there is a setting.txt
+	QByteArray set = nand.GetSettingTxt();
+	if( set.isEmpty() )
+	{
+	    set = SettingTxtDialog::Edit( this );
+	    if( !set.isEmpty() )
+		nand.SetSettingTxt( set );
+	}
     }
     else if( ui->radioButton_wad->isChecked() )
     {
@@ -84,20 +100,11 @@ void MainWindow::NusIsDone()
 
 void MainWindow::ReceiveTitleFromNus( NusJob job )
 {
-    //QString dataStuff = QString( "%1 items:" ).arg( job.data.size() );
-    //for( int i = 0; i < job.data.size(); i++ )
-	//dataStuff += QString( " %1" ).arg( job.data.at( i ).size(), 0, 16, QChar( ' ' ) );
-
     QString str = tr( "Received a completed download from NUS" );
     QString title = QString( "%1v%2" ).arg( job.tid, 16, 16, QChar( '0' ) ).arg( job.version );
-    /*QString j = QString( "NusJob( %1, %2, %3, %4 )<br>" )
-	    .arg( job.tid, 16, 16, QChar( '0' ) )
-	    .arg( job.version ).arg( job.decrypt ? "decrypted" : "encrypted" )
-	    .arg( dataStuff );
 
-    ui->plainTextEdit_log->appendHtml( j );*/
     ui->plainTextEdit_log->appendHtml( str );
-return;
+
     //do something with the data we got
     if( ui->radioButton_folder->isChecked() )
     {
@@ -113,6 +120,53 @@ return;
     }
     else if( ui->radioButton_wad->isChecked() )
     {
+	Wad wad( job.data );
+	if( !wad.IsOk() )
+	{
+	    ShowMessage( "<b>Error making a wad from " + title + "<\b>" );
+	    return;
+	}
+	QFileInfo fi( ui->lineEdit_wad->text() );
+	if( fi.isFile() )
+	{
+	    ShowMessage( "<b>" + ui->lineEdit_wad->text() + " is a file.  I need a folder<\b>" );
+	    return;
+	}
+	if( !fi.exists()  )
+	{
+	    ShowMessage( "<b>" + fi.absoluteFilePath() + " is not a folder!\nTrying to create it...<\b>" );
+	    if( !QDir().mkpath( ui->lineEdit_wad->text() ) )
+	    {
+		ShowMessage( "<b>Failed to make the directory!<\b>" );
+		return;
+	    }
+	}
+	QByteArray w = wad.Data();
+	if( w.isEmpty() )
+	{
+	    ShowMessage( "<b>Error creating wad<br>" + wad.LastError() + "<\b>" );
+	    return;
+	}
+
+	QString name = wad.WadName( fi.absoluteFilePath() );
+	if( name.isEmpty() )
+	{
+	    name = QFileDialog::getSaveFileName( this, tr( "Filename for %1" ).arg( title ), fi.absoluteFilePath() );
+	    if( name.isEmpty() )
+	    {
+		ShowMessage( "<b>No save name given, aborting<\b>" );
+		return;
+	    }
+	}
+	QFile file( fi.absoluteFilePath() + "/" + name );
+	if( !file.open( QIODevice::WriteOnly ) )
+	{
+	    ShowMessage( "<b>Cant open " + fi.absoluteFilePath() + "/" + name + " for writing<\b>" );
+	    return;
+	}
+	file.write( w );
+	file.close();
+	ShowMessage( "Saved " + title + " to " + fi.absoluteFilePath() + "/" + name );
     }
 
     //bool r = nand.InstallNusItem( job );
@@ -123,25 +177,35 @@ return;
 void MainWindow::on_pushButton_GetTitle_clicked()
 {
     bool ok = false;
-    quint64 tid = ui->lineEdit_tid->text().toLongLong( &ok, 16 );
-    if( !ok )
+    bool wholeUpdate = false;
+    quint64 tid = 0;
+    quint32 ver = 0;
+    if( ui->lineEdit_tid->text().size() == 4 )
     {
-	ShowMessage( "<b>Error converting \"" + ui->lineEdit_tid->text() + "\" to a hex number.</b>" );
-	return;
+	wholeUpdate = true;
     }
-    quint32 ver = TITLE_LATEST_VERSION;
-    if( !ui->lineEdit_version->text().isEmpty() )
+    else
     {
-	ver = ui->lineEdit_version->text().toInt( &ok, 10 );
+	tid = ui->lineEdit_tid->text().toLongLong( &ok, 16 );
 	if( !ok )
 	{
-	    ShowMessage( "<b>Error converting \"" + ui->lineEdit_version->text() + "\" to a decimal number.</b>" );
+	    ShowMessage( "<b>Error converting \"" + ui->lineEdit_tid->text() + "\" to a hex number.</b>" );
 	    return;
 	}
-	if( ver > 0xffff )
+	ver = TITLE_LATEST_VERSION;
+	if( !ui->lineEdit_version->text().isEmpty() )
 	{
-	    ShowMessage( tr( "<b>Version %1 is too high.  Max is 65535</b>" ).arg( ver ) );
-	    return;
+	    ver = ui->lineEdit_version->text().toInt( &ok, 10 );
+	    if( !ok )
+	    {
+		ShowMessage( "<b>Error converting \"" + ui->lineEdit_version->text() + "\" to a decimal number.</b>" );
+		return;
+	    }
+	    if( ver > 0xffff )
+	    {
+		ShowMessage( tr( "<b>Version %1 is too high.  Max is 65535</b>" ).arg( ver ) );
+		return;
+	    }
 	}
     }
     //decide how we want nus to give us the title
@@ -187,7 +251,18 @@ void MainWindow::on_pushButton_GetTitle_clicked()
     //ui->progressBar_title->setValue( 0 );
     //ui->progressBar_whole->setValue( 0 );
     nus.SetCachePath( ui->lineEdit_cachePath->text() );
-    nus.Get( tid, decrypt, ver );
+    if( wholeUpdate )
+    {
+	if( !nus.GetUpdate( ui->lineEdit_tid->text(), decrypt ) )
+	{
+	    ShowMessage( tr( "<b>I dont know the titles that were in the %1 update</b>" ).arg( ui->lineEdit_tid->text() ) );
+	    return;
+	}
+    }
+    else
+    {
+	nus.Get( tid, decrypt, ver );
+    }
 }
 
 //ratio buttons toggled
@@ -233,10 +308,42 @@ void MainWindow::on_pushButton_decFolder_clicked()
 
 void MainWindow::on_pushButton_wad_clicked()
 {
-    QString path = ui->lineEdit_wad->text().isEmpty() ? "/media" : ui->lineEdit_wad->text();
+    QString path = ui->lineEdit_wad->text().isEmpty() ? QDir::currentPath() : ui->lineEdit_wad->text();
     QString f = QFileDialog::getExistingDirectory( this, tr( "Select folder to save wads to" ), path );
     if( f.isEmpty() )
 	return;
 
     ui->lineEdit_wad->setText( f );
 }
+
+
+/*
+ 3.4j-
+Error getting title from NUS: Error downloading part of the title.
+NusJob( 0001000248414b4a, 2, decrypted, 0 items: )
+
+Error getting title from NUS: Error downloading part of the title.
+NusJob( 0001000248414c4a, 2, decrypted, 0 items: )
+
+Received a completed download from NUS
+Installed 0001000248415941v2 title to nand
+
+Received a completed download from NUS
+Error 000100084843434av0 title to nand
+
+4.0j
+Error getting title from NUS: Error downloading part of the title.
+NusJob( 0001000248414b4a, 2, decrypted, 0 items: )
+
+Error getting title from NUS: Error downloading part of the title.
+NusJob( 0001000248414c4a, 2, decrypted, 0 items: )
+
+Received a completed download from NUS
+Installed 0001000248415941v3 title to nand
+
+Error getting title from NUS: Error downloading part of the title.
+NusJob( 000100024843434a, 1, decrypted, 0 items: )
+
+Received a completed download from NUS
+Error 000100084843434av0 title to nand
+*/

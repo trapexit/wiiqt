@@ -24,35 +24,53 @@ quint64 Tmd::Tid()
 
 QString Tmd::Cid( quint16 i )
 {
-    if( p_tmd && i > qFromBigEndian( p_tmd->num_contents ) )
+    if( !p_tmd || i > qFromBigEndian( p_tmd->num_contents ) )
 	return QString();
     return QString( "%1" ).arg( qFromBigEndian( p_tmd->contents[ i ].cid ), 8, 16, QChar( '0' ) );
 }
 
 QByteArray Tmd::Hash( quint16 i )
 {
-    if( p_tmd && i > qFromBigEndian( p_tmd->num_contents ) )
+    if( !p_tmd || i > qFromBigEndian( p_tmd->num_contents ) )
 	return QByteArray();
 
     return QByteArray( (const char*)&p_tmd->contents[ i ].hash, 20 );
 }
 
+quint16 Tmd::Count()
+{
+    if( !p_tmd )
+	return 0;
+
+    return qFromBigEndian( p_tmd->num_contents );
+}
+
+quint16 Tmd::Version()
+{
+    if( !p_tmd )
+	return 0;
+
+    return qFromBigEndian( p_tmd->title_version );
+}
+
 quint64 Tmd::Size( quint16 i )
 {
-    if( p_tmd && i > qFromBigEndian( p_tmd->num_contents ) )
+    if( !p_tmd || i > qFromBigEndian( p_tmd->num_contents ) )
 	return 0;
     return qFromBigEndian( p_tmd->contents[ i ].size );
 }
 
 quint16 Tmd::Type( quint16 i )
 {
-    if( p_tmd && i > qFromBigEndian( p_tmd->num_contents ) )
+    if( !p_tmd || i > qFromBigEndian( p_tmd->num_contents ) )
 	return 0;
     return qFromBigEndian( p_tmd->contents[ i ].type );
 }
 
 quint32 Tmd::SignedSize()
 {
+    if( !p_tmd )
+	return 0;
     return payLoadOffset + sizeof( tmd ) + ( sizeof( tmd_content ) * qFromBigEndian( p_tmd->num_contents ) );
 }
 

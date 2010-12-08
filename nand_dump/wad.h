@@ -37,8 +37,7 @@ public:
     static void SetGlobalCert( const QByteArray &stuff );
 
     //pack a wad from the given directory
-    // use footer to decide if a footer will be added
-    static QByteArray FromDirectory( QDir dir, bool footer = false );
+    static QByteArray FromDirectory( QDir dir );
 
     //get a assembled wad from the list of parts
     //the first one should be the tmd, the second one the ticket, and the rest are the contents, in order
@@ -46,13 +45,21 @@ public:
     static QByteArray FromPartList( QList< QByteArray > stuff, bool isEncrypted = true );
 
     //get all the parts of this wad put together in a wad ready for writing to disc or whatever
-    const QByteArray Data();
+    const QByteArray Data( quint32 magicWord = 0x49730000, const QByteArray footer = QByteArray() );
 
     //get the decrypted data from a content
     const QByteArray Content( quint16 i );
 
     //get the last error encountered while trying to do something
     const QString LastError(){ return errStr; }
+
+    //get a name for a wad as it would be seen in a wii disc update partition
+    //if a path is given, it will check that path for existing wads with the name and append a number to the end "(1)" to avoid duplicate files
+    //returns an empty string if it cant guess the title based on TID
+    static QString WadName( quint64 tid, quint16 version, QString path = QString() );
+
+    QString WadName( QString path = QString() );
+
 
 private:
     bool ok;

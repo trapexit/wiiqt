@@ -38,19 +38,7 @@ typedef struct _tiklimit {
 	quint32 tag;
 	quint32 value;
 } __attribute__((packed)) tiklimit;
-/*
-typedef struct _tikview {
-	quint32 view;
-	quint64 ticketid;
-	quint32 devicetype;
-	quint64 titleid;
-	quint16 access_mask;
-	quint8 reserved[0x3c];
-	quint8 cidx_mask[0x40];
-	quint16 padding;
-	tiklimit limits[8];
-} __attribute__((packed)) tikview;
-*/
+
 typedef struct _tik {
 	sig_issuer issuer;
 	quint8 fill[63]; //TODO: not really fill
@@ -107,20 +95,6 @@ typedef struct _tmd_view_content
   quint16 type;
   quint64 size;
 } __attribute__((packed)) tmd_view_content;
-
-typedef struct _tmdview
-{
-	quint8 version; // 0x0000;
-	quint8 filler[3];
-	quint64 sys_version; //0x0004
-	quint64 title_id; // 0x00c
-	quint32 title_type; //0x0014
-	quint16 group_id; //0x0018
-	quint8 reserved[0x3e]; //0x001a this is the same reserved 0x3e bytes from the tmd
-	quint16 title_version; //0x0058
-	quint16 num_contents; //0x005a
-	tmd_view_content contents[]; //0x005c
-}__attribute__((packed)) tmd_view;
 
 typedef struct _cert_header {
 	sig_issuer issuer;
@@ -212,6 +186,12 @@ public:
     quint64 Size( quint16 i );
     quint16 Type( quint16 i );
     quint64 Tid();
+
+    //gets the number of contents
+    quint16 Count();
+
+    //title version
+    quint16 Version();
 
     quint32 SignedSize();
 private:

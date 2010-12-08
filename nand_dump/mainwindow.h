@@ -25,6 +25,8 @@ private:
 
     void ShowMessage( const QString& mes );
 
+
+
 public slots:
     //slots for getting info from the NUS downloader
     void GetError( const QString &message, NusJob job );
