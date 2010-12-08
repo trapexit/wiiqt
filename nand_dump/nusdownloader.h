@@ -10,6 +10,8 @@
 #define WIICONNECT24_USER_AGENT		"WiiConnect24/1.0FC4plus1 (build 061114161108)"
 #define NUS_BASE_URL			"http://ccs.shop.wii.com/ccs/download/"
 
+#define TITLE_LATEST_VERSION 0xffff
+
 enum
 {
     IDX_CETK = 0x9000,
@@ -47,7 +49,7 @@ public:
     //get a title from NUS.  if version is 0, get the latest one
     void GetTitle( NusJob job );
     void GetTitles( QList<NusJob> jobs );
-    void Get( quint64 tid, bool decrypt, quint16 version = 0 );
+    void Get( quint64 tid, bool decrypt, quint16 version = TITLE_LATEST_VERSION );
 
     //TODO!  this function is far from complete
     //starts getting all the titles involved for a given update

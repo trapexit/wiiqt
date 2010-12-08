@@ -129,7 +129,7 @@ void MainWindow::on_pushButton_GetTitle_clicked()
 	ShowMessage( "<b>Error converting \"" + ui->lineEdit_tid->text() + "\" to a hex number.</b>" );
 	return;
     }
-    quint32 ver = 0;
+    quint32 ver = TITLE_LATEST_VERSION;
     if( !ui->lineEdit_version->text().isEmpty() )
     {
 	ver = ui->lineEdit_version->text().toInt( &ok, 10 );

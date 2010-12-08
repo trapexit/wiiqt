@@ -85,7 +85,7 @@ void NusDownloader::StartNextJob()
     downloadJob tmdJob;
     tmdJob.tid = QString( "%1" ).arg( currentJob.tid, 16, 16, QChar( '0' ) );
     tmdJob.index = IDX_TMD;
-    if( currentJob.version )
+    if( currentJob.version != TITLE_LATEST_VERSION )
     {
 	tmdJob.name = QString( "tmd.%1" ).arg( currentJob.version );
 	QByteArray stuff = GetDataFromCache( tmdJob );
@@ -150,7 +150,7 @@ void NusDownloader::ReadTmdAndGetTicket( QByteArray ba )
 	CurrentJobErrored( tr( "TID in TMD doesn't match expected." ) );
 	return;
     }
-    if( !currentJob.version )
+    if( currentJob.version == TITLE_LATEST_VERSION )
     {
 	currentJob.version = qFromBigEndian( curTmd.payload()->title_version );
     }
