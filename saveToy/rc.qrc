@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>noBanner.png</file>
+        <file>noIcon.png</file>
+    </qresource>
+</RCC>
