@@ -8,7 +8,16 @@ NandWindow::NandWindow(QWidget *parent) :
     nandBin( this )
 {
     ui->setupUi(this);
-    ui->treeWidget->header()->resizeSection( 0, 300 );//name
+    //ui->treeWidget->header()->resizeSection( 0, 300 );//name
+    QFontMetrics fm( fontMetrics() );
+    ui->treeWidget->header()->resizeSection( 0, fm.width( QString( 22, 'W' ) ) );//name
+    ui->treeWidget->header()->resizeSection( 1, fm.width( "WWWWW" ) );//entry #
+    ui->treeWidget->header()->resizeSection( 2, fm.width( "WWWWW" ) );//size
+    ui->treeWidget->header()->resizeSection( 3, fm.width( "WWWWWWWWWW" ) );//uid
+    ui->treeWidget->header()->resizeSection( 4, fm.width( "WWWWWWWWWW" ) );//gid
+    ui->treeWidget->header()->resizeSection( 5, fm.width( "WWWWWWWWWW" ) );//x3
+    ui->treeWidget->header()->resizeSection( 6, fm.width( "WWWWW" ) );//mode
+    ui->treeWidget->header()->resizeSection( 7, fm.width( "WWWWW" ) );//attr
 
 
     connect( &nandBin, SIGNAL( SendError( QString ) ), this, SLOT( GetError( QString ) ) );
@@ -85,6 +94,7 @@ void NandWindow::on_treeWidget_customContextMenuRequested( QPoint pos )
     }
 }
 
+//file->open
 void NandWindow::on_actionOpen_Nand_triggered()
 {
     QString path = QFileDialog::getOpenFileName( this, tr( "Select a Nand to open" ) );
@@ -98,7 +108,12 @@ void NandWindow::on_actionOpen_Nand_triggered()
 	return;
     }
     ui->statusBar->showMessage( "Loading " + path );
-    if( !nandBin.InitNand() )
+    QIcon groupIcon;
+    QIcon keyIcon;
+    groupIcon.addPixmap( style()->standardPixmap( QStyle::SP_DirClosedIcon ), QIcon::Normal, QIcon::Off );
+    groupIcon.addPixmap( style()->standardPixmap( QStyle::SP_DirOpenIcon ), QIcon::Normal, QIcon::On );
+    keyIcon.addPixmap( style()->standardPixmap( QStyle::SP_FileIcon ) );
+    if( !nandBin.InitNand( groupIcon, keyIcon ) )
     {
 	qDebug() << " error in nandBin.InitNand()";
 	ui->statusBar->showMessage( "Error reading " + path );

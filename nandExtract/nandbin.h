@@ -25,7 +25,10 @@ public:
     NandBin( QObject * parent = 0, const QString &path = QString() );
     ~NandBin();
     bool SetPath( const QString &path );
-    bool InitNand();
+
+    //try to read the filesystem and create a tree from its contents
+    //icons given here will be the ones used when asking for that tree
+    bool InitNand( QIcon dirs = QIcon(), QIcon files = QIcon() );
 
     //get a root item containing children that are actually entries in the nand dump
     //the root itself is just a container to hold them all and can be deleted once its children are taken
@@ -56,6 +59,8 @@ private:
     int type;
 
     bool fatNames;
+    QIcon groupIcon;
+    QIcon keyIcon;
 
     int GetDumpType( quint64 fileSize );
     bool GetKey( int type );
@@ -68,7 +73,7 @@ private:
     QByteArray GetFile( fst_t fst );
 
     QString FstName( fst_t fst );
-    bool ExtractFST( quint16 entry, const QString &path );
+    bool ExtractFST( quint16 entry, const QString &path, bool singleFile = false );
     bool ExtractDir( fst_t fst, QString parent );
     bool ExtractFile( fst_t fst, QString parent );
 

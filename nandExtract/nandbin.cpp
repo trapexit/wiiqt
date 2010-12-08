@@ -6,6 +6,7 @@ NandBin::NandBin( QObject * parent, const QString &path ) : QObject( parent )
     type = -1;
     fatNames = false;
     root = NULL;
+
     if( !path.isEmpty() )
 	SetPath( path );
 }
@@ -51,7 +52,7 @@ bool NandBin::ExtractToDir( QTreeWidgetItem *item, const QString &path )
 	emit SendError( tr( "Error converting entry(%1) to a number" ).arg( item->text( 1 ) ) );
 	return false;
     }
-    return ExtractFST( entry, path );
+    return ExtractFST( entry, path, true );//dont bother extracting this item's siblings
 
     return true;
 }
@@ -89,10 +90,26 @@ bool NandBin::AddChildren( QTreeWidgetItem *parent, quint16 entry )
 
     text << name << en << size << uid << gid << x3 << mode << attr;
     QTreeWidgetItem *child = new QTreeWidgetItem( parent, text );
+    child->setTextAlignment( 1, Qt::AlignRight | Qt::AlignVCenter );//align to the right
+    child->setTextAlignment( 2, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 3, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 4, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 5, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 6, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 7, Qt::AlignRight | Qt::AlignVCenter );
 
-    //try to add subfolder contents to the tree
-    if( !fst.mode && fst.sub != 0xffff && !AddChildren( child, fst.sub ) )
-	return false;
+    //set some icons
+    if( fst.mode )
+    {
+	child->setIcon( 0, keyIcon );
+    }
+    else
+    {
+	child->setIcon( 0, groupIcon );
+	//try to add subfolder contents to the tree
+	if( fst.sub != 0xffff && !AddChildren( child, fst.sub ) )
+	    return false;
+    }
 
     return true;
 }
@@ -106,7 +123,7 @@ QString NandBin::FstName( fst_t fst )
     return ret;
 }
 
-bool NandBin::ExtractFST( quint16 entry, const QString &path )
+bool NandBin::ExtractFST( quint16 entry, const QString &path, bool singleFile )
 {
     //qDebug() << "NandBin::ExtractFST(" << hex << entry << "," << path << ")";
     fst_t fst = GetFST( entry );
@@ -114,7 +131,7 @@ bool NandBin::ExtractFST( quint16 entry, const QString &path )
     if( !fst.filename[ 0 ] )//something is amiss, better quit now
 	return false;
 
-    if( fst.sib != 0xffff && !ExtractFST( fst.sib, path ) )
+    if( !singleFile && fst.sib != 0xffff && !ExtractFST( fst.sib, path ) )
 	return false;
 
     switch( fst.mode )
@@ -176,7 +193,7 @@ bool NandBin::ExtractFile( fst_t fst, QString parent )
     return true;
 }
 
-bool NandBin::InitNand()
+bool NandBin::InitNand( QIcon dirs, QIcon files )
 {
     type = GetDumpType( f.size() );
     if( type < 0 || type > 3 )
@@ -196,6 +213,9 @@ bool NandBin::InitNand()
 
     if( root )
 	delete root;
+
+    groupIcon = dirs;
+    keyIcon = files;
 
     root = new QTreeWidgetItem( QStringList() << nandPath );
     AddChildren( root, 0 );
@@ -493,12 +513,6 @@ void NandBin::SetFixNamesForFAT( bool fix )
     fatNames = fix;
 }
 
-/*
-    *  0xFFFB - last cluster within a chain
-    * 0xFFFC - reserved cluster
-    * 0xFFFD - bad block (marked at factory) -- you should always see these in groups of 8 (8 clusters per NAND block)
-    * 0xFFFE - empty (unused / available) space
-    */
 void NandBin::ShowInfo()
 {
     quint16 badBlocks = 0;
