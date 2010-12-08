@@ -1,0 +1,4 @@
+this is a tool to list saves in an extracted nand dump
+
+TODO:
+add some sort of extract/delete/install functionality

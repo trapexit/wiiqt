@@ -1,0 +1,2 @@
+this is a tool to extract all or part of an encrypted nand dump to a file system.
+it is based off code from http://sites.google.com/site/parannoyedwii/ with a few bug fixes.
