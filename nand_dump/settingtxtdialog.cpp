@@ -114,3 +114,36 @@ QByteArray SettingTxtDialog::Edit( QWidget *parent, const QByteArray &old )
 	return d.ret;
     return QByteArray();
 }
+
+/*
+ some possible values ( from libogc )
+ res = __SYSCONF_GetTxt("GAME", buf, 3);
+if(res < 0) return res;
+if(!strcmp(buf, "JP")) return SYSCONF_REGION_JP;
+if(!strcmp(buf, "US")) return SYSCONF_REGION_US;
+if(!strcmp(buf, "EU")) return SYSCONF_REGION_EU;
+
+
+ res = __SYSCONF_GetTxt("AREA", buf, 4);
+if(res < 0) return res;
+if(!strcmp(buf, "JPN")) return SYSCONF_AREA_JPN;
+if(!strcmp(buf, "USA")) return SYSCONF_AREA_USA;
+if(!strcmp(buf, "EUR")) return SYSCONF_AREA_EUR;
+if(!strcmp(buf, "AUS")) return SYSCONF_AREA_AUS;
+if(!strcmp(buf, "BRA")) return SYSCONF_AREA_BRA;
+if(!strcmp(buf, "TWN")) return SYSCONF_AREA_TWN;
+if(!strcmp(buf, "ROC")) return SYSCONF_AREA_ROC;
+if(!strcmp(buf, "KOR")) return SYSCONF_AREA_KOR;
+if(!strcmp(buf, "HKG")) return SYSCONF_AREA_HKG;
+if(!strcmp(buf, "ASI")) return SYSCONF_AREA_ASI;
+if(!strcmp(buf, "LTN")) return SYSCONF_AREA_LTN;
+if(!strcmp(buf, "SAF")) return SYSCONF_AREA_SAF;
+
+ res = __SYSCONF_GetTxt("VIDEO", buf, 5);
+if(res < 0) return res;
+if(!strcmp(buf, "NTSC")) return SYSCONF_VIDEO_NTSC;
+if(!strcmp(buf, "PAL")) return SYSCONF_VIDEO_PAL;
+if(!strcmp(buf, "MPAL")) return SYSCONF_VIDEO_MPAL;
+
+
+ */

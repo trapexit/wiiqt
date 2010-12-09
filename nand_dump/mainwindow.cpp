@@ -222,6 +222,12 @@ void MainWindow::on_pushButton_GetTitle_clicked()
     }
     else if( ui->radioButton_nand->isChecked() )
     {
+	if( !nand.SetPath( ui->lineEdit_nandPath->text() ) )
+	{
+	    ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" )
+			 .arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
+	    return;
+	}
 	if( ui->lineEdit_nandPath->text().isEmpty() )
 	{
 	    ShowMessage( tr( "<b>No path given for nand dump base.</b>" ) );

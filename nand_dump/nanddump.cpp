@@ -23,6 +23,7 @@ bool NandDump::Flush()
 
 bool NandDump::SetPath( const QString &path )
 {
+    qDebug() << "NandDump::SetPath(" << path << ")";
     //check what is already in this path and create stuff that is missing
     QFileInfo fi( path );
     basePath = fi.absoluteFilePath();

@@ -115,7 +115,7 @@ void NusDownloader::StartNextJob()
 QByteArray NusDownloader::GetDataFromCache( downloadJob job )
 {
     //qDebug() << "NusDownloader::GetDataFromCache";
-    if( cachePath.isEmpty() || !currentJob.version )
+    if( cachePath.isEmpty() || currentJob.version == TITLE_LATEST_VERSION )
 	return QByteArray();
 
     QFileInfo fi( cachePath );
@@ -606,8 +606,8 @@ QMap< quint64, quint16 > NusDownloader::List31j()
     titles.insert( 0x10000000eull, 262 );//14v262 - should actually be 14v257 but that version isnt available on NUS
     titles.insert( 0x100000014ull, 12 );//20v12
     titles.insert( 0x100000015ull, 514 );//21v514
-    titles.insert( 0x100000016ull, 772 );//22v772
-    titles.insert( 0x10000001cull, 1228 );//28v1228
+    titles.insert( 0x100000016ull, 777 );//22v777 - should be v772
+    titles.insert( 0x10000001cull, 1292 );//28v1292 - should be 1228
     titles.insert( 0x10000001eull, 1040 );//30v1040
     titles.insert( 0x10000001full, 1040 );//31v1040
     titles.insert( 0x100000021ull, 1040 );//33v1040
@@ -697,7 +697,7 @@ QMap< quint64, quint16 > NusDownloader::List40j()
     titles.insert( 0x1000000feull, 0x3 ); 		// IOS254
     titles.insert( 0x1000248414241ull, 0x10 ); 	// Channel HABA
     titles.insert( 0x1000248415941ull, 0x3 );	// Channel HAYA
-    titles.insert( 0x100024843434aull, 0x1 );	// Channel HCCJ
+    titles.insert( 0x100084843434aull, 0x1 );	// Channel HCCJ
     titles.insert( 0x100000002ull, 0x1a0 );		// SystemMenu 4.0J
     return titles;
 }
@@ -706,7 +706,7 @@ QMap< quint64, quint16 > NusDownloader::List41j()
 {
     QMap< quint64, quint16 > titles = List40j();
     titles.insert( 0x100000002ull, 0x1c0 );		// SystemMenu 4.1E
-    titles.insert( 0x100024843434aull, 0x2 );	// Channel HCCJ
+    titles.insert( 0x100084843434aull, 0x2 );	// Channel HCCJ
     return titles;
 }
 
@@ -804,8 +804,8 @@ QMap< quint64, quint16 > NusDownloader::List21e()
     titles.insert( 0x100000011ull, 512 );//17v512
     titles.insert( 0x100000014ull, 12 );//20v12
     titles.insert( 0x100000015ull, 514 );//21v514
-    titles.insert( 0x100000016ull, 772 );//22v772
-    titles.insert( 0x10000001cull, 1228 );//28v1228
+    titles.insert( 0x100000016ull, 777 );//22v772   //should be getting v772 but it isnt available on NUS, get 777 instead
+    titles.insert( 0x10000001cull, 1292 );//28v1228 //should be getting v1288 but it isnt on NUS
     titles.insert( 0x100000100ull, 0x2 );//bcv2
     titles.insert( 0x100000101ull, 0x4 );//miosv4
     titles.insert( 0x1000848414B50ull, 0 );//EULA - HAKP
@@ -841,7 +841,7 @@ QMap< quint64, quint16 > NusDownloader::List31e()
 {
     QMap< quint64, quint16 > titles = List30e();
     //( from rayman raving rabbids tv party )
-    titles.insert( 0x10000000eull, 257 );//14v257
+    //titles.insert( 0x10000000eull, 257 );//14v257 //dunno where this one came from?
     titles.insert( 0x10000001eull, 1040 );//30v1040
     titles.insert( 0x10000001full, 1040 );//31v1040
     titles.insert( 0x100000021ull, 1040 );//33v1040
@@ -901,8 +901,8 @@ QMap< quint64, quint16 > NusDownloader::List34e()
     titles.insert( 0x1000248414650ull, 0x7 ); 		// Channel HAFP
     titles.insert( 0x1000248414750ull, 0x7 ); 		// Channel HAGP
     titles.insert( 0x1000248415941ull, 0x2 ); 		// Channel HAYA
-    titles.insert( 0x1000248414b50ull, 0x2 ); 		// Channel HAKP
-    titles.insert( 0x1000248414c50ull, 0x2 ); 		// Channel HALP
+    titles.insert( 0x1000848414b50ull, 0x2 ); 		// Channel HAKP
+    titles.insert( 0x1000848414c50ull, 0x2 ); 		// Channel HALP
     return titles;
 }
 
@@ -1133,7 +1133,7 @@ QMap< quint64, quint16 > NusDownloader::List33u()
     titles.insert( 0x100000016ull, 0x309 );
     titles.insert( 0x10000001cull, 0x50c );
     titles.insert( 0x10000001full, 0xa10 );
-    titles.insert( 0x100000021ull, 0x3b1 );
+    titles.insert( 0x100000021ull, 0xb10 );
     titles.insert( 0x100000022ull, 0xc0f );
     titles.insert( 0x100000023ull, 0xc10 );
     titles.insert( 0x100000024ull, 0xc12 );
@@ -1205,7 +1205,7 @@ QMap< quint64, quint16 > NusDownloader::List41u()
 QMap< quint64, quint16 > NusDownloader::List42u()
 {
     QMap< quint64, quint16 > titles = List41u();
-    titles.insert( 0x100000001ull, 0x4 );//make people really ask for the boot2 update if they want it
+    //titles.insert( 0x100000001ull, 0x4 );//make people really ask for the boot2 update if they want it
     titles.insert( 0x100000038ull, 0x151d );
     titles.insert( 0x100000039ull, 0x161d );
     titles.insert( 0x100000046ull, 0x1a1f );
@@ -1303,7 +1303,7 @@ QMap< quint64, quint16 > NusDownloader::List35k()
     titles.insert( 0x100000100ull, 0x5 ); 		// BC
     titles.insert( 0x100000101ull, 0x9 ); 		// MIOS
     titles.insert( 0x100024841424bull, 0x10 ); 	// Channel HABK
-    titles.insert( 0x1000248414c4bull, 0x2 ); 	// Channel HALK
+    titles.insert( 0x1000848414c4bull, 0x2 ); 	// Channel HALK
     titles.insert( 0x100000002ull, 0x186 );		// SystemMenu 3.5K
     return titles;
 }
