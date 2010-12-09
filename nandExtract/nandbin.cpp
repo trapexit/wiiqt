@@ -22,7 +22,8 @@ NandBin::~NandBin()
 
 bool NandBin::SetPath( const QString &path )
 {
-    nandPath = path;
+    nandPath = path;//TODO:  dont need both these variables.  definitely dont need to set the global one here
+    nandFile = path;
     if( f.isOpen() )
 	f.close();
 
@@ -252,7 +253,7 @@ bool NandBin::GetKey( int type )
 		emit SendError( tr( "Error getting path of keys.bin" ) );
 		return false;
 	    }
-	    keyPath.resize( sl );
+	    keyPath.resize( sl + 1 );
 	    keyPath += "keys.bin";
 
 	    key = ReadKeyfile( keyPath );
