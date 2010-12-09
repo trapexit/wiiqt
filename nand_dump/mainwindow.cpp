@@ -222,7 +222,7 @@ void MainWindow::on_pushButton_GetTitle_clicked()
     }
     else if( ui->radioButton_nand->isChecked() )
     {
-	if( !nand.SetPath( ui->lineEdit_nandPath->text() ) )
+	if( nand.GetPath() != ui->lineEdit_nandPath->text() && !nand.SetPath( ui->lineEdit_nandPath->text() ) )
 	{
 	    ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" )
 			 .arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
@@ -322,34 +322,24 @@ void MainWindow::on_pushButton_wad_clicked()
     ui->lineEdit_wad->setText( f );
 }
 
+//nand-dump -> setting.txt
+void MainWindow::on_actionSetting_txt_triggered()
+{
+    if( nand.GetPath() != ui->lineEdit_nandPath->text() && !nand.SetPath( ui->lineEdit_nandPath->text() ) )
+    {
+	ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" )
+		     .arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
+	return;
+    }
+    QByteArray ba = nand.GetSettingTxt();	//read the current setting.txt
+    ba = SettingTxtDialog::Edit( this, ba );	//call a dialog to edit that existing file and store the result in teh same bytearray
+    if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand dump
+	nand.SetSettingTxt( ba );
+}
 
-/*
- 3.4j-
-Error getting title from NUS: Error downloading part of the title.
-NusJob( 0001000248414b4a, 2, decrypted, 0 items: )
-
-Error getting title from NUS: Error downloading part of the title.
-NusJob( 0001000248414c4a, 2, decrypted, 0 items: )
-
-Received a completed download from NUS
-Installed 0001000248415941v2 title to nand
-
-Received a completed download from NUS
-Error 000100084843434av0 title to nand
-
-4.0j
-Error getting title from NUS: Error downloading part of the title.
-NusJob( 0001000248414b4a, 2, decrypted, 0 items: )
-
-Error getting title from NUS: Error downloading part of the title.
-NusJob( 0001000248414c4a, 2, decrypted, 0 items: )
-
-Received a completed download from NUS
-Installed 0001000248415941v3 title to nand
-
-Error getting title from NUS: Error downloading part of the title.
-NusJob( 000100024843434a, 1, decrypted, 0 items: )
-
-Received a completed download from NUS
-Error 000100084843434av0 title to nand
-*/
+//nand-dump -> flush
+void MainWindow::on_actionFlush_triggered()
+{
+    if( !nand.GetPath().isEmpty() )
+	nand.Flush();
+}

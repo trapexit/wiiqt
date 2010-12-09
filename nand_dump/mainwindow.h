@@ -35,6 +35,8 @@ public slots:
 
 
 private slots:
+    void on_actionFlush_triggered();
+    void on_actionSetting_txt_triggered();
     void on_pushButton_wad_clicked();
     void on_pushButton_decFolder_clicked();
     void on_pushButton_nandPath_clicked();

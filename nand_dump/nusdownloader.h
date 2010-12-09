@@ -63,6 +63,7 @@ public:
     //to keep people from bulk DLing and installing and messing something up, any boot2 upudate will not be included
     //in the list, ask for it specifically
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
+    //for the 2.x updates, IOS35 is added for use in sneek
     static QMap< quint64, quint16 > List20u();
     static QMap< quint64, quint16 > List30u();
     static QMap< quint64, quint16 > List31u();

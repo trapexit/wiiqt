@@ -589,6 +589,7 @@ QMap< quint64, quint16 > NusDownloader::List20j()
     titles.insert( 0x10000000dull, 10 );//13v10
     titles.insert( 0x10000000full, 257 );//15v257
     titles.insert( 0x100000011ull, 512 );//17v512
+    titles.insert( 0x100000023ull, 0xc10 ); 	// IOS35 - not really part of this update, but needed for sneek
     titles.insert( 0x100000100ull, 0x2 );//bcv2
     titles.insert( 0x100000101ull, 0x4 );//miosv4
     titles.insert( 0x1000848414B45ull, 0 );//EULA - HAKE
@@ -806,6 +807,7 @@ QMap< quint64, quint16 > NusDownloader::List21e()
     titles.insert( 0x100000015ull, 514 );//21v514
     titles.insert( 0x100000016ull, 777 );//22v772   //should be getting v772 but it isnt available on NUS, get 777 instead
     titles.insert( 0x10000001cull, 1292 );//28v1228 //should be getting v1288 but it isnt on NUS
+    titles.insert( 0x100000023ull, 0xc10 ); 	// IOS35 - not really part of this update, but needed for sneek
     titles.insert( 0x100000100ull, 0x2 );//bcv2
     titles.insert( 0x100000101ull, 0x4 );//miosv4
     titles.insert( 0x1000848414B50ull, 0 );//EULA - HAKP
@@ -1038,6 +1040,7 @@ QMap< quint64, quint16 > NusDownloader::List20u()
     titles.insert( 0x10000000dull, 10 );//13v10
     titles.insert( 0x10000000full, 257 );//15v257
     titles.insert( 0x100000011ull, 512 );//17v512
+    titles.insert( 0x100000023ull, 0xc10 ); 	// IOS35 - not really part of this update, but needed for sneek
     titles.insert( 0x100000100ull, 0x2 );//bcv2
     titles.insert( 0x100000101ull, 0x4 );//miosv4
     titles.insert( 0x1000848414B45ull, 0 );//EULA - HAKE

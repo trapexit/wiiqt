@@ -212,6 +212,14 @@
      <height>27</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuNand_Dump">
+    <property name="title">
+     <string>Nand Dump</string>
+    </property>
+    <addaction name="actionSetting_txt"/>
+    <addaction name="actionFlush"/>
+   </widget>
+   <addaction name="menuNand_Dump"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -222,6 +230,16 @@
    </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <action name="actionSetting_txt">
+   <property name="text">
+    <string>Setting.txt...</string>
+   </property>
+  </action>
+  <action name="actionFlush">
+   <property name="text">
+    <string>Flush</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources/>
