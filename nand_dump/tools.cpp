@@ -155,6 +155,24 @@ QByteArray ReadFile( const QString &path )
     return ret;
 }
 
+bool WriteFile( const QString &path, const QByteArray ba )
+{
+    QFile file( path );
+    if( !file.open( QIODevice::WriteOnly ) )
+    {
+	qWarning() << "WriteFile -> can't open" << path;
+	return false;
+    }
+    if( file.write( ba ) != ba.size() )
+    {
+	file.close();
+	qWarning() << "WriteFile -> can't write all the data to" << path;
+	return false;
+    }
+    file.close();
+    return true;
+}
+
 #define CERTS_DAT_SIZE 2560
 const quint8 certs_dat[ CERTS_DAT_SIZE ] = {
 0x00, 0x01, 0x00, 0x01, 0x7D, 0x9D, 0x5E, 0xBA, 0x52, 0x81, 0xDC, 0xA7, 0x06, 0x5D, 0x2F, 0x08,

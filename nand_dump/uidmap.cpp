@@ -180,6 +180,7 @@ void UIDmap::CreateNew( bool addFactorySetupDiscs )
 	default:
 	    qWarning() << "oops" << hex << i;
 	    return;
+	    break;
 	}
 
 	uid = qFromBigEndian( 0x1000 + i );

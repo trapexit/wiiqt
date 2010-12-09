@@ -149,9 +149,14 @@ public:
     const tik *payload(){ return p_tik; }
 
     quint64 Tid();
+    bool SetTid( quint64 tid );
 
     QByteArray DecryptedKey();
     quint32 SignedSize();
+    bool FakeSign();
+
+    //get the ticket data
+    const QByteArray Data(){ return data; }
 
 private:
     quint32 payLoadOffset;
@@ -192,6 +197,22 @@ public:
 
     //title version
     quint16 Version();
+
+    //functions to edit the TMD
+    bool SetTid( quint64 tid );
+    bool SetVersion( quint16 v );
+    bool SetType( quint16 cid, quint16 type );
+    bool SetSize( quint16 cid, quint32 size );
+    bool SetHash( quint16 cid, const QByteArray hash );
+
+    bool FakeSign();
+
+    //get the tmd data
+    const QByteArray Data(){ return data; }
+
+    //print the tmd info to qDebug()
+    void Dbg();
+
 
     quint32 SignedSize();
 private:

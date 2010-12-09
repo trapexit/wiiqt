@@ -207,7 +207,7 @@ bool NusDownloader::SaveDataToCache( const QString &path, const QByteArray &stuf
     QDir d( cachePath );
     if( !d.exists() || !d.mkpath( parent ) )
     {
-	qWarning() << "NusDownloader::SaveDataToCache -> cant create directory" << d.absolutePath();
+	qWarning() << "NusDownloader::SaveDataToCache -> cant create directory" << QString( d.absolutePath() + "/" + path );
 	return false;
     }
     QFile f( path );

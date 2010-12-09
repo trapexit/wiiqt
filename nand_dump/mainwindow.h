@@ -25,6 +25,10 @@ private:
 
     void ShowMessage( const QString& mes );
 
+    //do something with a completed download
+    void SaveJobToFolder( NusJob job );
+    void SaveJobToWad( NusJob job );
+
 
 
 public slots:

@@ -25,6 +25,7 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     //TODO, really get these paths from settings
     ui->lineEdit_cachePath->setText( cachePath );
     ui->lineEdit_nandPath->setText( nandPath );
+    ui->lineEdit_extractPath->setText( "./downloaded" );
     //nand.SetPath( nandPath );
     nus.SetCachePath( cachePath );
 
@@ -62,7 +63,7 @@ void MainWindow::ShowMessage( const QString& mes )
 
 void MainWindow::NusIsDone()
 {
-    QString str = tr( "NUS ojbect is done working<br>" );
+    QString str = tr( "NUS object is done working<br>" );
     ui->plainTextEdit_log->appendHtml( str );
     ui->statusBar->showMessage( tr( "Done" ), 5000 );
     if( ui->radioButton_folder->isChecked() )
@@ -76,6 +77,7 @@ void MainWindow::NusIsDone()
 	ui->pushButton_nandPath->setEnabled( true );
 
 	//write the uid.sys and content.map to disc
+	ShowMessage( tr( "Flushing nand..." ) );
 	nand.Flush();
 
 	//make sure there is a setting.txt
@@ -106,11 +108,11 @@ void MainWindow::ReceiveTitleFromNus( NusJob job )
     ui->plainTextEdit_log->appendHtml( str );
 
     //do something with the data we got
-    if( ui->radioButton_folder->isChecked() )
+    if( ui->radioButton_folder->isChecked() )//copy its decrypted contents to a folder
     {
-
+	SaveJobToFolder( job );
     }
-    else if( ui->radioButton_nand->isChecked() )
+    else if( ui->radioButton_nand->isChecked() )//install this title to a decrypted nand dump for sneek/dolphin
     {
 	bool ok = nand.InstallNusItem( job );
 	if( ok )
@@ -120,57 +122,8 @@ void MainWindow::ReceiveTitleFromNus( NusJob job )
     }
     else if( ui->radioButton_wad->isChecked() )
     {
-	Wad wad( job.data );
-	if( !wad.IsOk() )
-	{
-	    ShowMessage( "<b>Error making a wad from " + title + "<\b>" );
-	    return;
-	}
-	QFileInfo fi( ui->lineEdit_wad->text() );
-	if( fi.isFile() )
-	{
-	    ShowMessage( "<b>" + ui->lineEdit_wad->text() + " is a file.  I need a folder<\b>" );
-	    return;
-	}
-	if( !fi.exists()  )
-	{
-	    ShowMessage( "<b>" + fi.absoluteFilePath() + " is not a folder!\nTrying to create it...<\b>" );
-	    if( !QDir().mkpath( ui->lineEdit_wad->text() ) )
-	    {
-		ShowMessage( "<b>Failed to make the directory!<\b>" );
-		return;
-	    }
-	}
-	QByteArray w = wad.Data();
-	if( w.isEmpty() )
-	{
-	    ShowMessage( "<b>Error creating wad<br>" + wad.LastError() + "<\b>" );
-	    return;
-	}
-
-	QString name = wad.WadName( fi.absoluteFilePath() );
-	if( name.isEmpty() )
-	{
-	    name = QFileDialog::getSaveFileName( this, tr( "Filename for %1" ).arg( title ), fi.absoluteFilePath() );
-	    if( name.isEmpty() )
-	    {
-		ShowMessage( "<b>No save name given, aborting<\b>" );
-		return;
-	    }
-	}
-	QFile file( fi.absoluteFilePath() + "/" + name );
-	if( !file.open( QIODevice::WriteOnly ) )
-	{
-	    ShowMessage( "<b>Cant open " + fi.absoluteFilePath() + "/" + name + " for writing<\b>" );
-	    return;
-	}
-	file.write( w );
-	file.close();
-	ShowMessage( "Saved " + title + " to " + fi.absoluteFilePath() + "/" + name );
+	SaveJobToWad( job );
     }
-
-    //bool r = nand.InstallNusItem( job );
-    //qDebug() << "install:" << r;
 }
 
 //clicked the button to get a title
@@ -304,8 +257,8 @@ void MainWindow::on_pushButton_nandPath_clicked()
 
 void MainWindow::on_pushButton_decFolder_clicked()
 {
-    QString path = ui->lineEdit_extractPath->text().isEmpty() ? "/media" : ui->lineEdit_extractPath->text();
-    QString f = QFileDialog::getExistingDirectory( this, tr( "Select folder to decrypt this title to" ), path );
+    QString path = ui->lineEdit_extractPath->text().isEmpty() ? QDir::currentPath() : ui->lineEdit_extractPath->text();
+    QString f = QFileDialog::getExistingDirectory( this, tr( "Select folder to save decrypted titles" ), path );
     if( f.isEmpty() )
 	return;
 
@@ -332,7 +285,7 @@ void MainWindow::on_actionSetting_txt_triggered()
 	return;
     }
     QByteArray ba = nand.GetSettingTxt();	//read the current setting.txt
-    ba = SettingTxtDialog::Edit( this, ba );	//call a dialog to edit that existing file and store the result in teh same bytearray
+    ba = SettingTxtDialog::Edit( this, ba );	//call a dialog to edit that existing file and store the result in the same bytearray
     if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand dump
 	nand.SetSettingTxt( ba );
 }
@@ -342,4 +295,123 @@ void MainWindow::on_actionFlush_triggered()
 {
     if( !nand.GetPath().isEmpty() )
 	nand.Flush();
+}
+
+//save a NUS job to a folder
+void MainWindow::SaveJobToFolder( NusJob job )
+{
+    QString title = QString( "%1v%2" ).arg( job.tid, 16, 16, QChar( '0' ) ).arg( job.version );
+    QFileInfo fi( ui->lineEdit_extractPath->text() );
+    if( fi.isFile() )
+    {
+	ShowMessage( "<b>" + ui->lineEdit_extractPath->text() + " is a file.  I need a folder<\b>" );
+	return;
+    }
+    if( !fi.exists() )
+    {
+	ShowMessage( "<b>" + fi.absoluteFilePath() + " is not a folder!\nTrying to create it...<\b>" );
+	if( !QDir().mkpath( fi.absoluteFilePath() ) )
+	{
+	    ShowMessage( "<b>Failed to make the directory!<\b>" );
+	    return;
+	}
+    }
+    QString newFName = title;
+    int i = 1;
+    while( QFileInfo( fi.absoluteFilePath() + "/" + newFName ).exists() )//find a folder that doesnt exist and try to create it
+    {
+	newFName = QString( "%1 (copy%2)" ).arg( title ).arg( i++ );
+    }
+    if( !QDir().mkpath( fi.absoluteFilePath() + "/" + newFName ) )
+    {
+	ShowMessage( "<b>Can't create" + fi.absoluteFilePath() + "/" + newFName + " to save this title into!<\b>" );
+	return;
+    }
+    //start writing all this stuff to the HDD
+    QDir d( fi.absoluteFilePath() + "/" + newFName );
+    QByteArray tmdDat = job.data.takeFirst();	    //remember the tmd and use it for getting the names of the .app files
+    if( !WriteFile( d.absoluteFilePath( "title.tmd" ), tmdDat ) )
+    {
+	ShowMessage( "<b>Error writing " + d.absoluteFilePath( "title.tmd" ) + "!<\b>" );
+	return;
+    }
+    if( !WriteFile( d.absoluteFilePath( "cetk" ), job.data.takeFirst() ) )
+    {
+	ShowMessage( "<b>Error writing " + d.absoluteFilePath( "cetk" ) + "!<\b>" );
+	return;
+    }
+    Tmd t( tmdDat );
+    quint16 cnt = t.Count();
+    if( job.data.size() != cnt )
+    {
+	ShowMessage( "<b>Error! Number of contents in the TMD dont match the number received from NUS!<\b>" );
+	return;
+    }
+    for( quint16 i = 0; i < cnt; i++ )//write all the contents in the new folder. if the job is decrypted, append ".app" to the end of their names
+    {
+	QString appName = t.Cid( i );
+	if( job.decrypt )
+	    appName += ".app";
+	if( !WriteFile( d.absoluteFilePath( appName ), job.data.takeFirst() ) )
+	{
+	    ShowMessage( "<b>Error writing " + d.absoluteFilePath( appName ) + "!<\b>" );
+	    return;
+	}
+    }
+    ShowMessage( tr( "Wrote title to %1" ).arg( fi.absoluteFilePath() + "/" + newFName ) );
+}
+
+//save a conpleted job to wad
+void MainWindow::SaveJobToWad( NusJob job )
+{
+    QString title = QString( "%1v%2" ).arg( job.tid, 16, 16, QChar( '0' ) ).arg( job.version );
+    Wad wad( job.data );
+    if( !wad.IsOk() )
+    {
+	ShowMessage( "<b>Error making a wad from " + title + "<\b>" );
+	return;
+    }
+    QFileInfo fi( ui->lineEdit_wad->text() );
+    if( fi.isFile() )
+    {
+	ShowMessage( "<b>" + ui->lineEdit_wad->text() + " is a file.  I need a folder<\b>" );
+	return;
+    }
+    if( !fi.exists()  )
+    {
+	ShowMessage( "<b>" + fi.absoluteFilePath() + " is not a folder!\nTrying to create it...<\b>" );
+	if( !QDir().mkpath( ui->lineEdit_wad->text() ) )
+	{
+	    ShowMessage( "<b>Failed to make the directory!<\b>" );
+	    return;
+	}
+    }
+    QByteArray w = wad.Data();
+    if( w.isEmpty() )
+    {
+	ShowMessage( "<b>Error creating wad<br>" + wad.LastError() + "<\b>" );
+	return;
+    }
+
+    QString name = wad.WadName( fi.absoluteFilePath() );
+    if( name.isEmpty() )
+    {
+	name = QFileDialog::getSaveFileName( this, tr( "Filename for %1" ).arg( title ), fi.absoluteFilePath() );
+	if( name.isEmpty() )
+	{
+	    ShowMessage( "<b>No save name given, aborting<\b>" );
+	    return;
+	}
+    }
+    QFile file( fi.absoluteFilePath() + "/" + name );
+    if( !file.open( QIODevice::WriteOnly ) )
+    {
+	ShowMessage( "<b>Cant open " + fi.absoluteFilePath() + "/" + name + " for writing<\b>" );
+	return;
+    }
+    file.write( w );
+    file.close();
+    ShowMessage( "Saved " + title + " to " + fi.absoluteFilePath() + "/" + name );
+
+
 }

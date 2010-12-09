@@ -23,15 +23,19 @@ public:
     quint64 Tid();
 
     //set the tid in the ticket&tmd and fakesign the wad
-    void SetTid( quint64 tid );
+    bool SetTid( quint64 tid );
+
+    //replace a content of this wad, update the size & hash in the tmd and sign it
+    //ba should be decrypted
+    bool ReplaceContent( quint16 idx, const QByteArray ba );
 
     //add a new content to this wad and fakesign
     //if the data is encrypted, set that arguement to true
     //index is the index used for the new entry, default is after all the others
-    void AddContent( const QByteArray &stuff, quint16 type, bool isEncrypted = false, quint16 index = 0xffff );
+    //void AddContent( const QByteArray &stuff, quint16 type, bool isEncrypted = false, quint16 index = 0xffff );
 
     //remove a content from this wad
-    void RemoveContent( quint16 index );
+    //void RemoveContent( quint16 index );
 
     //set the global cert that will be used for all created
     static void SetGlobalCert( const QByteArray &stuff );
@@ -58,8 +62,8 @@ public:
     //returns an empty string if it cant guess the title based on TID
     static QString WadName( quint64 tid, quint16 version, QString path = QString() );
 
+    //get this Wad's name as it would appear on a disc update partition
     QString WadName( QString path = QString() );
-
 
 private:
     bool ok;

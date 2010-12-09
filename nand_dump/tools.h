@@ -26,6 +26,9 @@ QByteArray PaddedByteArray( const QByteArray &orig, quint32 padTo );
 //read a file into a bytearray
 QByteArray ReadFile( const QString &path );
 
+//save a file to disc
+bool WriteFile( const QString &path, const QByteArray ba );
+
 //keep track of the last folder browsed to when looking for files
 extern QString currentDir;
 

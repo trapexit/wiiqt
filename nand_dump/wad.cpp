@@ -441,7 +441,7 @@ QString Wad::WadName( quint64 tid, quint16 version, QString path )
 
 QByteArray Wad::FromDirectory( QDir dir )
 {
-    QFileInfoList tmds = dir.entryInfoList( QStringList() << "*.tmd", QDir::Files );
+    QFileInfoList tmds = dir.entryInfoList( QStringList() << "*.tmd" << "tmd.*", QDir::Files );
     if( tmds.isEmpty() )
     {
 	qWarning() << "Wad::FromDirectory -> no tmd found in" << dir.absolutePath();
@@ -450,7 +450,7 @@ QByteArray Wad::FromDirectory( QDir dir )
     QByteArray tmdD = ReadFile( tmds.at( 0 ).absoluteFilePath() );
     if( tmdD.isEmpty() )
 	return QByteArray();
-    QFileInfoList tiks = dir.entryInfoList( QStringList() << "*.tik", QDir::Files );
+    QFileInfoList tiks = dir.entryInfoList( QStringList() << "*.tik" << "cetk", QDir::Files );
     if( tiks.isEmpty() )
     {
 	qWarning() << "Wad::FromDirectory -> no tik found in" << dir.absolutePath();
@@ -459,8 +459,17 @@ QByteArray Wad::FromDirectory( QDir dir )
     QByteArray tikD = ReadFile( tiks.at( 0 ).absoluteFilePath() );
     if( tikD.isEmpty() )
 	return QByteArray();
-    Tmd t(tmdD );
-    QList<QByteArray> datas = QList<QByteArray>()<< tmdD << tikD;
+
+    Tmd t( tmdD );
+    Ticket ticket( tikD );
+
+    //make sure to only add the tmd & ticket without all the cert mumbo jumbo
+    QByteArray tmdP = tmdD;
+    tmdP.resize( t.SignedSize() );
+    QByteArray tikP = tikD;
+    tikP.resize( ticket.SignedSize() );
+
+    QList<QByteArray> datas = QList<QByteArray>()<< tmdP << tikP;
 
     quint16 cnt = t.Count();
     for( quint16 i = 0; i < cnt; i++ )
@@ -485,4 +494,62 @@ QByteArray Wad::FromDirectory( QDir dir )
 
     QByteArray ret = wad.Data();
     return ret;
+}
+
+bool Wad::SetTid( quint64 tid )
+{
+    if( !tmdData.size() || !tikData.size() )
+    {
+	Err( "Mising parts of the wad" );
+	return false;
+    }
+    Tmd t( tmdData );
+    Ticket ti( tikData );
+
+    t.SetTid( tid );
+    ti.SetTid( tid );
+
+    if( !t.FakeSign() )
+    {
+	Err( "Error signing TMD" );
+	return false;
+    }
+    if( !ti.FakeSign() )
+    {
+	Err( "Error signing ticket" );
+	return false;
+    }
+    tmdData = t.Data();
+    tikData = ti.Data();
+    return true;
+}
+
+bool Wad::ReplaceContent( quint16 idx, const QByteArray ba )
+{
+    if( idx >= partsEnc.size() || !tmdData.size() || !tikData.size() )
+    {
+	Err( "Mising parts of the wad" );
+	return false;
+    }
+    QByteArray hash = GetSha1( ba );
+    quint32 size = ba.size();
+
+    Tmd t( tmdData );
+    t.SetHash( idx, hash );
+    t.SetSize( idx, size );
+    if( !t.FakeSign() )
+    {
+	Err( "Error signing the tmd" );
+	return false;
+    }
+    tmdData = t.Data();
+
+    Ticket ti( tikData );
+    AesSetKey( ti.DecryptedKey() );
+    QByteArray decDataPadded = PaddedByteArray( ba, 0x40 );
+
+    QByteArray encData = AesEncrypt( idx, decDataPadded );
+    partsEnc.replace( idx, encData );
+
+    return true;
 }
