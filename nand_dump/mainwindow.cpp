@@ -29,7 +29,12 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     ui->lineEdit_cachePath->setText( cachePath );
     ui->lineEdit_nandPath->setText( nandPath );
     ui->lineEdit_extractPath->setText( "./downloaded" );
+
+
     //nand.SetPath( nandPath );
+
+
+
     nus.SetCachePath( cachePath );
 
 
@@ -91,6 +96,14 @@ void MainWindow::NusIsDone()
 	    if( !set.isEmpty() )
 		nand.SetSettingTxt( set );
 	}
+	/*QMap< quint64, quint16 > t = nand.GetInstalledTitles();
+	QMap< quint64, quint16 >::iterator i = t.begin();
+	while( i != t.end() )
+	{
+	    QString title = QString( "%1v%2" ).arg( i.key(), 16, 16, QChar( '0' ) ).arg( i.value() );
+	    qDebug() << "title:" << title;
+	    i++;
+	}*/
     }
     else if( ui->radioButton_wad->isChecked() )
     {

@@ -129,6 +129,11 @@ void NandWindow::on_actionOpen_Nand_triggered()
 
     //delete the made up root item
     delete tree;
+
+    //expand the root item
+    if( ui->treeWidget->topLevelItemCount() )
+	ui->treeWidget->topLevelItem( 0 )->setExpanded( true );
+
     ui->statusBar->showMessage( "Loaded " + path, 5000 );
 
     //nandBin.GetData( "/title/00000001/00000002/data/setting.txt" );//testing 1,2,1,2

@@ -158,7 +158,7 @@ QByteArray ReadFile( const QString &path )
 bool WriteFile( const QString &path, const QByteArray ba )
 {
     QFile file( path );
-    if( !file.open( QIODevice::WriteOnly ) )
+    if( !file.open( QIODevice::WriteOnly | QIODevice::Truncate ) )
     {
 	qWarning() << "WriteFile -> can't open" << path;
 	return false;

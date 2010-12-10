@@ -13,7 +13,6 @@ SOURCES += main.cpp \
 
 HEADERS += nandwindow.h \
     ../WiiQt/nandbin.h \
-    ../WiiQt/tools.h \
     ../WiiQt/tools.h
 
 FORMS += nandwindow.ui

@@ -18,6 +18,7 @@ NandDump::~NandDump()
 bool NandDump::Flush()
 {
     bool ret = FlushUID();
+    ret = FlushReplacementStrings() && ret;
     return FlushContentMap() && ret;
 }
 
@@ -92,9 +93,12 @@ bool NandDump::SetPath( const QString &path )
 	QByteArray u = f.readAll();
 	f.close();
 	cMap = SharedContentMap( u );//checked automatically by the constructor
-	cMap.Check( basePath + "/shared1" );//just checking to make sure everything is ok.
+	//cMap.Check( basePath + "/shared1" );//just checking to make sure everything is ok.
 	cmDirty = false;
     }
+
+    //read the list of strings used to fix the nand for certain filesystems
+    ReadReplacementStrings();
 
     //TODO - need a setting.txt up in here
 
@@ -119,6 +123,22 @@ bool NandDump::FlushContentMap()
     return !cmDirty;
 }
 
+//write the file of replacement strings to HDD
+bool NandDump::FlushReplacementStrings()
+{
+    QString st;
+    QMap< QString, QString >::iterator i = replaceStrings.begin();
+    while( i != replaceStrings.end() )
+    {
+	st += i.key() + " " + i.value() + "\n";
+	i++;
+    }
+    if( st.isEmpty() )
+	return true;
+
+    return SaveData( st.toLatin1(), "/sys/replace" );
+}
+
 QByteArray NandDump::GetSettingTxt()
 {
     return GetFile( "/title/00000001/00000002/data/setting.txt" );
@@ -136,42 +156,28 @@ bool NandDump::SetSettingTxt( const QByteArray ba )
 
 const QByteArray NandDump::GetFile( const QString &path )
 {
-    if( basePath.isEmpty() )
+    if( basePath.isEmpty() || !path.startsWith( "/" ) )
 	return QByteArray();
-    QFile f( basePath + path );
-    if( !f.open( QIODevice::ReadOnly ) )
-    {
-	qWarning() << "NandDump::GetFile -> cant open file for reading" << path;
-	return QByteArray();
-    }
-    QByteArray ret = f.readAll();
-    f.close();
-    return ret;
+
+    return ReadFile( basePath + path );
 }
 
 //write some file to the nand
 bool NandDump::SaveData( const QByteArray ba, const QString& path )
 {
-    if( basePath.isEmpty() )
+    if( basePath.isEmpty() || !path.startsWith( "/" ) )
 	return false;
     qDebug() << "NandDump::SaveData" << path << hex << ba.size();
-    QFile f( basePath + path );
-    if( !f.open( QIODevice::WriteOnly ) )
-    {
-	qWarning() << "NandDump::SaveData -> cant open file for writing" << path;
-	return false;
-    }
-    f.write( ba );
-    f.close();
-    return true;
+    return WriteFile( basePath + path, ba );
 }
 
 //delete a file from the nand
 void NandDump::DeleteData( const QString & path )
 {
     qDebug() << "NandDump::DeleteData" << path;
-    if( basePath.isEmpty() )
+    if( basePath.isEmpty() || !path.startsWith( "/" ) )
 	return;
+
     QFile::remove( basePath + path );
 }
 
@@ -266,6 +272,9 @@ void NandDump::AbortInstalling( quint64 tid )
 
 bool NandDump::DeleteTitle( quint64 tid, bool deleteData )
 {
+    if( basePath.isEmpty() )
+	return false;
+
     QString tidStr = QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) );
     tidStr.insert( 8 ,"/" );
     QString tikPath = tidStr;
@@ -287,7 +296,15 @@ bool NandDump::DeleteTitle( quint64 tid, bool deleteData )
 //this function expects an absolute path, not a relitive one inside the nand dump
 bool NandDump::RecurseDeleteFolder( const QString &path )
 {
+    if( basePath.isEmpty() || !path.startsWith( QFileInfo( basePath ).absoluteFilePath() ) )//make sure we arent deleting something outside the virtual nand
+    {
+	qWarning() << "NandDump::RecurseDeleteFolder -> something is amiss; tried to delete" << path;
+	return false;
+    }
     QDir d( path );
+    if( !d.exists() )
+	return true;
+
     QFileInfoList fiL = d.entryInfoList( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
     foreach( QFileInfo fi, fiL )
     {
@@ -314,7 +331,7 @@ bool NandDump::InstallNusItem( NusJob job )
     }
     if( !uidDirty )
     {
-	uidDirty = uidMap.GetUid( job.tid, false ) != 0;//only frag the uid as dirty if it has to be, this way it is only flushed if needed
+	uidDirty = uidMap.GetUid( job.tid, false ) == 0;//only flag the uid as dirty if it has to be, this way it is only flushed if needed
     }
     uidMap.GetUid( job.tid );
     QString p = QString( "%1" ).arg( job.tid, 16, 16, QChar( '0' ) );
@@ -398,5 +415,322 @@ bool NandDump::InstallNusItem( NusJob job )
 	    return false;
 	}
     }
+    return true;
+}
+
+QMap< quint64, quint16 > NandDump::GetInstalledTitles()
+{
+    QMap< quint64, quint16 >ret;
+    if( basePath.isEmpty() )
+	return ret;
+
+    //QStringList tickets;
+    //get all the tickets
+    QDir d( basePath + "/ticket" );
+    QFileInfoList fiL = d.entryInfoList( QDir::Dirs | QDir::NoDotAndDotDot );//get all folders in "/ticket"
+    foreach( QFileInfo fi, fiL )
+    {
+	if( fi.fileName().size() != 8 )
+	    continue;
+
+	bool ok = false;
+	quint32 upper = fi.fileName().toInt( &ok, 16 );
+	if( !ok )
+	    continue;
+
+	QDir sd( fi.absoluteFilePath() );
+	QFileInfoList sfiL = sd.entryInfoList( QStringList() << "*.tik", QDir::Files );//get all "*.tik" files in this subfolder
+	foreach( QFileInfo sfi, sfiL )
+	{
+	    QString lowerStr = sfi.fileName();//drop the ".tik" extension and convert to u32
+	    lowerStr.resize( 8 );
+
+	    quint32 lower = lowerStr.toInt( &ok, 16 );
+	    if( !ok )
+		continue;
+
+	    //load the TMD
+	    QByteArray tmdData = GetFile( "/title/" + fi.fileName() + "/" + lowerStr + "/content/title.tmd" );
+	    if( tmdData.isEmpty() )
+		continue;
+
+	    //get version of tmd
+	    Tmd t( tmdData );
+	    quint16 version = t.Version();
+	    quint64 tid = (quint64)( ((quint64)upper << 32 ) | lower );
+
+	    //add this title to the return list
+	    ret.insert( tid, version );
+	}
+    }
+    return ret;
+}
+
+void NandDump::ReadReplacementStrings()
+{
+    replaceStrings.clear();
+    QByteArray ba = GetFile( "/sys/replace" );
+    if( ba.isEmpty() )
+	return;
+
+    QRegExp re( "[^/?*:;{}\\]+" );
+
+    QString all( ba );
+    all.replace( "\r\n", "\n" );
+    QStringList lines = QString( ba ).split( "\n", QString::SkipEmptyParts );
+    foreach( QString line, lines )
+    {
+	//skip lines that are less than 3 characters on dont have a space as their second character or have characters not allowed on FAT32
+	if( line.size() < 3 || line.at( 1 ) != ' ' || line.contains( re ) )
+	    continue;
+
+	QString ch = line.left( 1 );
+	QString rp = line.right( line.size() - 2 );
+
+	replaceStrings.insert( ch, rp );
+    }
+}
+
+bool NandDump::SetReplaceString( const QString ch, const QString &replaceWith )
+{
+    qWarning() << "NandDump::SetReplaceString(" << ch << "," << replaceWith << ")";
+    QRegExp re( "[^/?*:;{}\\]+" );
+    if( replaceWith.contains( re ) )
+    {
+	qWarning() << "NandDump::SetReplaceString -> replacement string contains illegal characters";
+	return false;
+    }
+
+    QString from;
+    QString to;
+    QMap< QString, QString >::iterator i = replaceStrings.find( ch );
+
+    if( i == replaceStrings.end() )	//currently not replacing this character
+    {
+	if( replaceWith.isEmpty() )//nothing to do
+	    return true;
+	from = ch;
+	to = replaceWith;
+    }
+    else				//this character is already being replaced by something
+    {
+	if( i.value() == replaceWith )//nothing to do
+	    return true;
+
+	from = i.value();
+	if( replaceWith.isEmpty() ) //set all names back to their correct ones
+	{
+	    to = ch;
+	}
+	else			    //change the names from one replacement character to another
+	{
+	    to = replaceWith;
+	}
+    }
+
+    //now go through and try to apply the new naming to all existing files/folders
+    //if something goes wrong, try to rename all files back to their original name
+    if( !RecurseRename( QFileInfo( basePath ).absoluteFilePath() + "/title", from, to ) )
+    {
+	qWarning() << "NandDump::SetReplaceString -> error renaming something; trying to undo whatever i did";
+	if( !RecurseRename( QFileInfo( basePath ).absoluteFilePath() + "/title", from, to ) )
+	{
+	    qWarning() << "NandDump::SetReplaceString -> something went wrong and i couldnt fix it.";
+	}
+	return false;
+    }
+    if( to.isEmpty() )
+	replaceStrings.remove( ch );
+    else
+	replaceStrings.insert( ch, to );
+    return true;
+}
+
+bool NandDump::RecurseRename( const QString &path, const QString &from, const QString &to )
+{
+    //qDebug() << "NandDump::RecurseRename(" << path << "," << from << "," << to << ")";
+    //make sure we arent messing with something outside the virtual nand
+    if( basePath.isEmpty() || !path.startsWith( QFileInfo( basePath ).absoluteFilePath() ) )
+    {
+	qWarning() << "NandDump::RecurseRename -> something is amiss; tried to rename" << path;
+	return false;
+    }
+    QDir d( path );
+    if( !d.exists() )
+	return true;
+
+    QFileInfoList fiL = d.entryInfoList( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
+    foreach( QFileInfo fi, fiL )
+    {
+	QString name = fi.fileName();
+	name.replace( from, to );
+
+	if( fi.isFile() )
+	{
+	    if( fi.fileName() != name && !d.rename( fi.fileName(), name ) )
+	    {
+		qWarning() << "NandDump::RecurseRename -> error renaming" << fi.absoluteFilePath() << "to" << name;
+		return false;
+	    }
+	}
+	if( fi.isDir() )
+	{
+	    if( fi.fileName() != name && !d.rename( fi.fileName(), name ) )
+	    {
+		qWarning() << "NandDump::RecurseRename -> error renaming" << fi.absoluteFilePath() << "to" << name;
+		return false;
+	    }
+	    if( !RecurseRename( fi.absoluteFilePath(), from, to ) )
+		return false;
+	}
+    }
+    return true;
+}
+
+const QString NandDump::ToNandName( const QString &name )
+{
+    QString ret = name;
+    QMap< QString, QString >::iterator i = replaceStrings.begin();
+    while( i != replaceStrings.end() )
+    {
+	ret.replace( i.key(), i.value() );
+	i++;
+    }
+    return ret;
+}
+
+const QString NandDump::FromNandName( const QString &name )
+{
+    QString ret = name;
+    QMap< QString, QString >::iterator i = replaceStrings.begin();
+    while( i != replaceStrings.end() )
+    {
+	ret.replace( i.value(), i.key() );
+	i++;
+    }
+    return ret;
+}
+
+const QString NandDump::ToNandPath( const QString &path )
+{
+    QString ret;
+    QStringList parts = path.split( "/", QString::SkipEmptyParts );
+    foreach( QString part, parts )
+	ret += "/" + ToNandName( part );
+
+    return ret;
+}
+
+const QString NandDump::FromNandPath( const QString &path )
+{
+    QString ret;
+    QStringList parts = path.split( "/", QString::SkipEmptyParts );
+    foreach( QString part, parts )
+	ret += "/" + FromNandName( part );
+
+    return ret;
+}
+
+QMap<QString, QString> NandDump::GetReplacementStrings()
+{
+    return replaceStrings;
+}
+
+SaveGame NandDump::GetSaveData( quint64 tid )
+{
+    SaveGame ret;
+    ret.tid = tid;
+    if( basePath.isEmpty() )
+	return ret;
+
+    //build the path to the data folder
+    QString p = QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) );
+    p.insert( 8 ,"/" );
+    p.prepend( "/title/" );
+    p += "/data";
+    QString path = basePath + p;
+
+    QDir d( path );
+    if( !d.exists() )//folder doesnt exist, theres nothing to get
+	return ret;
+
+    d.setFilter( QDir::NoDotAndDotDot );
+
+    //go through this directory and get the goods
+    QDirIterator it( d, QDirIterator::Subdirectories );
+    while( it.hasNext() )
+    {
+	QString str = it.next();
+	ret.entries << FromNandPath( str );//convert from the paths used in the local filesystem to ones expected by wii games
+
+	QFileInfo fi = it.fileInfo();
+	if( fi.isFile() )//its a file, get the data and add it to the return idem
+	{
+	    ret.data << ReadFile( fi.absoluteFilePath() );
+	    ret.isFile << true;
+	}
+	else//its a folder, nothing special to do
+	    ret.isFile << false;
+    }
+    return ret;
+}
+
+bool NandDump::InstallSave( SaveGame save )
+{
+    if( basePath.isEmpty() || !IsValidSave( save ) )
+	return false;
+
+    //build the path to the data folder
+    QString p = QString( "%1" ).arg( save.tid, 16, 16, QChar( '0' ) );
+    p.insert( 8 ,"/" );
+    p.prepend( "/title/" );
+    //p += "/data";
+    QString path = basePath + p + "/data";
+
+    //make sure the path exists
+    if( !QFileInfo( path ).exists() || !QDir().mkpath( path ) )
+    {
+	qWarning() << "NandDump::InstallSave -> error creating" << path;
+	return false;
+    }
+    //try to make the content folder, but it doesnt matter if it isnt created for whatever reason
+    if( !QFileInfo( basePath + p + "/content" ).exists() )
+	QDir().mkpath( basePath + p + "/content" );
+
+    quint16 dataIdx = 0;
+    quint16 entryIdx = 0;
+    foreach( QString entry, save.entries )
+    {
+	QString cp = ToNandPath( entry );
+	if( save.isFile.at( entryIdx ) )//this is a file
+	{
+	    if( !SaveData( save.data.at( dataIdx++ ), path + cp ) )
+		return false;
+	}
+	else				//this is a directory
+	{
+	    if( !QDir().mkpath( path + cp ) )
+		return false;
+	}
+	entryIdx++;
+    }
+    return true;
+}
+
+bool NandDump::IsValidSave( SaveGame save )
+{
+    if( !save.tid || save.entries.size() != save.isFile.size() )
+	return false;
+
+    quint16 files = 0;
+    quint16 cnt = save.isFile.size();
+    for( quint16 i = 0; i < cnt; i++ )
+    {
+	if( save.isFile.at( i ) )
+	    files++;
+    }
+    if( files != save.data.size() )
+	return false;
+
     return true;
 }
