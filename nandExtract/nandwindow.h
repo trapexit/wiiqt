@@ -2,7 +2,7 @@
 #define NANDWINDOW_H
 
 #include "includes.h"
-#include "nandbin.h"
+#include "../WiiQt/nandbin.h"
 
 namespace Ui {
     class NandWindow;

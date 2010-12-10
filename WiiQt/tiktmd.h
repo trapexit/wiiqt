@@ -135,9 +135,6 @@ typedef struct _cert_ecdsa {
 
 #define COMMON_KEY		{0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48, 0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7}
 
-#define TITLE_IDH(x)		((u32)(((u64)(x))>>32))
-#define TITLE_IDL(x)		((u32)(((u64)(x))))
-
 //just a quick class to try to keep the rest of the code from getting full of the same shit over and over
 class Ticket
 {
@@ -199,18 +196,19 @@ public:
     quint16 Version();
 
     //functions to edit the TMD
+    //you probably want to call FakeSign() after using these
     bool SetTid( quint64 tid );
     bool SetVersion( quint16 v );
-    bool SetType( quint16 cid, quint16 type );
-    bool SetSize( quint16 cid, quint32 size );
-    bool SetHash( quint16 cid, const QByteArray hash );
+    bool SetType( quint16 i, quint16 type );
+    bool SetSize( quint16 i, quint32 size );
+    bool SetHash( quint16 i, const QByteArray hash );
 
     bool FakeSign();
 
-    //get the tmd data
+    //returns a qbytearray containing the tmd, from the rsa signature through the last content
     const QByteArray Data(){ return data; }
 
-    //print the tmd info to qDebug()
+    //print some tmd info to qDebug()
     void Dbg();
 
 
@@ -225,7 +223,7 @@ private:
     void SetPointer();
 
     //this is just a pointer to the actual good stuff in "data".
-    //whenever data is changes, this pointer will become invalid and needs to be reset
+    //whenever data is changed, this pointer will become invalid and needs to be reset
     tmd *p_tmd;
 };
 

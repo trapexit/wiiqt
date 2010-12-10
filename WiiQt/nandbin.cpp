@@ -22,8 +22,7 @@ NandBin::~NandBin()
 
 bool NandBin::SetPath( const QString &path )
 {
-    nandPath = path;//TODO:  dont need both these variables.  definitely dont need to set the global one here
-    nandFile = path;
+    //nandPath = path;
     if( f.isOpen() )
 	f.close();
 
@@ -246,7 +245,7 @@ bool NandBin::GetKey( int type )
     case 0:
     case 1:
 	{
-	    QString keyPath = nandFile;
+	    QString keyPath = nandPath;
 	    int sl = keyPath.lastIndexOf( "/" );
 	    if( sl == -1 )
 	    {
@@ -512,6 +511,72 @@ QByteArray NandBin::GetFile( fst_t fst )
 void NandBin::SetFixNamesForFAT( bool fix )
 {
     fatNames = fix;
+}
+
+const QByteArray NandBin::GetData( const QString &path )
+{
+    QTreeWidgetItem *item = ItemFromPath( path );
+    if( !item )
+	return QByteArray();
+
+    if( !item->text( 6 ).contains( "1" ) )
+    {
+	qDebug() << "NandBin::GetData -> can't get data for a folder" << item->text( 0 );
+	return QByteArray();
+    }
+
+    bool ok = false;
+    quint16 entry = item->text( 1 ).toInt( &ok, 10 );
+    if( !ok )
+	return QByteArray();
+
+    return GetFile( entry );
+}
+
+QTreeWidgetItem *NandBin::ItemFromPath( const QString &path )
+{
+    if( !root || !root->childCount() )
+	return NULL;
+
+    QTreeWidgetItem *item = root->child( 0 );
+    if( item->text( 0 ) != "/" )
+    {
+	qWarning() << "NandBin::ItemFromPath -> root is not \"/\"" << item->text( 0 );
+	return NULL;
+    }
+    if( !path.startsWith( "/" ) || path.contains( "//" ))
+    {
+	qWarning() << "NandBin::ItemFromPath -> invalid path";
+	return NULL;
+    }
+    int slash = 1;
+    while( slash )
+    {
+	int nextSlash = path.indexOf( "/", slash + 1 );
+	QString lookingFor = path.mid( slash, nextSlash - slash );
+	item = FindItem( lookingFor, item );
+	if( !item )
+	{
+	    qWarning() << "NandBin::ItemFromPath ->item not found" << path;
+	    return NULL;
+	}
+	slash = nextSlash + 1;
+    }
+    return item;
+}
+
+QTreeWidgetItem *NandBin::FindItem( const QString &s, QTreeWidgetItem *parent )
+{
+    int cnt = parent->childCount();
+    for( int i = 0; i <cnt; i++ )
+    {
+	QTreeWidgetItem *r = parent->child( i );
+	if( r->text( 0 ) == s )
+	{
+	    return r;
+	}
+    }
+    return NULL;
 }
 
 void NandBin::ShowInfo()

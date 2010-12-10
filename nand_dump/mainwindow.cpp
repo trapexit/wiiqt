@@ -1,12 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "settingtxtdialog.h"
-#include "uidmap.h"
-#include "sha1.h"
-#include "tiktmd.h"
-#include "tools.h"
-#include "aes.h"
-#include "wad.h"
+#include "../WiiQt/settingtxtdialog.h"
+#include "../WiiQt/tiktmd.h"
+#include "../WiiQt/tools.h"
+#include "../WiiQt/wad.h"
+
 
 MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::MainWindow ), nus ( this )
 {
@@ -23,6 +21,11 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nus, SIGNAL( SendData( NusJob ) ), this, SLOT( ReceiveTitleFromNus( NusJob) ) );
 
     //TODO, really get these paths from settings
+
+    QString cachePath = "./NUS_cache";
+    QString nandPath = "./dump";
+
+
     ui->lineEdit_cachePath->setText( cachePath );
     ui->lineEdit_nandPath->setText( nandPath );
     ui->lineEdit_extractPath->setText( "./downloaded" );

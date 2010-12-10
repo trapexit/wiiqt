@@ -1,6 +1,9 @@
 #ifndef NUSDOWNLOADER_H
 #define NUSDOWNLOADER_H
 
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+
 #include "includes.h"
 #include "tiktmd.h"
 

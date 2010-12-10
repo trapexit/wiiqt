@@ -5,12 +5,15 @@ TARGET = nandExtract
 TEMPLATE = app
 SOURCES += main.cpp \
     nandwindow.cpp \
-    nandbin.cpp \
-    tools.cpp \
-    aes.c
+    ../WiiQt/nandbin.cpp \
+    ../WiiQt/tools.cpp \
+    ../WiiQt/savebanner.cpp \
+    ../WiiQt/aes.c \
+    ../WiiQt/sha1.c
+
 HEADERS += nandwindow.h \
-    nandbin.h \
-    includes.h \
-    tools.h \
-    aes.h
+    ../WiiQt/nandbin.h \
+    ../WiiQt/tools.h \
+    ../WiiQt/tools.h
+
 FORMS += nandwindow.ui

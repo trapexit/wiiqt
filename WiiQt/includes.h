@@ -15,8 +15,8 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QMessageBox>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
+//#include <QNetworkAccessManager>
+//#include <QNetworkReply>
 #include <QObject>
 #include <QProcess>
 #include <QQueue>

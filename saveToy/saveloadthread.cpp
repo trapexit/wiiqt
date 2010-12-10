@@ -70,6 +70,14 @@ void SaveLoadThread::run()
     QFileInfoList fiL2 = subDir.entryInfoList();
     cnt += fiL2.size();
 
+    subDir.setPath( basePath + "/title/00010002" );
+    QFileInfoList fiL3 = subDir.entryInfoList();
+    cnt += fiL3.size();
+
+    subDir.setPath( basePath + "/title/00010004" );
+    QFileInfoList fiL4 = subDir.entryInfoList();
+    cnt += fiL4.size();
+
     foreach( QFileInfo f, fiL )
     {
 	i++;
@@ -98,7 +106,37 @@ void SaveLoadThread::run()
 	ff.close();
 
 	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
+	emit SendItem( stuff, QString( "00010001" + f.fileName() ), type, size );
+    }
+    foreach( QFileInfo f, fiL3 )
+    {
+	i++;
+	emit SendProgress( (int)( ( (float)( i ) / (float)cnt ) * (float)100 ) );
+
+	QFile ff( f.absoluteFilePath() + "/data/banner.bin" );
+	if( !ff.exists() || !ff.open( QIODevice::ReadOnly ) )
+	    continue;
+
+	QByteArray stuff = ff.readAll();
+	ff.close();
+
+	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
 	emit SendItem( stuff, QString( "00010002" + f.fileName() ), type, size );
+    }
+    foreach( QFileInfo f, fiL4 )
+    {
+	i++;
+	emit SendProgress( (int)( ( (float)( i ) / (float)cnt ) * (float)100 ) );
+
+	QFile ff( f.absoluteFilePath() + "/data/banner.bin" );
+	if( !ff.exists() || !ff.open( QIODevice::ReadOnly ) )
+	    continue;
+
+	QByteArray stuff = ff.readAll();
+	ff.close();
+
+	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
+	emit SendItem( stuff, QString( "00010004" + f.fileName() ), type, size );
     }
 
     emit SendProgress( 100 );

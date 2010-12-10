@@ -472,13 +472,38 @@ QByteArray Wad::FromDirectory( QDir dir )
     QList<QByteArray> datas = QList<QByteArray>()<< tmdP << tikP;
 
     quint16 cnt = t.Count();
+
+    bool tmdChanged = false;
     for( quint16 i = 0; i < cnt; i++ )
     {
 	QByteArray appD = ReadFile( dir.absoluteFilePath( t.Cid( i ) + ".app" ) );
 	if( appD.isEmpty() )
 	    return QByteArray();
 
+	if( (quint32)appD.size() != t.Size( i ) )
+	{
+	    t.SetSize( i, appD.size() );
+	    tmdChanged = true;
+	}
+	QByteArray realHash = GetSha1( appD );
+	if( t.Hash( i ) != realHash )
+	{
+	    t.SetHash( i, realHash );
+	    tmdChanged = true;
+	}
 	datas << appD;
+    }
+    //if something in the tmd changed, fakesign it and replace the data in our list with the new data
+    if( tmdChanged )
+    {
+	if( !t.FakeSign() )
+	{
+	    qWarning() << "Error signing the wad";
+	}
+	else
+	{
+	    datas.replace( 0, t.Data() );
+	}
     }
     Wad wad( datas, false );
     if( !wad.IsOk() )

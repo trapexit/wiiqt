@@ -1,12 +1,14 @@
 #ifndef TOOLS_H
 #define TOOLS_H
 #include "includes.h"
+//#include "
 
 #define RU(x,n)	(-(-(x) & -(n)))    //round up
 
 #define MIN( x, y ) ( ( x ) < ( y ) ? ( x ) : ( y ) )
 #define MAX( x, y ) ( ( x ) > ( y ) ? ( x ) : ( y ) )
 
+char ascii( char s );
 void hexdump( const void *d, int len );
 void hexdump( const QByteArray &d, int from = 0, int len = -1 );
 
@@ -30,13 +32,13 @@ QByteArray ReadFile( const QString &path );
 bool WriteFile( const QString &path, const QByteArray ba );
 
 //keep track of the last folder browsed to when looking for files
-extern QString currentDir;
+//extern QString currentDir;
 
 //folder used to cache stuff downloaded from NUS so duplicate titles dont need to be downloaded
-extern QString cachePath;
+//extern QString cachePath;
 
 //folder to use as the base path for the nand
-extern QString nandPath;
+//extern QString nandPath;
 
 #define CERTS_DAT_SIZE 2560
 extern const quint8 certs_dat[ CERTS_DAT_SIZE ];

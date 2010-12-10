@@ -126,6 +126,8 @@ QByteArray NandDump::GetSettingTxt()
 
 bool NandDump::SetSettingTxt( const QByteArray ba )
 {
+    if( basePath.isEmpty() )
+	return false;
     QString path = basePath + "/title/00000001/00000002/data";
     if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
 	return false;
@@ -134,6 +136,8 @@ bool NandDump::SetSettingTxt( const QByteArray ba )
 
 const QByteArray NandDump::GetFile( const QString &path )
 {
+    if( basePath.isEmpty() )
+	return QByteArray();
     QFile f( basePath + path );
     if( !f.open( QIODevice::ReadOnly ) )
     {
@@ -148,6 +152,8 @@ const QByteArray NandDump::GetFile( const QString &path )
 //write some file to the nand
 bool NandDump::SaveData( const QByteArray ba, const QString& path )
 {
+    if( basePath.isEmpty() )
+	return false;
     qDebug() << "NandDump::SaveData" << path << hex << ba.size();
     QFile f( basePath + path );
     if( !f.open( QIODevice::WriteOnly ) )
@@ -164,6 +170,8 @@ bool NandDump::SaveData( const QByteArray ba, const QString& path )
 void NandDump::DeleteData( const QString & path )
 {
     qDebug() << "NandDump::DeleteData" << path;
+    if( basePath.isEmpty() )
+	return;
     QFile::remove( basePath + path );
 }
 

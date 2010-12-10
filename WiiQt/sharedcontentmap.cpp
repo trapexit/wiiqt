@@ -118,5 +118,5 @@ void SharedContentMap::AddEntry( const QString &app, const QByteArray &hash )
 {
     data += app.toAscii() + hash;
     //qDebug() << "SharedContentMap::AddEntry -> added entry, rechecking this beast";
-    Check();
+    //Check();
 }

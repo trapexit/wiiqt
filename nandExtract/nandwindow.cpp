@@ -1,6 +1,5 @@
 #include "nandwindow.h"
 #include "ui_nandwindow.h"
-#include "tools.h"
 
 NandWindow::NandWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -13,9 +12,9 @@ NandWindow::NandWindow(QWidget *parent) :
     ui->treeWidget->header()->resizeSection( 0, fm.width( QString( 22, 'W' ) ) );//name
     ui->treeWidget->header()->resizeSection( 1, fm.width( "WWWWW" ) );//entry #
     ui->treeWidget->header()->resizeSection( 2, fm.width( "WWWWW" ) );//size
-    ui->treeWidget->header()->resizeSection( 3, fm.width( "WWWWWWWWWW" ) );//uid
-    ui->treeWidget->header()->resizeSection( 4, fm.width( "WWWWWWWWWW" ) );//gid
-    ui->treeWidget->header()->resizeSection( 5, fm.width( "WWWWWWWWWW" ) );//x3
+    ui->treeWidget->header()->resizeSection( 3, fm.width( "WWWWWWWWW" ) );//uid
+    ui->treeWidget->header()->resizeSection( 4, fm.width( "WWWWWWWWW" ) );//gid
+    ui->treeWidget->header()->resizeSection( 5, fm.width( "WWWWWWWWW" ) );//x3
     ui->treeWidget->header()->resizeSection( 6, fm.width( "WWWWW" ) );//mode
     ui->treeWidget->header()->resizeSection( 7, fm.width( "WWWWW" ) );//attr
 
@@ -131,4 +130,6 @@ void NandWindow::on_actionOpen_Nand_triggered()
     //delete the made up root item
     delete tree;
     ui->statusBar->showMessage( "Loaded " + path, 5000 );
+
+    //nandBin.GetData( "/title/00000001/00000002/data/setting.txt" );//testing 1,2,1,2
 }

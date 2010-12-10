@@ -3,9 +3,9 @@
 #include "aes.h"
 #include "sha1.h"
 
-QString currentDir;
-QString cachePath = "./NUS_cache";
-QString nandPath = "./dump";
+//QString currentDir;
+//QString cachePath = "./NUS_cache";
+//QString nandPath = "./dump";
 
 char ascii( char s ) {
     if ( s < 0x20 ) return '.';

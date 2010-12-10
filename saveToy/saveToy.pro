@@ -12,19 +12,21 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    savebanner.cpp \
     savelistitem.cpp \
     saveloadthread.cpp \
-    tools.cpp
+    ../WiiQt/tools.cpp \
+    ../WiiQt/savebanner.cpp \
+    ../WiiQt/aes.c \
+    ../WiiQt/sha1.c
 
 HEADERS  += mainwindow.h \
-    includes.h \
-    savebanner.h \
     savelistitem.h \
-    saveloadthread.h \
-    tools.h
+    saveloadthread.h\
+    ../WiiQt/tools.h
 
 FORMS    += mainwindow.ui
 
 RESOURCES += \
     rc.qrc
+
+INCPATH += "../WiiQt"

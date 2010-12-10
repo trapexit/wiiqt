@@ -1,9 +1,9 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
-#include "includes.h"
-#include "nusdownloader.h"
-#include "nanddump.h"
+#include "../WiiQt/includes.h"
+#include "../WiiQt/nusdownloader.h"
+#include "../WiiQt/nanddump.h"
 
 namespace Ui {
     class MainWindow;

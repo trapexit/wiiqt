@@ -1,7 +1,7 @@
 #include "savebanner.h"
 #include "tools.h"
 
-int TPL_ConvertRGB5A3ToBitMap(quint8* tplbuf, quint8** bitmapdata, quint32 width, quint32 height);
+static int ConvertRGB5A3ToBitMap(quint8* tplbuf, quint8** bitmapdata, quint32 width, quint32 height);
 
 SaveBanner::SaveBanner()
 {
@@ -201,7 +201,7 @@ QImage SaveBanner::ConvertTextureToImage( const QByteArray &ba, quint32 w, quint
 {
     //qDebug() << "SaveBanner::ConvertTextureToImage" << ba.size() << hex << w << h;
     quint8* bitmapdata = NULL;//this will hold the converted image
-    int ret = TPL_ConvertRGB5A3ToBitMap( (quint8*)ba.constData(), &bitmapdata, w, h );
+    int ret = ConvertRGB5A3ToBitMap( (quint8*)ba.constData(), &bitmapdata, w, h );
     if( !ret )
     {
 	qWarning() << "SaveBanner::ConvertTextureToImage -> error converting image";
@@ -211,10 +211,9 @@ QImage SaveBanner::ConvertTextureToImage( const QByteArray &ba, quint32 w, quint
     QImage im2 = im.copy( im.rect() );//make a copy of the image so the "free" wont delete any data we still want
     free( bitmapdata );
     return im2;
-
 }
 
-int TPL_ConvertRGB5A3ToBitMap(quint8* tplbuf, quint8** bitmapdata, quint32 width, quint32 height)
+static int ConvertRGB5A3ToBitMap(quint8* tplbuf, quint8** bitmapdata, quint32 width, quint32 height)
 {
 	quint32 x, y;
 	quint32 x1, y1;

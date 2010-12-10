@@ -6,6 +6,10 @@
 #include "sharedcontentmap.h"
 #include "uidmap.h"
 
+//class for handeling an extracted wii nand filesystem
+//!  nothing can be done unless basePath is set.  do this either by setting it in the constructor, or by calling SetPath()
+//!  current reading and writing is limited to installing a title in the form of NusJob, reading/writing/deleting specific paths
+//!  for performance reasons, the uid and content map are cached and only written to the HDD when the destructor or Flush() is called
 class NandDump
 {
 public:
@@ -27,17 +31,27 @@ public:
     bool DeleteTitle( quint64 tid, bool deleteData = false );
 
     //check what version a given title is on this nand, returns 0 if it isnt installed
-    quint16 GetTitleVersion( quint64 tid );
+    //quint16 GetTitleVersion( quint64 tid );
+
+    //get a list of all titles for which there is a ticket & tmd
+    // returns a map of < tid, version >
+    //QMap< quint64, quint16 > GetInstalledTitles();
 
     //write the current uid & content.map to the PC
     //failure to make sure this is done can end up with a broken nand
     bool Flush();
 
+    //overloads GetFile() with "/title/00000001/00000002/data/setting.txt"
     QByteArray GetSettingTxt();
     bool SetSettingTxt( const QByteArray ba );
 
+    //reads a file from the nand and returns it as a qbytearray
     const QByteArray GetFile( const QString &path );
+
+    //tries to write the given bytearray to a file of the given path
     bool SaveData( const QByteArray ba, const QString& path );
+
+    //expects a file, not directory
     void DeleteData( const QString & path );
 
 

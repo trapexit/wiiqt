@@ -1,6 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "tools.h"
+#include "savebanner.h"
+
+//TODO...  get these from settings and dont use global variables
+static QString pcPath = "./saveBackups";
+static QString sneekPath = "/media/SDHC_4GB";
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), bannerthread( this )
 {
@@ -108,6 +113,7 @@ void MainWindow::on_actionSet_Sneek_Path_triggered()
     if( p.isEmpty() )
 	return;
 
+    ui->listWidget_sneekSaves->clear();
     GetSavesFromSneek( p );
 }
 

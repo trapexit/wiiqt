@@ -13,29 +13,27 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    tools.cpp \
-    uidmap.cpp \
-    sharedcontentmap.cpp \
-    sha1.c \
-    tiktmd.cpp \
-    aes.c \
-    nusdownloader.cpp \
-    nanddump.cpp \
-    settingtxtdialog.cpp \
-    wad.cpp
+    ../WiiQt/tools.cpp \
+    ../WiiQt/sharedcontentmap.cpp \
+    ../WiiQt/tiktmd.cpp \
+    ../WiiQt/nusdownloader.cpp \
+    ../WiiQt/uidmap.cpp \
+    ../WiiQt/nanddump.cpp \
+    ../WiiQt/settingtxtdialog.cpp \
+    ../WiiQt/wad.cpp \
+    ../WiiQt/aes.c \
+    ../WiiQt/sha1.c
 
 HEADERS  += mainwindow.h \
-    tools.h \
-    includes.h \
-    uidmap.h \
-    sharedcontentmap.h \
-    sha1.h \
-    tiktmd.h \
-    aes.h \
-    nusdownloader.h \
-    nanddump.h \
-    settingtxtdialog.h \
-    wad.h
+    ../WiiQt/tools.h \
+    ../WiiQt/uidmap.h \
+    ../WiiQt/sharedcontentmap.h \
+    ../WiiQt/tiktmd.h \
+    ../WiiQt/nusdownloader.h \
+    ../WiiQt/uidmap.h \
+    ../WiiQt/nanddump.h \
+    ../WiiQt/settingtxtdialog.h \
+    ../WiiQt/wad.h
 
 FORMS    += mainwindow.ui \
-    settingtxtdialog.ui
+    ../WiiQt/settingtxtdialog.ui

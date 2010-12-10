@@ -3,6 +3,8 @@
 
 #include "includes.h"
 
+//class for handling the uid.sys in a virtual nand
+//
 class UIDmap
 {
 public:
@@ -18,9 +20,11 @@ public:
     quint32 GetUid( quint64 tid, bool autoCreate = true );
 
     //creates a new uid.sys with the system menu entry.
-    //if addFactorySetupDiscs is true, it will add some entries for the setup discs used in the wii factory ( serve no purpose other than to just exist )
+    //if addFactorySetupDiscs is true, it will add some entries for the setup discs used in the wii factory
+    // ( serve no purpose other than to just exist )
     void CreateNew( bool addFactorySetupDiscs = false );
 
+    //get th entire uid.sys data back in a state ready for writing to a nand
     const QByteArray Data(){ return data; }
 
 private:
