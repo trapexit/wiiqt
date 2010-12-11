@@ -9,10 +9,15 @@ SOURCES += main.cpp \
     ../WiiQt/tools.cpp \
     ../WiiQt/savebanner.cpp \
     ../WiiQt/aes.c \
-    ../WiiQt/sha1.c
+    ../WiiQt/sha1.c \
+    nandthread.cpp
 
 HEADERS += nandwindow.h \
     ../WiiQt/nandbin.h \
-    ../WiiQt/tools.h
+    ../WiiQt/tools.h \
+    nandthread.h
 
 FORMS += nandwindow.ui
+
+RESOURCES += \
+    rc.qrc

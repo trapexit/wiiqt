@@ -78,6 +78,12 @@ public:
     //ie...  /title/00000001/00000002/data/setting.txt
     const QByteArray GetData( const QString &path );
 
+    //returns the fats for this nand.
+    const QList<quint16> GetFats() { return fats; }
+
+    //get the fats for a given file
+    const QList<quint16> GetFatsForFile( quint16 i );
+
 
 private:
     QByteArray key;
@@ -92,6 +98,15 @@ private:
     bool fatNames;
     QIcon groupIcon;
     QIcon keyIcon;
+
+    //read all the fst and remember them rather than seeking back and forth in the file all the time
+    // uses ~120KiB RAM
+    bool fstInited;
+    fst_t fsts[ 0x17ff ];
+
+    //cache the fat to keep from having to look them up repeatedly
+    // uses ~64KiB
+    QList<quint16>fats;
 
     int GetDumpType( quint64 fileSize );
     bool GetKey( int type );

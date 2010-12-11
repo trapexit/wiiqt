@@ -5,6 +5,7 @@ NandBin::NandBin( QObject * parent, const QString &path ) : QObject( parent )
 {
     type = -1;
     fatNames = false;
+    fstInited = false;
     root = NULL;
 
     if( !path.isEmpty() )
@@ -22,6 +23,7 @@ NandBin::~NandBin()
 
 bool NandBin::SetPath( const QString &path )
 {
+    fstInited = false;
     //nandPath = path;
     if( f.isOpen() )
 	f.close();
@@ -160,7 +162,10 @@ bool NandBin::ExtractDir( fst_t fst, QString parent )
 
     QFileInfo fi( parent + "/" + filename );
     if( filename != "/" && !fi.exists() && !QDir().mkpath( fi.absoluteFilePath() ) )
+    {
+	emit SendError( tr( "Can\'t create directory \"%1\"" ).arg( fi.absoluteFilePath() ) );
 	return false;
+    }
 
     if( fst.sub != 0xffff && !ExtractFST( fst.sub, fi.absoluteFilePath() ) )
 	return false;
@@ -179,22 +184,18 @@ bool NandBin::ExtractFile( fst_t fst, QString parent )
     if( fst.size && !data.size() )//dont worry if files dont have anything in them anyways
 	return false;
 
-    QFile out( fi.absoluteFilePath() );
-    if( out.exists() )// !! delete existing files
-	out.remove();
-
-    if( !out.open( QIODevice::WriteOnly ) )
+    if( !WriteFile( fi.absoluteFilePath(), data ) )
     {
-	emit SendError( tr( "Can't open \"%1\" for writing" ).arg( fi.absoluteFilePath() ) );
+	emit SendError( tr( "Error writing \"%1\"" ).arg( fi.absoluteFilePath() ) );
 	return false;
     }
-    out.write( data );
-    out.close();
     return true;
 }
 
 bool NandBin::InitNand( QIcon dirs, QIcon files )
 {
+    fstInited = false;
+    fats.clear();
     type = GetDumpType( f.size() );
     if( type < 0 || type > 3 )
 	return false;
@@ -211,6 +212,16 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
     loc_fat = loc_super;
     loc_fst = loc_fat + 0x0C + n_fatlen[ type ];
 
+    //cache all the entries
+    for( quint16 i = 0; i < 0x17ff; i++ )
+	fsts[ i ] = GetFST( i );
+
+    //cache all the fats
+    for( quint16 i = 0; i < 0x8000; i++ )
+	fats << GetFAT( i );
+
+    fstInited = true;
+
     if( root )
 	delete root;
 
@@ -220,7 +231,7 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
     root = new QTreeWidgetItem( QStringList() << nandPath );
     AddChildren( root, 0 );
 
-    ShowInfo();
+    //ShowInfo();
     return true;
 }
 
@@ -349,6 +360,11 @@ fst_t NandBin::GetFST( quint16 entry )
 	fst.filename[ 0 ] = '\0';
 	return fst;
     }
+    if( fstInited )//we've already read this once, just give back the one we already know
+    {
+	//qDebug() << "reading from cache" << hex << entry;
+	return fsts[ entry ];
+    }
     // compensate for 64 bytes of ecc data every 64 fst entries
     quint32 n_fst[] = { 0, 2, 2 };
     int loc_entry = ( ( ( entry / 0x40 ) * n_fst[ type ] ) + entry ) * 0x20;
@@ -390,6 +406,8 @@ fst_t NandBin::GetFST( quint16 entry )
 
 quint16 NandBin::GetFAT( quint16 fat_entry )
 {
+    if( fstInited )
+	return fats.at( fat_entry );
     /*
     * compensate for "off-16" storage at beginning of superblock
     * 53 46 46 53   XX XX XX XX   00 00 00 00
@@ -506,6 +524,26 @@ QByteArray NandBin::GetFile( fst_t fst )
 	data.resize( fst.size );//dont need to give back all the data, only up to the expected size
 
     return data;
+}
+
+const QList<quint16> NandBin::GetFatsForFile( quint16 i )
+{
+    //qDebug() << "NandBin::GetFatsForFile" << i;
+    QList<quint16> ret;
+    fst_t fst = GetFST( i );
+
+    if( fst.filename[ 0 ] == '\0' )
+	return ret;
+
+    quint16 fat = fst.sub;
+    quint16 j = 0;//just to make sure a broken nand doesnt lead to an endless loop
+    while ( fat < 0x8000 && fat > 0 && ++j )
+    {
+	ret << fat;
+	fat = GetFAT( fat );
+    }
+
+    return ret;
 }
 
 void NandBin::SetFixNamesForFAT( bool fix )
