@@ -160,11 +160,15 @@ bool NandBin::ExtractDir( fst_t fst, QString parent )
     QByteArray ba( (char*)fst.filename, 0xc );
     QString filename( ba );
 
-    QFileInfo fi( parent + "/" + filename );
-    if( filename != "/" && !fi.exists() && !QDir().mkpath( fi.absoluteFilePath() ) )
+    QFileInfo fi( parent );
+    if( filename != "/" )
     {
-	emit SendError( tr( "Can\'t create directory \"%1\"" ).arg( fi.absoluteFilePath() ) );
-	return false;
+	fi.setFile( parent + "/" + filename );
+	if( !fi.exists() && !QDir().mkpath( fi.absoluteFilePath() ) )
+	{
+	    emit SendError( tr( "Can\'t create directory \"%1\"" ).arg( fi.absoluteFilePath() ) );
+	    return false;
+	}
     }
 
     if( fst.sub != 0xffff && !ExtractFST( fst.sub, fi.absoluteFilePath() ) )
