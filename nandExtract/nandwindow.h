@@ -24,14 +24,21 @@ private:
 
     NandThread nThread;
 
+    void SetUpBlockMap();
+
     //changes the blocks in the blockmap with different colors
     void DrawBlockMap( QList<quint16> newFile = QList<quint16>() );
-    QGraphicsScene gv;//scene to hold the blockmap images
-    QGraphicsPixmapItem *pmi[ 0x1000 ];//pointers to all the blocks in the display
-    //quint16 ClusterToBlock( quint16 cluster );
+    QGraphicsScene gv;				//scene to hold the blockmap images
+    QGraphicsPixmapItem *pmi[ 0x1000 ];		//pointers to all the blocks in the display
 
-    QList<quint16> blocks;
-    quint32 freeSpace;
+    QGraphicsTextItem *nandSize;		//pointers to the items to show info under the blockmap
+    QGraphicsTextItem *fileSize;
+    /*QGraphicsTextItem *badText;
+    QGraphicsTextItem *freeText;
+    QGraphicsTextItem *usedText;
+    QGraphicsTextItem *resText;*/
+
+    QList<quint16> blocks;			//hold a list of what the blocks in the nand are used for
     void GetBlocksfromNand();
 
     QList<quint16> ToBlocks( QList<quint16> clusters );
@@ -48,6 +55,10 @@ private slots:
     void on_actionShow_Usage_triggered();
     void on_actionOpen_Nand_triggered();
     void on_treeWidget_customContextMenuRequested(QPoint pos);
+    //void ScaleBlockMap();
+
+protected:
+  //void resizeEvent( QResizeEvent* event );
 };
 
 #endif // NANDWINDOW_H

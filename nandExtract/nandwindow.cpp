@@ -1,39 +1,18 @@
 #include "nandwindow.h"
 #include "ui_nandwindow.h"
+#include "../WiiQt/tools.h"
 
 NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::NandWindow ), nThread( this )
 {
     ui->setupUi( this );
-    freeSpace = 0;
 
     //setup the block map
-    ui->graphicsView_blocks->setScene( &gv );
-    ui->graphicsView_blocks->setAlignment( Qt::AlignRight );
-    ui->graphicsView_blocks->setRenderHint( QPainter::Antialiasing );
-
-    QPixmap blue( ":/blue.png" );
-    QPixmap green( ":/green.png" );
-    QPixmap pink( ":/pink.png" );
-    QPixmap grey( ":/grey.png" );
-
-    quint16 i = 0;
-    for( quint16 y = 0; y < 352; y += 11 )
-    {
-	for( quint16 x = 0; x < 1408; x += 11 )
-	{
-	    pmi[ i ] = new QGraphicsPixmapItem( grey );
-	    pmi[ i ]->setPos( x, y );
-	    gv.addItem( pmi[ i ] );//items belong to this now.  no need to delete them
-
-	    i++;
-	}
-    }
+    SetUpBlockMap();
 
     //put the progressbar on the status bar
     ui->progressBar->setVisible( false );
     ui->statusBar->addPermanentWidget( ui->progressBar, 0 );
 
-    //ui->treeWidget->header()->resizeSection( 0, 300 );//name
     QFontMetrics fm( fontMetrics() );
     ui->treeWidget->header()->resizeSection( 0, fm.width( QString( 22, 'W' ) ) );//name
     ui->treeWidget->header()->resizeSection( 1, fm.width( "WWWWW" ) );//entry #
@@ -44,18 +23,90 @@ NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::N
     ui->treeWidget->header()->resizeSection( 6, fm.width( "WWWWW" ) );//mode
     ui->treeWidget->header()->resizeSection( 7, fm.width( "WWWWW" ) );//attr
 
-
-    //connect( &nandBin, SIGNAL( SendError( QString ) ), this, SLOT( GetError( QString ) ) );
-    //connect( &nandBin, SIGNAL( SendText( QString ) ), this, SLOT( GetStatusUpdate( QString ) ) );
     connect( &nThread, SIGNAL( SendError( QString ) ), this, SLOT( GetError( QString ) ) );
     connect( &nThread, SIGNAL( SendText( QString ) ), this, SLOT( GetStatusUpdate( QString ) ) );
     connect( &nThread, SIGNAL( SendExtractDone() ), this, SLOT( ThreadIsDone() ) );
     connect( &nThread, SIGNAL( SendProgress( int ) ), ui->progressBar, SLOT( setValue( int ) ) );
+
 }
 
 NandWindow::~NandWindow()
 {
     delete ui;
+}
+
+void NandWindow::SetUpBlockMap()
+{
+    ui->graphicsView_blocks->setScene( &gv );
+
+    QPixmap grey( ":/grey.png" );
+
+    quint16 i = 0;
+    for( quint16 y = 0; y < 288; y += 9 )		//create all the blocks and make them grey
+    {
+	for( quint16 x = 0; x < 1152; x += 9 )
+	{
+	    pmi[ i ] = new QGraphicsPixmapItem( grey );
+	    pmi[ i ]->setPos( x, y );
+	    gv.addItem( pmi[ i ] );//items belong to this now.  no need to delete them
+
+	    i++;
+	}
+    }
+    QFontMetrics fm( fontMetrics() );
+
+    quint16 y = 288;
+    quint16 x = 10;
+    quint16 x2 = 200;
+    quint8 spacing = 5;
+
+    fileSize = new QGraphicsTextItem();
+    fileSize->setPos( x, y );
+    nandSize = new QGraphicsTextItem();
+    nandSize->setPos( x + 400, y );
+
+    y += fm.height() + 2;
+
+    QGraphicsTextItem *badText = new QGraphicsTextItem( tr( "Bad" ) );
+    QGraphicsTextItem *freeText = new QGraphicsTextItem( tr( "Free" ) );
+    QGraphicsTextItem *usedText = new QGraphicsTextItem( tr( "Used" ) );
+    QGraphicsTextItem *used2Text = new QGraphicsTextItem( tr( "Selected file" ) );
+    QGraphicsTextItem *resText = new QGraphicsTextItem( tr( "Reserved" ) );
+
+    QGraphicsPixmapItem *greySquare = new QGraphicsPixmapItem( grey );
+    QGraphicsPixmapItem *blackSquare = new QGraphicsPixmapItem( QPixmap( ":/black.png" ) );
+    QGraphicsPixmapItem *blueSquare = new QGraphicsPixmapItem( QPixmap( ":/blue.png" ) );
+    QGraphicsPixmapItem *greenSquare = new QGraphicsPixmapItem( QPixmap( ":/green.png" ) );
+    QGraphicsPixmapItem *pinkSquare = new QGraphicsPixmapItem( QPixmap( ":/pink.png" ) );
+
+    greySquare->setPos( x, y + fm.height() / 2 );
+    freeText->setPos( greySquare->pos().x() + 8 + spacing, y );
+    greenSquare->setPos( x2, y + fm.height() / 2 );
+    usedText->setPos( greenSquare->pos().x() + 8 + spacing, y );
+    y += fontMetrics().height() + 2;
+
+    blackSquare->setPos( x, y + fm.height() / 2 );
+    badText->setPos( blackSquare->pos().x() + 8 + spacing, y );
+    pinkSquare->setPos( x2, y + fm.height() / 2 );
+    used2Text->setPos( pinkSquare->pos().x() + 8 + spacing, y );
+    y += fontMetrics().height() + 2;
+
+    blueSquare->setPos( x, y + fm.height() / 2 );
+    resText->setPos( blueSquare->pos().x() + 8 + spacing, y );
+
+    gv.addItem( fileSize );
+    gv.addItem( nandSize );
+    gv.addItem( badText );
+    gv.addItem( freeText );
+    gv.addItem( usedText );
+    gv.addItem( used2Text );
+    gv.addItem( resText );
+    gv.addItem( greySquare );
+    gv.addItem( blackSquare );
+    gv.addItem( blueSquare );
+    gv.addItem( greenSquare );
+    gv.addItem( pinkSquare );
+
 }
 
 void NandWindow::ThreadIsDone()
@@ -172,7 +223,7 @@ void NandWindow::on_actionOpen_Nand_triggered()
 void NandWindow::GetBlocksfromNand()
 {
     blocks.clear();
-    freeSpace = 0;
+    quint32 freeSpace = 0;
 
     QList<quint16> clusters = nThread.GetFats();
     if( !clusters.size() == 0x8000 )
@@ -180,30 +231,33 @@ void NandWindow::GetBlocksfromNand()
 	QMessageBox::warning( this, tr( "Error" ), tr( "Expected 0x8000 clusters from the nand, but got %1 instead!" ).arg( clusters.size(), 0, 16 ), QMessageBox::Ok );
 	return;
     }
-    //QString str;
+
     for( quint16 i = 0; i < 0x8000; i += 8 )//first cluster of each block.
     {
 	quint16 thisBlock = clusters.at( i );
 
-	//str += QString( "%1 " ).arg( thisBlock, 4, 16 );
 	if( thisBlock == 0xFFFC
 	    || thisBlock == 0xFFFD )
 	{
-	    //qDebug() << "adding" << hex << thisBlock;
 	    blocks << thisBlock;
 	    continue;
 	}
-	bool used = 0;
+	bool used = false;
 	for( quint16 j = i; j < i + 8; j++ )//each individual cluster
 	{
-	    thisBlock = clusters.at( i );
-	    if( thisBlock == 0xFFFE )
-		freeSpace += 0x800;
+	    if( clusters.at( j ) == 0xFFFE )
+		freeSpace += 0x4000;
 
 	    else used = true;
 	}
 	blocks << ( used ? 1 : 0xfffe ); // just put 1 for used blocks
     }
+    quint32 used = 0x20000000 - freeSpace;
+    float per = (float)((float)used/(float)0x20000000) * 100.0f;
+    float usedMb = (float)((float)used/(float)0x100000);
+
+    nandSize->setHtml( QString( "<b>%1Mib ( %2 % ) used</b>" ).arg( usedMb, 3, 'f', 2 ).arg( per, 3, 'f', 2 ) );
+
 
 }
 
@@ -320,7 +374,34 @@ void NandWindow::on_treeWidget_currentItemChanged( QTreeWidgetItem* current, QTr
 	return;
     }
 
-    QList<quint16> blocks = ToBlocks( nThread.GetFatsForFile( entry ) );
-    //qDebug() << "blocks for" << current->text( 0 ) << blocks;
+    QList<quint16> clusters = nThread.GetFatsForFile( entry );
+    QList<quint16> blocks = ToBlocks( clusters );
+
     DrawBlockMap( blocks );
+    float size = current->text( 2 ).toInt( &ok, 16 );
+    if( !ok )
+    {
+	qDebug() << "error converting" << current->text( 2 ) << "to int";
+	return;
+    }
+    QString unit = "bytes";
+    if( size > 1024 )
+    {
+	unit = "KiB";
+	size /= 1024.0f;
+    }
+    if( size > 1024 )
+    {
+	unit = "MiB";
+	size /= 1024.0f;
+    }
+    QString clusterStr = clusters.size() == 1 ? tr( "%1 cluster" ).arg( 1 ) : tr( "%1 clusters" ).arg( clusters.size() );
+    QString blockStr = blocks.size() == 1 ? tr( "%1 block" ).arg( 1 ) : tr( "%1 blocks" ).arg( blocks.size() );
+    QString sizeStr = QString( "( %1 %2 )" ).arg( size, 0, 'f', 2 ).arg( unit );
+
+
+    fileSize->setHtml( QString( "%1 - %2 in %3 %4" ).arg( current->text( 0 ) ).arg( clusterStr ).arg( blockStr ).arg( sizeStr ) );
+    //qDebug() << "blocks for" << current->text( 0 ) << blocks;
+
 }
+
