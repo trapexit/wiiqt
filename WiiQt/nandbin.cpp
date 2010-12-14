@@ -24,7 +24,8 @@ NandBin::~NandBin()
 bool NandBin::SetPath( const QString &path )
 {
     fstInited = false;
-    //nandPath = path;
+    nandPath = path;
+    bootBlocks = Blocks0to7();
     if( f.isOpen() )
 	f.close();
 
@@ -235,7 +236,27 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
     root = new QTreeWidgetItem( QStringList() << nandPath );
     AddChildren( root, 0 );
 
-    //ShowInfo();
+
+    //checkout the blocks for boot1&2
+    QList<QByteArray>blocks;
+    for( quint16 i = 0; i < 8; i++ )
+    {
+	QByteArray block;
+	for( quint16 j = 0; j < 8; j++ )
+	{
+	    block += GetCluster( ( i * 8 ) + j, false );
+	}
+	if( block.size() != 0x4000 * 8 )
+	{
+	    qDebug() << "wrong block size" << i;
+	    return false;
+	}
+	blocks << block;
+    }
+
+    if( !bootBlocks.SetBlocks( blocks ) )
+	return false;
+
     return true;
 }
 
@@ -251,6 +272,22 @@ int NandBin::GetDumpType( quint64 fileSize )
     }
     emit SendError( tr( "Can't tell what type of nand dump this is" ) );
     return -1;
+}
+
+const QList<Boot2Info> NandBin::Boot2Infos()
+{
+    if( !bootBlocks.IsOk() )
+	return QList<Boot2Info>();
+
+    return bootBlocks.Boot2Infos();
+}
+
+quint8 NandBin::Boot1Version()
+{
+    if( !bootBlocks.IsOk() )
+	return 0;
+
+    return bootBlocks.Boot1Version();
 }
 
 bool NandBin::GetKey( int type )
@@ -471,7 +508,7 @@ QByteArray NandBin::GetCluster( quint16 cluster_entry, bool decrypt )
     //1 key set at a time and it may be changed if some other object is decrypting something else
     AesSetKey( key );
 
-    QByteArray ret = AesDecrypt( 0, cluster );//TODO...  is IV really always 0?
+    QByteArray ret = AesDecrypt( 0, cluster );
     return ret;
 }
 
@@ -656,3 +693,308 @@ void NandBin::ShowInfo()
 	     << "\nbadBlocks:" << hex << badBlocks << badOnes
 	     << "\nreserved:" << hex << reserved;
 }
+
+
+/*
+ structure of blocks 0 - 7
+
+ block 0 ( boot 1 )
+
+ 0 - 0x4320
+ a bunch of encrypted gibberish.
+the rest of the block as all 0s
+
+
+sha1 of the whole block is
+
+ 2cdd5affd2e78c537616a119a7a2e1c568e91f22 with boot1b
+ f01e8aca029ee0cb5287f5055da1a0bed2a533fa with boot1c
+
+<sven>         {1, {0x4a, 0x7c, 0x6f, 0x30, 0x38, 0xde, 0xea, 0x7a, 0x07, 0xd3, 0x32, 0x32, 0x02, 0x4b, 0xe9, 0x5a, 0xfb, 0x56, 0xbf, 0x65}},
+<sven>         {1, {0x2c, 0xdd, 0x5a, 0xff, 0xd2, 0xe7, 0x8c, 0x53, 0x76, 0x16, 0xa1, 0x19, 0xa7, 0xa2, 0xe1, 0xc5, 0x68, 0xe9, 0x1f, 0x22}},
+<sven>         {0, {0xf0, 0x1e, 0x8a, 0xca, 0x02, 0x9e, 0xe0, 0xcb, 0x52, 0x87, 0xf5, 0x05, 0x5d, 0xa1, 0xa0, 0xbe, 0xd2, 0xa5, 0x33, 0xfa}},
+<sven>         {0, {0x8d, 0x9e, 0xcf, 0x2f, 0x8f, 0x98, 0xa3, 0xc1, 0x07, 0xf1, 0xe5, 0xe3, 0x6f, 0xf2, 0x4d, 0x57, 0x7e, 0xac, 0x36, 0x08}},
+
+
+ block 1 ( boot2 )	//just guessing at these for now
+
+ u32	    0x20	//header size
+ u32	    0xf00	//data offset
+ u32	    0xa00	//cert size
+ u32	    0x2a4	//ticket size
+ u32	    0x208	//tmd size
+ u32[ 3 ]   0s		//padding till 0x20
+
+0x20 - 0x9f0
+cert
+root ca00000001
+Root-CA00000001 CP00000004
+Root-CA00000001 XS00000003
+
+round up to 0xa20
+ticket for boot2
+
+0xcc4
+tmd?
+
+0xecc - 0xf00
+gibberish padding
+
+0xf00
+start of boot2 contents? ( mine is 0x00023E91 bytes in the TMD for v2 )
+there is room for 0x1F100 bytes of it left in this block with 0x4D91 leftover
+
+
+block 2
+bunch of gibberish till 0x4da0
+probably the rest of the contents of boot2, padded with gibberish
+
+
+0x4da0
+0s till 0x5000
+
+0x5000 - 0x1f800
+bunch of 0xffff
+maybe this is untouched nand.  never been written to
+
+
+
+0x1f800 - 0x1f8e4  blockmap?
+
+26F29A401EE684CF0000000201000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000201000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000201000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+0x1f8e4 - 0x20000 ( end of block )
+more 0s
+
+
+block 2 ( looks a lot like block 1 )
+wad type header again with the same values
+
+same cert looking doodad again
+same ticket again
+
+tmd is different ( zero'd RSA )
+1 content, 0x00027B5D bytes
+
+
+
+
+
+block 4 ( the rest of bootmii )
+0 - 0x8a60
+gibberish - rest of bootmii content still encrypted
+
+0x8a60 - 0x1f800
+0s
+
+0x1f800
+26F29A401EE684CF0000000501010100
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000501010100
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000501010100
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+then 0s till 0x20000 ( end of block )
+
+
+
+block 5
+all 0xff
+
+block 6
+identical to block 2 except this  only difference is the 0x02 is 0x03
+26F29A401EE684CF0000000301000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000301000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000301000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+
+block 7
+identical to block 1
+
+
+
+
+
+
+///////////
+nand #2 ( no bootmii )
+///////////
+
+block 0 ( boot 1c )
+gibberish till 0x43f0.  then 0s for the rest of the block
+
+block 1
+same wad header as before, with the same values
+cert doodad and ticket are the same
+tmd is v4 and the content is 0x00027BE8 bytes
+
+block 2
+0 - 0x8af0
+the rest of the content from boot2 ( padded to 0x40 )
+
+0s till 0x9000
+0xff till 0x18f00
+
+26F29A401EE684CF0000000201000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000201000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000201000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+
+
+block 3 - all 0xff
+block 4 - all 0xff
+block 5 - all 0xff
+
+block 6 - identical to block 2 except the blockmap ( generation 3 ? )
+
+26F29A401EE684CF0000000301000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000301000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+26F29A401EE684CF0000000301000000
+00000000010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+010101010101010101010101
+
+block 7 matches block 1
+
+
+
+
+/////////////
+nand #3
+/////////////
+
+block 2
+26F29A401EE684CF
+00000004
+01000000000000000101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+
+block 4
+26F29A401EE684CF
+0000000F
+01010100000000000101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+
+block 6
+26F29A401EE684CF
+00000005
+01000000000000000101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+26F29A401EE684CF
+00000002
+
+01000000000000000101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+
+
+26F29A401EE684CF
+00000005
+01010100000000000101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+01010101010101010101010101010101
+
+
+ */

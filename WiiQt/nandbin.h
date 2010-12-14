@@ -2,6 +2,7 @@
 #define NANDBIN_H
 
 #include "includes.h"
+#include "blocks0to7.h"
 struct fst_t
 {
     quint8 filename[ 0xc ];
@@ -84,6 +85,10 @@ public:
     //get the fats for a given file
     const QList<quint16> GetFatsForFile( quint16 i );
 
+    const Blocks0to7 BootBlocks(){ return bootBlocks; }
+    const QList<Boot2Info> Boot2Infos();
+    quint8 Boot1Version();
+
 
 private:
     QByteArray key;
@@ -128,6 +133,9 @@ private:
     bool AddChildren( QTreeWidgetItem *parent, quint16 entry );
     QTreeWidgetItem *ItemFromPath( const QString &path );
     QTreeWidgetItem *FindItem( const QString &s, QTreeWidgetItem *parent );
+
+    //holds info about boot1 & 2
+    Blocks0to7 bootBlocks;
 
 signals:
     //connect to these to receive messages from this object

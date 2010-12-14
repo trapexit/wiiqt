@@ -1,5 +1,6 @@
 #include "nandwindow.h"
 #include "ui_nandwindow.h"
+#include "boot2infodialog.h"
 #include "../WiiQt/tools.h"
 
 NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::NandWindow ), nThread( this )
@@ -405,3 +406,17 @@ void NandWindow::on_treeWidget_currentItemChanged( QTreeWidgetItem* current, QTr
 
 }
 
+//get boot2 info and show it as a dialog
+void NandWindow::on_actionBoot2_triggered()
+{
+    QList<Boot2Info> b = nThread.Boot2Infos();
+    if( b.isEmpty() )
+    {
+	qDebug() << "!ok";
+	return;
+    }
+    quint8 boot1 = nThread.Boot1Version();
+
+    Boot2InfoDialog d( this, b, boot1 );
+    d.exec();
+}

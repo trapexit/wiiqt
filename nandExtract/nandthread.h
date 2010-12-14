@@ -30,6 +30,10 @@ class NandThread : public QThread
      void Extract( QTreeWidgetItem *item, const QString &path );
      void ForceQuit();
 
+     const Blocks0to7 BootBlocks();
+     const QList<Boot2Info> Boot2Infos();
+     quint8 Boot1Version();
+
  protected:
      void run();
 

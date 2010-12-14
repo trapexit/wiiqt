@@ -51,6 +51,7 @@ public slots:
     void ThreadIsDone();
 
 private slots:
+    void on_actionBoot2_triggered();
     void on_treeWidget_currentItemChanged(QTreeWidgetItem* current, QTreeWidgetItem* previous);
     void on_actionShow_Usage_triggered();
     void on_actionOpen_Nand_triggered();

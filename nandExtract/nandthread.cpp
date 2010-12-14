@@ -43,6 +43,36 @@ bool NandThread::SetPath( const QString &path )
     return nandBin.SetPath( path );
 }
 
+const Blocks0to7 NandThread::BootBlocks()
+{
+    if( isRunning() )
+    {
+	emit SendError( tr( "Wait till the current job is done" ) );
+	return Blocks0to7();
+    }
+    return nandBin.BootBlocks();
+}
+
+const QList<Boot2Info> NandThread::Boot2Infos()
+{
+    if( isRunning() )
+    {
+	emit SendError( tr( "Wait till the current job is done" ) );
+	return QList<Boot2Info>();
+    }
+    return nandBin.Boot2Infos();
+}
+
+quint8 NandThread::Boot1Version()
+{
+    if( isRunning() )
+    {
+	emit SendError( tr( "Wait till the current job is done" ) );
+	return 0;
+    }
+    return nandBin.Boot1Version();
+}
+
 QTreeWidgetItem *NandThread::GetTree()
 {
     if( isRunning() )

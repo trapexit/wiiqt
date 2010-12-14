@@ -125,6 +125,7 @@
      <string>Info</string>
     </property>
     <addaction name="actionShow_Usage"/>
+    <addaction name="actionBoot2"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuInfo"/>
@@ -158,6 +159,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+U</string>
+   </property>
+  </action>
+  <action name="actionBoot2">
+   <property name="text">
+    <string>Boot2</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+B</string>
    </property>
   </action>
  </widget>
