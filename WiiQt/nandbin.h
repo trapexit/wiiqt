@@ -3,6 +3,7 @@
 
 #include "includes.h"
 #include "blocks0to7.h"
+#include "nandspare.h"
 struct fst_t
 {
     quint8 filename[ 0xc ];
@@ -14,6 +15,7 @@ struct fst_t
     quint32 uid;
     quint16 gid;
     quint32 x3;
+    quint16 fst_pos;//not really part of the nand structure, but needed when calculating hmac data
 };
 // class to deal with an encrypted wii nand dump
 // basic usage... create an object, set a path, call InitNand.  then you can get the detailed list of entries with GetTree()
@@ -89,6 +91,8 @@ public:
     const QList<Boot2Info> Boot2Infos();
     quint8 Boot1Version();
 
+    QByteArray GetPage( quint32 pageNo, bool withEcc = false );
+
 
 private:
     QByteArray key;
@@ -104,6 +108,8 @@ private:
     QIcon groupIcon;
     QIcon keyIcon;
 
+    NandSpare spare;//used to handle the hmac mumbojumbo
+
     //read all the fst and remember them rather than seeking back and forth in the file all the time
     // uses ~120KiB RAM
     bool fstInited;
@@ -115,7 +121,7 @@ private:
 
     int GetDumpType( quint64 fileSize );
     bool GetKey( int type );
-    QByteArray ReadKeyfile( QString path );
+    QByteArray ReadKeyfile( QString path, quint8 type );//type 0 for nand key, type 1 for hmac
     qint32 FindSuperblock();
     quint16 GetFAT( quint16 fat_entry );
     fst_t GetFST( quint16 entry );
@@ -136,6 +142,10 @@ private:
 
     //holds info about boot1 & 2
     Blocks0to7 bootBlocks;
+
+    bool WriteCluster( quint32 pageNo, const QByteArray data, const QByteArray hmac );
+    bool WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_t fst, quint16 idx );
+    bool WritePage( quint32 pageNo, const QByteArray data );
 
 signals:
     //connect to these to receive messages from this object

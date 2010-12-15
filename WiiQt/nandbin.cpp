@@ -254,6 +254,56 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
 	blocks << block;
     }
 
+    //debug shitzz
+    //ecc
+    /*int blNo = 7;
+    for( int b = 0; b < 8; b++ )
+    {
+	qDebug() << "cluster" << b << "of block" << hex << blNo;
+	int clNo = ( blNo * 8 ) + b;
+	for( int i = 0; i < 8; i++ )
+	{
+	    qDebug() << "page" << i << "of cluster" << hex << ( clNo - ( blNo * 8 ) )  << "(" << clNo << ")";
+	    QByteArray whole = GetPage( ( clNo * 8 ) + i, true );
+	    if( whole.size() != 0x840 )
+	    {
+		qDebug() << "wrong size" << hex << whole.size();
+		continue;
+	    }
+	    QByteArray eccR = whole.mid( 0x800, 0x40 );
+	    QByteArray eccC = NandSpare::CalcEcc( whole.left( 0x800 ) );
+
+	    hexdump( eccR );
+	    hexdump( eccC );
+	}
+    }*/
+
+    //this makes correct hmac data for the superblocks
+    /*int blNo = 0xff0;//first superblock
+    //int blNo = 0xffe;//last superblock
+    for( int b = blNo; b < 16 + blNo; b += 2 )
+    {
+	//if( !( b % 2 ) )
+	    //continue;
+	QByteArray clData;
+	for( int c = 0; c < 16; c++ )
+	{
+	    for( int p = 0; p < 8; p++ )
+	    {
+		QByteArray whole = GetPage( ( ( b * 64 ) + ( c * 8 ) + p ), true );
+		clData += whole.left( 0x800 );
+	    }
+	}
+	qDebug() << "hmac:";
+	QByteArray hmR = spare.Get_hmac_meta( clData, ( b * 8 ) );
+	hexdump( hmR );
+    }*/
+    //GetFile( 369 );
+
+
+
+
+
     if( !bootBlocks.SetBlocks( blocks ) )
 	return false;
 
@@ -292,6 +342,7 @@ quint8 NandBin::Boot1Version()
 
 bool NandBin::GetKey( int type )
 {
+    QByteArray hmacKey;
     switch( type )
     {
     case 0:
@@ -307,8 +358,11 @@ bool NandBin::GetKey( int type )
 	    keyPath.resize( sl + 1 );
 	    keyPath += "keys.bin";
 
-	    key = ReadKeyfile( keyPath );
+	    key = ReadKeyfile( keyPath, 0 );
 	    if( key.isEmpty() )
+		return false;
+	    hmacKey = ReadKeyfile( keyPath, 1 );
+	    if( hmacKey.isEmpty() )
 		return false;
 	}
 	break;
@@ -319,6 +373,9 @@ bool NandBin::GetKey( int type )
 		emit SendError( tr( "Tried to read keys from unopened file" ) );
 		return false;
 	    }
+	    f.seek( 0x21000144 );
+	    hmacKey = f.read( 20 );
+
 	    f.seek( 0x21000158 );
 	    key = f.read( 16 );
 	}
@@ -328,10 +385,12 @@ bool NandBin::GetKey( int type )
 	return false;
 	break;
     }
+    spare.SetHMacKey( hmacKey );//set the hmac key for calculating spare data
+    //hexdump( hmacKey );
     return true;
 }
 
-QByteArray NandBin::ReadKeyfile( QString path )
+QByteArray NandBin::ReadKeyfile( QString path, quint8 type )
 {
     QByteArray retval;
     QFile f( path );
@@ -340,14 +399,22 @@ QByteArray NandBin::ReadKeyfile( QString path )
 	emit SendError( tr( "Can't open %1!" ).arg( path ) );
 	return retval;
     }
-    if( f.size() < 0x16e )
+    if( f.size() < 0x400 )
     {
 	f.close();
 	emit SendError( tr( "keys.bin is too small!" ) );
 	return retval;
     }
-    f.seek( 0x158 );
-    retval = f.read( 16 );
+    if( type == 0 )
+    {
+	f.seek( 0x158 );
+	retval = f.read( 16 );
+    }
+    else if( type == 1 )
+    {
+	f.seek( 0x144 );
+	retval = f.read( 20 );
+    }
     f.close();
 
     return retval;
@@ -388,7 +455,7 @@ qint32 NandBin::FindSuperblock()
 
 	f.seek( n_len[ type ] - 4 );
     }
-    return -1;
+    return -1;//hmmmm what happens if the last supercluster is the latest one? seems like a bug to fix at a later date...
 }
 
 fst_t NandBin::GetFST( quint16 entry )
@@ -422,7 +489,7 @@ fst_t NandBin::GetFST( quint16 entry )
     f.read( (char*)&fst.attr, 1 );
     f.read( (char*)&fst.sub, 2 );
     f.read( (char*)&fst.sib, 2 );
-    if( type && ( entry + 1 ) % 64 == 0 )//bug in other nand.bin extracterizers.  the entry for every 64th fst item is inturrupeted by some ecc shit
+    if( type && ( entry + 1 ) % 64 == 0 )//bug in other nand.bin extracterizers.  the entry for every 64th fst item is inturrupeted by some spare shit
     {
 	f.read( (char*)&fst.size, 2 );
 	f.seek( f.pos() + 0x40 );
@@ -440,6 +507,7 @@ fst_t NandBin::GetFST( quint16 entry )
     fst.uid = qFromBigEndian( fst.uid );
     fst.gid = qFromBigEndian( fst.gid );
     fst.x3 = qFromBigEndian( fst.x3 );
+    fst.fst_pos = entry;
 
     fst.mode &= 1;
     return fst;
@@ -473,6 +541,21 @@ quint16 NandBin::GetFAT( quint16 fat_entry )
     return ret;
 }
 
+QByteArray NandBin::GetPage( quint32 pageNo, bool withEcc )
+{
+    //qDebug() << "NandBin::GetPage( " << hex << pageNo << ", " << withEcc << " )";
+    quint32 n_pagelen[] = { 0x800, 0x840, 0x840 };
+
+    if( f.size() < ( pageNo + 1 ) * n_pagelen[ type ] )
+    {
+	emit SendError( tr( "Tried to read page past size of nand.bin" ) );
+	return QByteArray();
+    }
+    f.seek( pageNo * n_pagelen[ type ] );	//seek to the beginning of the page to read
+    QByteArray page = f.read( ( type && withEcc ) ? n_pagelen[ type ] : 0x800 );
+    return page;
+}
+
 QByteArray NandBin::GetCluster( quint16 cluster_entry, bool decrypt )
 {
     //qDebug() << "NandBin::GetCluster" << hex << cluster_entry;
@@ -492,7 +575,9 @@ QByteArray NandBin::GetCluster( quint16 cluster_entry, bool decrypt )
 	f.seek( ( cluster_entry * n_clusterlen[ type ] ) + ( i * n_pagelen[ type ] ) );	//seek to the beginning of the page to read
 	//QByteArray page = f.read( n_pagelen[ type ] );					//read the page, with ecc
 	QByteArray page = f.read( 0x800 );						//read the page, skip the ecc
+	//hexdump( page.mid( 0x800, 0x40 ) );//just here for debugging purposes
 
+	//cluster += page.left( 0x800 );
 	cluster += page;
     }
     if( cluster.size() != 0x4000 )
@@ -520,25 +605,31 @@ QByteArray NandBin::GetFile( quint16 entry )
     return GetFile( fst );
 }
 
-QByteArray NandBin::GetFile( fst_t fst )
+QByteArray NandBin::GetFile( fst_t fst_ )
 {
-    if( !fst.size )
+    qDebug() << "NandBin::GetFile" << (const char*)fst_.filename;
+    if( !fst_.size )
 	return QByteArray();
 
-    quint16 fat = fst.sub;
+    quint16 fat = fst_.sub;
     //int cluster_span = (int)( fst.size / 0x4000) + 1;
 
     QByteArray data;
 
+    //int idx = 0;
     for (int i = 0; fat < 0xFFF0; i++)
     {
 	QByteArray cluster = GetCluster( fat );
 	if( cluster.size() != 0x4000 )
 	    return QByteArray();
 
+	//debug shit...  am i creating correct hmac data?
+	//WriteDecryptedCluster( 0, cluster, fst_, idx++ );
+
 	data += cluster;
 	fat = GetFAT( fat );
     }
+
     //this check doesnt really seem to matter, it always appears to be 1 extra cluster added to the end
     //of the file and that extra bit is dropped in this function before the data is returned.
     /*if( data.size() != cluster_span * 0x4000 )
@@ -551,18 +642,18 @@ QByteArray NandBin::GetFile( fst_t fst )
 
 	emit SendError( tr( "Error reading file [ block size is not a as expected ] %1" ).arg( FstName( fst ) ) );
     }*/
-    if( (quint32)data.size() < fst.size )
+    if( (quint32)data.size() < fst_.size )
     {
 	qDebug() << "(quint32)data.size() < fst.size :: "
 		<< hex << data.size()
-		<< "expected size:" << hex << fst.size;
+		<< "expected size:" << hex << fst_.size;
 
 	emit SendError( tr( "Error reading file [ returned data size is less that the size in the fst ]" ) );
 	return QByteArray();
     }
 
-    if( (quint32)data.size() > fst.size )
-	data.resize( fst.size );//dont need to give back all the data, only up to the expected size
+    if( (quint32)data.size() > fst_.size )
+	data.resize( fst_.size );//dont need to give back all the data, only up to the expected size
 
     return data;
 }
@@ -694,6 +785,79 @@ void NandBin::ShowInfo()
 	     << "\nreserved:" << hex << reserved;
 }
 
+bool NandBin::WriteCluster( quint32 pageNo, const QByteArray data, const QByteArray hmac )
+{
+    if( data.size() != 0x4000 )
+    {
+	qWarning() << "NandBin::WriteCluster -> size:" << hex << data.size();
+	return false;
+    }
+
+    for( int i = 0; i < 8; i++ )
+    {
+	QByteArray spareData( 0x40, '\0' );
+	quint8* sp = (quint8*)spareData.data();
+	QByteArray ecc = spare.CalcEcc( data.mid( i * 0x800, 0x800 ) );
+	memcpy( sp + 0x30, ecc.data(), 0x14 );
+	sp[ 0 ] = 0xff; // good block
+	if( !hmac.isEmpty() )
+	{
+	    if( i == 6 )
+	    {
+		memcpy( (char*)sp + 1, hmac.data(), 20 );
+		memcpy( (char*)sp + 21, hmac.data(), 12 );
+	    }
+	    else if( i == 7 )
+	    {
+		memcpy( (char*)sp + 1, hmac.data() + 12, 8 );
+	    }
+	}
+	if( !WritePage( pageNo + i, data.mid( i * 0x800, 0x800 ) + spareData ) )
+	    return false;
+    }
+    return true;
+}
+
+bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_t fst, quint16 idx )
+{
+    qDebug() << "NandBin::WriteDecryptedCluster";
+    QByteArray hmac = spare.Get_hmac_data( data, fst.uid, (const unsigned char *)&fst.filename, fst.fst_pos, fst.x3, idx );
+
+    hexdump( hmac );
+    return true;
+    /*fs_hmac_data(
+	    buffer,
+	    fp->node->uid,
+	    (const unsigned char *)fp->node->name,
+	    fp->idx,
+	    fp->node->dummy,
+	    fp->cluster_idx,
+	    hmac
+    );*/
+    AesSetKey( key );
+    QByteArray encData = AesEncrypt( 0, data );
+    return WriteCluster( pageNo, encData, hmac );
+}
+
+bool NandBin::WritePage( quint32 pageNo, const QByteArray data )
+{
+    //qDebug() << "NandBin::WritePage(" << hex << pageNo << ")";
+    return true;
+    quint32 n_pagelen[] = { 0x800, 0x840, 0x840 };
+    if( (quint32)data.size() != n_pagelen[ type ] )
+    {
+	qWarning() << "data is wrong size" << hex << data.size();
+	return false;
+    }
+
+    if( f.size() < ( pageNo + 1 ) * n_pagelen[ type ] )
+    {
+	emit SendError( tr( "Tried to write page past size of nand.bin" ) );
+	return false;
+    }
+    f.seek( pageNo * n_pagelen[ type ] );	//seek to the beginning of the page to write
+    return f.write( data );
+}
 
 /*
  structure of blocks 0 - 7

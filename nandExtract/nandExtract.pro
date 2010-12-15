@@ -13,14 +13,16 @@ SOURCES += main.cpp \
     ../WiiQt/aes.c \
     ../WiiQt/sha1.c \
     nandthread.cpp \
-    boot2infodialog.cpp
+    boot2infodialog.cpp \
+    ../WiiQt/nandspare.cpp
 
 HEADERS += nandwindow.h \
     ../WiiQt/tiktmd.h \
     ../WiiQt/nandbin.h \
     ../WiiQt/tools.h \
     nandthread.h \
-    boot2infodialog.h
+    boot2infodialog.h \
+    ../WiiQt/nandspare.h
 
 FORMS += nandwindow.ui \
     boot2infodialog.ui
