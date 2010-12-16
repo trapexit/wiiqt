@@ -5,6 +5,7 @@
 #include "includes.h"
 #include "sharedcontentmap.h"
 #include "uidmap.h"
+#include "wad.h"
 
 struct SaveGame//struct to hold save data
 {
@@ -53,6 +54,10 @@ public:
     //installs a title to the nand dump from an already existing NusJob
     //returns false if something went wrong
     bool InstallNusItem( NusJob job );
+
+    //installs a title to the nand dump from a wad
+    //returns false if something went wrong
+    bool InstallWad( Wad wad );
 
     //tries to delete a title from the nand dump
     //deleteData gives the option to just delete the title and leave behind its data

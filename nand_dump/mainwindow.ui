@@ -218,6 +218,7 @@
     </property>
     <addaction name="actionSetting_txt"/>
     <addaction name="actionFlush"/>
+	<addaction name="actionImportWad"/>
    </widget>
    <addaction name="menuNand_Dump"/>
   </widget>
@@ -238,6 +239,11 @@
   <action name="actionFlush">
    <property name="text">
     <string>Flush</string>
+   </property>
+  </action>
+  <action name="actionImportWad">
+   <property name="text">
+    <string>Import Wad</string>
    </property>
   </action>
  </widget>

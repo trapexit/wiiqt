@@ -6,34 +6,42 @@ static QByteArray globalCert;
 
 Wad::Wad( const QByteArray stuff )
 {
-    ok = false;
-    if( stuff.size() < 0x80 )//less than this and there is definitely nothing there
-    {
-	Err( "Size is < 0x80" );
-	return;
-    }
+	ok = false;
+	if( stuff.size() < 0x80 )//less than this and there is definitely nothing there
+	{
+		Err( "Size is < 0x80" );
+		return;
+	}
 
-    QByteArray copy = stuff;
-    QBuffer b( &copy );
-    b.open( QIODevice::ReadOnly );
+	QByteArray copy = stuff;
+	QBuffer b( &copy );
+	b.open( QIODevice::ReadOnly );
 
-    quint32 tmp;
-    b.read( (char*)&tmp, 4 );
-    if( qFromBigEndian( tmp ) != 0x20 )
-    {
-	b.close();
-	Err( "Bad header size" );
-	return;
-    }
-    b.read( (char*)&tmp, 4 );
-    tmp = qFromBigEndian( tmp );
-    if( tmp != 0x49730000 && tmp != 0x69620000 && tmp != 0x426b0000 )
-    {
-	b.close();
-	hexdump( stuff, 0, 0x40 );
-	Err( "Bad file magic word" );
-	return;
-    }
+	quint32 tmp;
+	if(b.read( (char*)&tmp, 4 ) != 4)
+	{
+		b.close();
+		Err( "Can't read header size" );
+		return;
+	}
+	if( qFromBigEndian( tmp ) != 0x20 )
+	{
+		b.close();
+		hexdump(stuff, 0, 0x10);
+		Err( "Bad header size" );
+		return;
+	}
+	b.read( (char*)&tmp, 4 );
+	tmp = qFromBigEndian( tmp );
+	if( tmp != 0x49730000 &&
+			tmp != 0x69620000 &&
+			tmp != 0x426b0000 )
+	{
+		b.close();
+		hexdump( stuff, 0, 0x40 );
+		Err( "Bad file magic word" );
+		return;
+	}
 
     quint32 certSize;
     quint32 tikSize;
@@ -184,6 +192,16 @@ void Wad::SetGlobalCert( const QByteArray &stuff )
     globalCert = stuff;
 }
 
+const QByteArray Wad::getTmd()
+{
+	return tmdData;
+}
+
+const QByteArray Wad::getTik()
+{
+	return tikData;
+}
+
 const QByteArray Wad::Content( quint16 i )
 {
     if( tmdData.isEmpty() || tikData.isEmpty() )
@@ -211,6 +229,11 @@ const QByteArray Wad::Content( quint16 i )
 	return QByteArray();
     }
     return decData;
+}
+
+quint32 Wad::content_count()
+{
+	return partsEnc.size();
 }
 
 void Wad::Err( QString str )

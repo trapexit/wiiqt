@@ -50,9 +50,18 @@ public:
 
     //get all the parts of this wad put together in a wad ready for writing to disc or whatever
     const QByteArray Data( quint32 magicWord = 0x49730000, const QByteArray footer = QByteArray() );
+	
+	//get the tmd for the wad
+	const QByteArray getTmd();
+
+	//get the tik for the wad
+	const QByteArray getTik();
 
     //get the decrypted data from a content
     const QByteArray Content( quint16 i );
+
+	//get the number of contents
+	quint32 content_count();
 
     //get the last error encountered while trying to do something
     const QString LastError(){ return errStr; }

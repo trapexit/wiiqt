@@ -418,6 +418,80 @@ bool NandDump::InstallNusItem( NusJob job )
     return true;
 }
 
+bool NandDump::InstallWad( Wad wad )
+{
+	if( !wad.Tid() || wad.content_count() < 3 )
+	{
+		qWarning() << "NandDump::InstallNusItem -> invalid item";
+		return false;
+	}
+	if( !uidDirty )
+	{
+		uidDirty = uidMap.GetUid( wad.Tid(), false ) == 0;//only flag the uid as dirty if it has to be, this way it is only flushed if needed
+	}
+	uidMap.GetUid( wad.Tid() );
+	QString p = QString( "%1" ).arg( wad.Tid(), 16, 16, QChar( '0' ) );
+	p.insert( 8 ,"/" );
+	p.prepend( "/title/" );
+	QString path = basePath + p + "/content";
+	if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
+	return false;
+
+	path = basePath + p + "/data";
+	if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
+	return false;
+
+	QByteArray ba = wad.getTmd();
+	if( !InstallTmd( ba, wad.Tid() ) )
+	return false;
+
+	Tmd t( ba );
+
+	ba = wad.getTik();
+	Ticket ti( ba );
+	if( !InstallTicket( ba, wad.Tid() ) )
+	{
+		AbortInstalling( wad.Tid() );
+		return false;
+	}
+
+	quint32 cnt = qFromBigEndian( t.payload()->num_contents );
+	if( cnt != wad.content_count() )
+	{
+		AbortInstalling( wad.Tid() );
+		return false;
+	}
+
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		QByteArray decData = wad.Content(i);
+
+		if( t.Type( i ) == 0x8001 )
+		{
+			if( !InstallSharedContent( decData, t.Hash( i ) ) )
+			{
+				AbortInstalling( wad.Tid() );
+				return false;
+			}
+		}
+		else if( t.Type( i ) == 1 )
+		{
+			if( !InstallPrivateContent( decData, wad.Tid(), t.Cid( i ) ) )
+			{
+				AbortInstalling( wad.Tid() );
+				return false;
+			}
+		}
+		else//unknown content type
+		{
+			qWarning() << "NandDump::InstallWad -> unknown content type";
+			AbortInstalling( wad.Tid() );
+			return false;
+		}
+	}
+	return true;
+}
+
 QMap< quint64, quint16 > NandDump::GetInstalledTitles()
 {
     QMap< quint64, quint16 >ret;
