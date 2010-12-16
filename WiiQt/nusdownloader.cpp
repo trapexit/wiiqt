@@ -539,6 +539,7 @@ bool NusDownloader::GetUpdate( const QString & upd, bool decrypt )
     if( s == "2.1e" ) titles = List21e();
     else if( s == "3.0e" ) titles = List30e();
     else if( s == "3.1e" ) titles = List31e();
+    else if( s == "3.3e" ) titles = List33e();
     else if( s == "3.4e" ) titles = List34e();
     else if( s == "4.0e" ) titles = List40e();
     else if( s == "4.1e" ) titles = List41e();
@@ -563,6 +564,7 @@ bool NusDownloader::GetUpdate( const QString & upd, bool decrypt )
 
     else if( s == "2.0j" ) titles = List20j();
     else if( s == "3.1j" ) titles = List31j();
+    else if( s == "3.3j" ) titles = List33j();
     else if( s == "3.4j" ) titles = List34j();
     else if( s == "4.0j" ) titles = List40j();
     else if( s == "4.1j" ) titles = List41j();
@@ -592,8 +594,8 @@ QMap< quint64, quint16 > NusDownloader::List20j()
     titles.insert( 0x100000023ull, 0xc10 ); 	// IOS35 - not really part of this update, but needed for sneek
     titles.insert( 0x100000100ull, 0x2 );//bcv2
     titles.insert( 0x100000101ull, 0x4 );//miosv4
-    titles.insert( 0x1000848414B45ull, 0 );//EULA - HAKE
-    titles.insert( 0x1000848414C45ull, 0x2 );//regsel  //region select isnt in the paper mario update, but putting it here just to be safe
+    titles.insert( 0x1000848414B4aull, 0 );//EULA - HAKJ
+    titles.insert( 0x1000848414C4aull, 0x2 );//regsel  //region select isnt in the paper mario update, but putting it here just to be safe
     titles.insert( 0x1000248414341ull, 0x2 );//nigaoeNRv2 - MII
     titles.insert( 0x1000248414141ull, 0x1 );//photov1
     titles.insert( 0x1000248414241ull, 0x4 );//shoppingv4
@@ -602,9 +604,8 @@ QMap< quint64, quint16 > NusDownloader::List20j()
 
 QMap< quint64, quint16 > NusDownloader::List31j()
 {
-    QMap< quint64, quint16 > titles = List20u();//TODO - missing a few in here
+    QMap< quint64, quint16 > titles = List20j();//TODO - missing a few in here
     titles.insert( 0x100000002ull, 256 );//sys menu
-    titles.insert( 0x10000000eull, 262 );//14v262 - should actually be 14v257 but that version isnt available on NUS
     titles.insert( 0x100000014ull, 12 );//20v12
     titles.insert( 0x100000015ull, 514 );//21v514
     titles.insert( 0x100000016ull, 777 );//22v777 - should be v772
@@ -614,7 +615,7 @@ QMap< quint64, quint16 > NusDownloader::List31j()
     titles.insert( 0x100000021ull, 1040 );//33v1040
     titles.insert( 0x100000022ull, 1039 );//34v1039
     titles.insert( 0x100000023ull, 1040 );//35v1040
-    titles.insert( 0x100000024ull, 1042 );//36v1040
+    titles.insert( 0x100000024ull, 1042 );//36v1042
     //titles.insert( 0x100000025ull, 2070 );//37v2070//3.1u has this one but not 3.1j??
     titles.insert( 0x1000248415941ull, 0x1 );//photo2v1
     titles.insert( 0x1000848414B4aull, 0 );//EULA - HAKJ
@@ -625,6 +626,27 @@ QMap< quint64, quint16 > NusDownloader::List31j()
     titles.insert( 0x1000248414141ull, 0x1 );//photov1
     titles.insert( 0x1000248414241ull, 7 );//shoppingv7
     titles.insert( 0x100024841474aull, 0x7 ); 		// news v7 HAGJ
+    return titles;
+}
+
+QMap< quint64, quint16 > NusDownloader::List33j()
+{
+    QMap< quint64, quint16 > titles = List31j();//TODO - missing 3.2j
+    titles.insert( 0x100000002ull, 352 );//sys menu
+    titles.insert( 0x10000000bull, 10 );//11v10
+    titles.insert( 0x10000000cull, 6 );//12v6
+    titles.insert( 0x10000000dull, 10 );//13v10
+    titles.insert( 0x10000000full, 257 );//15v257
+    titles.insert( 0x100000011ull, 512 );//17v512
+    titles.insert( 0x10000001eull, 2576 );//30v2576
+    titles.insert( 0x10000001full, 2576 );//31v2576
+    titles.insert( 0x100000025ull, 2070 );//37v2070
+    titles.insert( 0x100000100ull, 0x4 );//bcv4
+    titles.insert( 0x1000248415941ull, 0x1 );//photo2v1
+    titles.insert( 0x1000848414B4aull, 2 );//EULA - HAKJ
+    titles.insert( 0x100000101ull, 8 );//miosv8
+    titles.insert( 0x1000248414341ull, 5 );//nigaoeNRv5 - MII
+    titles.insert( 0x1000248414241ull, 10 );//shoppingv10
     return titles;
 }
 
@@ -851,20 +873,31 @@ QMap< quint64, quint16 > NusDownloader::List31e()
     titles.insert( 0x100000023ull, 1040 );//35v1040
     titles.insert( 0x100000024ull, 1042 );//36v1042
     titles.insert( 0x100000002ull, 258 );//sys menu
-    titles.insert( 0x100000100ull, 0x2 );//bcv2
-    titles.insert( 0x10000001eull, 1039 );//30v1039
-    titles.insert( 0x10000001full, 1039 );//31v1039
-    titles.insert( 0x100000101ull, 5 );//miosv5
-    titles.insert( 0x1000848414B50ull, 2 );//EULA - HAKP
-    titles.insert( 0x1000248414650ull, 0x7 ); 		// forcast v7 HAFP
-    titles.insert( 0x1000248414750ull, 0x7 ); 		// news v7 HAGP
-    titles.insert( 0x1000848414C50ull, 0x2 );//regsel
-    titles.insert( 0x1000248414341ull, 4 );//nigaoeNRv4 - MII
     titles.insert( 0x1000248415941ull, 0x2 ); 		// photo channel 1.1 HAYA
-    titles.insert( 0x1000248414141ull, 0x1 );//photov1
-    titles.insert( 0x1000248414241ull, 7 );//shoppingv7
-    titles.insert( 0x1000248414741ull, 0x3 );//news channel HAGA
-    titles.insert( 0x1000248414641ull, 0x3 );//Weather Channel HAFA
+    return titles;
+}
+
+QMap< quint64, quint16 > NusDownloader::List33e()
+{
+    QMap< quint64, quint16 > titles = List31e();
+    titles.insert( 0x100000002ull, 354 );//RVL-WiiSystemmenu-v354.wad
+    titles.insert( 0x10000000bull, 10 );//11v10
+    titles.insert( 0x10000000cull, 6 );//12v6
+    titles.insert( 0x10000000dull, 10 );//13v10
+    titles.insert( 0x10000000eull, 262 );//14v262 - should actually be 14v257 but that version isnt available on NUS
+    titles.insert( 0x10000000full, 257 );//15v257
+    titles.insert( 0x100000011ull, 512 );//17v512
+    titles.insert( 0x100000014ull, 12 );//20v12
+    titles.insert( 0x100000015ull, 514 );//21v514
+    titles.insert( 0x100000016ull, 777 );//22v777 - should be v772
+    titles.insert( 0x10000001cull, 1292 );//28v1292 - should be 1228
+    titles.insert( 0x10000001eull, 2576 );//30v2576
+    titles.insert( 0x10000001full, 2576 );//31v2576
+    titles.insert( 0x100000025ull, 2070 );//37v2070
+    titles.insert( 0x100000100ull, 4 );//bcv4
+    titles.insert( 0x100000101ull, 8 );//miosv8
+    titles.insert( 0x1000248414341ull, 5 );//nigaoeNRv5 - MII
+    titles.insert( 0x1000248414241ull, 10 );//shoppingv10
     return titles;
 }
 
@@ -1401,4 +1434,3 @@ QMap< quint64, quint16 > NusDownloader::List43k()
     titles.insert( 0x100000002ull, 0x206 );		// SystemMenu 4.3K
     return titles;
 }
-

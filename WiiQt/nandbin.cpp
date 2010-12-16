@@ -60,6 +60,48 @@ bool NandBin::ExtractToDir( QTreeWidgetItem *item, const QString &path )
     return true;
 }
 
+QTreeWidgetItem *NandBin::CreateItem( QTreeWidgetItem *parent, const QString &name, quint32 size, quint16 entry, quint32 uid, quint32 gid, quint32 x3, quint8 attr, quint8 wtf)
+{
+    if( !parent )
+	return NULL;
+
+    QStringList text;
+
+    QString enStr = QString( "%1" ).arg( entry );
+    QString sizeStr = QString( "%1" ).arg( size, 0, 16 );
+    QString uidStr = QString( "%1" ).arg( uid, 8, 16, QChar( '0' ) );
+    QString gidStr = QString( "%1 (\"%2%3\")" ).arg( gid, 4, 16, QChar( '0' ) )
+		  .arg( QChar( ascii( (char)( (gid >> 8) & 0xff ) ) ) )
+		  .arg( QChar( ascii( (char)( (gid) & 0xff ) ) ) );
+    QString x3Str = QString( "%1" ).arg( x3, 8, 16, QChar( '0' ) );
+    QString wtfStr = QString( "%1" ).arg( wtf, 2, 16, QChar( '0' ) );
+    QString attrStr = QString( "%1 " ).arg( ( attr & 3 ), 2, 16, QChar( '0' ) );
+
+    quint8 m = attr;
+    const char perm[ 3 ] = {'-','r','w'};
+    for( quint8 i = 0; i < 3; i++ )
+    {
+	attrStr += perm[ ( m >> 6 ) & 1 ];
+	attrStr += perm[ ( m >> 6 ) & 2 ];
+	attrStr += ' ';
+	m <<= 2;
+    }
+    attrStr += QString( "[%1]" ).arg( attr, 2, 16, QChar( '0' ) );
+
+    text << name << enStr << sizeStr << uidStr << gidStr << x3Str << wtfStr << attrStr;
+    //qDebug() << "adding" << name << en << size << uid << gid << x3 << mode << attr;
+    QTreeWidgetItem *child = new QTreeWidgetItem( parent, text );
+    child->setTextAlignment( 1, Qt::AlignRight | Qt::AlignVCenter );//align to the right
+    child->setTextAlignment( 2, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 3, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 4, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 5, Qt::AlignRight | Qt::AlignVCenter );
+    child->setTextAlignment( 6, Qt::AlignRight | Qt::AlignVCenter );
+    //child->setTextAlignment( 7, Qt::AlignRight | Qt::AlignVCenter );
+    child->setFont( 7, QFont( "Courier New", 10, 5 ) );
+    return child;
+}
+
 bool NandBin::AddChildren( QTreeWidgetItem *parent, quint16 entry )
 {
     if( entry >= 0x17ff )
@@ -78,36 +120,18 @@ bool NandBin::AddChildren( QTreeWidgetItem *parent, quint16 entry )
 	if( !AddChildren( parent, fst.sib ) )
 	    return false;
     }
-    QStringList text;
-    QString name = FstName( fst );
 
-    QString en = QString( "%1" ).arg( entry );
-    QString size = QString( "%1" ).arg( fst.size, 0, 16 );
-    QString uid = QString( "%1" ).arg( fst.uid, 8, 16, QChar( '0' ) );
-    QString gid = QString( "%1 (\"%2%3\")" ).arg( fst.gid, 4, 16, QChar( '0' ) )
-		  .arg( QChar( ascii( (char)( (fst.gid >> 8) & 0xff ) ) ) )
-		  .arg( QChar( ascii( (char)( (fst.gid) & 0xff ) ) ) );
-    QString x3 = QString( "%1" ).arg( fst.x3, 8, 16, QChar( '0' ) );
-    QString mode = QString( "%1" ).arg( fst.mode, 2, 16, QChar( '0' ) );
-    QString attr = QString( "%1" ).arg( fst.attr, 2, 16, QChar( '0' ) );
-
-    text << name << en << size << uid << gid << x3 << mode << attr;
-    QTreeWidgetItem *child = new QTreeWidgetItem( parent, text );
-    child->setTextAlignment( 1, Qt::AlignRight | Qt::AlignVCenter );//align to the right
-    child->setTextAlignment( 2, Qt::AlignRight | Qt::AlignVCenter );
-    child->setTextAlignment( 3, Qt::AlignRight | Qt::AlignVCenter );
-    child->setTextAlignment( 4, Qt::AlignRight | Qt::AlignVCenter );
-    child->setTextAlignment( 5, Qt::AlignRight | Qt::AlignVCenter );
-    child->setTextAlignment( 6, Qt::AlignRight | Qt::AlignVCenter );
-    child->setTextAlignment( 7, Qt::AlignRight | Qt::AlignVCenter );
+    QTreeWidgetItem *child = CreateItem( parent, FstName( fst ), fst.size, entry, fst.uid, fst.gid, fst.x3, fst.attr, fst.wtf );
 
     //set some icons
-    if( fst.mode )
+    if( ( fst.attr & 3 ) == 1 )
     {
+	//qDebug() << "is a file";
 	child->setIcon( 0, keyIcon );
     }
     else
     {
+	//qDebug() << "is a folder" << (fst.attr & 3);
 	child->setIcon( 0, groupIcon );
 	//try to add subfolder contents to the tree
 	if( fst.sub != 0xffff && !AddChildren( child, fst.sub ) )
@@ -137,9 +161,9 @@ bool NandBin::ExtractFST( quint16 entry, const QString &path, bool singleFile )
     if( !singleFile && fst.sib != 0xffff && !ExtractFST( fst.sib, path ) )
 	return false;
 
-    switch( fst.mode )
+    switch( fst.attr & 3 )
     {
-    case 0:
+    case 2:
 	if( !ExtractDir( fst, path ) )
 	    return false;
 	break;
@@ -300,14 +324,65 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
     }*/
     //GetFile( 369 );
 
+    //testing creating new items
+    /*quint16 n = CreateEntry( "/test1", 0x4444, 0x5555, 2, 1, 2, 0 );
+    qDebug() << "created item" << n;
 
+    n = CreateEntry( "/test1/test2", 0x4444, 0x5555, 1, 1, 2, 3 );
+    qDebug() << "created item" << n;
+    if( n )
+    {
+	bool dd = SetData( n, QByteArray( 0x3000000, '\x69') );
+	qDebug() << "added data" << dd;
+    }*/
 
+    /*ShowLostClusters();
+    bool x= Delete( "/ticket" );
+    qDebug() << "delete" << x;
+
+    ShowLostClusters();*/
+    //delete root;
+    //root = new QTreeWidgetItem( QStringList() << nandPath );
+    //AddChildren( root, 0 );
 
 
     if( !bootBlocks.SetBlocks( blocks ) )
 	return false;
 
     return true;
+}
+
+void NandBin::ShowLostClusters()
+{
+    QList<quint16> u = GetFatsForEntry( 0 );
+    quint16 ss = fats.size();
+    qDebug() << "total used clusters" << u.size() << "of" << ss << "total";
+    quint16 lost = 0;
+    QList<quint16> ffs;
+    QList<quint16> frs;
+    for( quint16 i = 0; i < ss; i++ )
+    {
+	if( u.contains( fats.at( i ) ) )//this cluster is really used
+	    continue;
+	switch( fats.at( i ) )
+	{
+	case 0xFFFB:
+	case 0xFFFC:
+	case 0xFFFD:
+	    break;
+	case 0xFFFE:
+	    frs << i;
+	    break;
+	case 0xFFFF:
+	    ffs << i;
+	    break;
+	default:
+	    lost++;
+	    qDebug() << hex << i << fats.at( i );
+	    break;
+	}
+    }
+    qDebug() << "found" << lost << "lost clusters\n0xffffs" << hex << ffs.size() << ffs << "\nfree" << frs.size();
 }
 
 int NandBin::GetDumpType( quint64 fileSize )
@@ -464,7 +539,7 @@ fst_t NandBin::GetFST( quint16 entry )
     fst_t fst;
     if( entry >= 0x17FF )
     {
-	emit SendError( tr( "Tried to get entry above 0x17ff [ 0x%1 ]" ).arg( entry, 0, 16 ) );
+	emit SendError( tr( "Tried to get entry above 0x17fe [ 0x%1 ]" ).arg( entry, 0, 16 ) );
 	fst.filename[ 0 ] = '\0';
 	return fst;
     }
@@ -485,8 +560,8 @@ fst_t NandBin::GetFST( quint16 entry )
     f.seek( loc_fst + loc_entry );
 
     f.read( (char*)&fst.filename, 0xc );
-    f.read( (char*)&fst.mode, 1 );
     f.read( (char*)&fst.attr, 1 );
+    f.read( (char*)&fst.wtf, 1 );
     f.read( (char*)&fst.sub, 2 );
     f.read( (char*)&fst.sib, 2 );
     if( type && ( entry + 1 ) % 64 == 0 )//bug in other nand.bin extracterizers.  the entry for every 64th fst item is inturrupeted by some spare shit
@@ -509,7 +584,7 @@ fst_t NandBin::GetFST( quint16 entry )
     fst.x3 = qFromBigEndian( fst.x3 );
     fst.fst_pos = entry;
 
-    fst.mode &= 1;
+    //fst.mode &= 1;
     return fst;
 }
 
@@ -668,11 +743,39 @@ const QList<quint16> NandBin::GetFatsForFile( quint16 i )
 	return ret;
 
     quint16 fat = fst.sub;
+    //qDebug() << hex << fat;
     quint16 j = 0;//just to make sure a broken nand doesnt lead to an endless loop
     while ( fat < 0x8000 && fat > 0 && ++j )
     {
 	ret << fat;
 	fat = GetFAT( fat );
+
+	//qDebug() << hex << fat;
+    }
+    //qDebug() << hex << ret;
+
+    return ret;
+}
+
+const QList<quint16> NandBin::GetFatsForEntry( quint16 i )
+{
+    //qDebug() << "NandBin::GetFatsForEntry" << i;
+    fst_t fst = GetFST( i );
+
+    QList<quint16> ret;
+    if( fst.sib != 0xffff )
+    {
+	ret.append( GetFatsForEntry( fst.sib ) );
+    }
+
+    if( ( fst.attr & 3 ) == 1 )
+    {
+	ret.append( GetFatsForFile( i ) );
+    }
+    else
+    {
+	if( fst.sub != 0xffff )
+	    ret.append( GetFatsForEntry( fst.sub ) );
     }
 
     return ret;
@@ -689,7 +792,7 @@ const QByteArray NandBin::GetData( const QString &path )
     if( !item )
 	return QByteArray();
 
-    if( !item->text( 6 ).contains( "1" ) )
+    if( !item->text( 7 ).startsWith( "01" ) )
     {
 	qDebug() << "NandBin::GetData -> can't get data for a folder" << item->text( 0 );
 	return QByteArray();
@@ -733,6 +836,22 @@ QTreeWidgetItem *NandBin::ItemFromPath( const QString &path )
 	slash = nextSlash + 1;
     }
     return item;
+}
+
+QTreeWidgetItem *NandBin::GetParent( const QString &path )
+{
+    if( !path.startsWith( "/" ) || !root || !root->childCount() )//invalid entry
+	return NULL;
+    if( path.count( "/" ) < 2 )//this will be an entry in the root
+	return root->child( 0 );
+
+    QString parent = path;
+    if( parent.endsWith( "/" ) )
+	parent.resize( parent.size() - 1 );
+    int sl = parent.lastIndexOf( "/" );
+    parent.resize( sl );
+
+    return ItemFromPath( parent );
 }
 
 QTreeWidgetItem *NandBin::FindItem( const QString &s, QTreeWidgetItem *parent )
@@ -785,6 +904,34 @@ void NandBin::ShowInfo()
 	     << "\nreserved:" << hex << reserved;
 }
 
+QTreeWidgetItem *NandBin::ItemFromEntry( quint16 i, QTreeWidgetItem *parent )
+{
+    return ItemFromEntry( QString( "%1" ).arg( i ), parent );
+}
+
+QTreeWidgetItem *NandBin::ItemFromEntry( const QString &i, QTreeWidgetItem *parent )
+{
+    if( !parent )
+	return NULL;
+    //qDebug() << "NandBin::ItemFromEntry" << i << parent->text( 0 );
+
+
+    quint32 cnt = parent->childCount();
+    for( quint32 j = 0; j < cnt; j++ )
+    {
+	QTreeWidgetItem *child = parent->child( j );
+	if( child->text( 1 ) == i )
+	    return child;
+
+	//qDebug() << child->text( 2 ) << i;
+
+	QTreeWidgetItem *r = ItemFromEntry( i, child );
+	if( r )
+	    return r;
+    }
+    return NULL;
+}
+
 bool NandBin::WriteCluster( quint32 pageNo, const QByteArray data, const QByteArray hmac )
 {
     if( data.size() != 0x4000 )
@@ -825,15 +972,7 @@ bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_
 
     hexdump( hmac );
     return true;
-    /*fs_hmac_data(
-	    buffer,
-	    fp->node->uid,
-	    (const unsigned char *)fp->node->name,
-	    fp->idx,
-	    fp->node->dummy,
-	    fp->cluster_idx,
-	    hmac
-    );*/
+
     AesSetKey( key );
     QByteArray encData = AesEncrypt( 0, data );
     return WriteCluster( pageNo, encData, hmac );
@@ -859,306 +998,358 @@ bool NandBin::WritePage( quint32 pageNo, const QByteArray data )
     return f.write( data );
 }
 
-/*
- structure of blocks 0 - 7
-
- block 0 ( boot 1 )
-
- 0 - 0x4320
- a bunch of encrypted gibberish.
-the rest of the block as all 0s
-
-
-sha1 of the whole block is
-
- 2cdd5affd2e78c537616a119a7a2e1c568e91f22 with boot1b
- f01e8aca029ee0cb5287f5055da1a0bed2a533fa with boot1c
-
-<sven>         {1, {0x4a, 0x7c, 0x6f, 0x30, 0x38, 0xde, 0xea, 0x7a, 0x07, 0xd3, 0x32, 0x32, 0x02, 0x4b, 0xe9, 0x5a, 0xfb, 0x56, 0xbf, 0x65}},
-<sven>         {1, {0x2c, 0xdd, 0x5a, 0xff, 0xd2, 0xe7, 0x8c, 0x53, 0x76, 0x16, 0xa1, 0x19, 0xa7, 0xa2, 0xe1, 0xc5, 0x68, 0xe9, 0x1f, 0x22}},
-<sven>         {0, {0xf0, 0x1e, 0x8a, 0xca, 0x02, 0x9e, 0xe0, 0xcb, 0x52, 0x87, 0xf5, 0x05, 0x5d, 0xa1, 0xa0, 0xbe, 0xd2, 0xa5, 0x33, 0xfa}},
-<sven>         {0, {0x8d, 0x9e, 0xcf, 0x2f, 0x8f, 0x98, 0xa3, 0xc1, 0x07, 0xf1, 0xe5, 0xe3, 0x6f, 0xf2, 0x4d, 0x57, 0x7e, 0xac, 0x36, 0x08}},
-
-
- block 1 ( boot2 )	//just guessing at these for now
-
- u32	    0x20	//header size
- u32	    0xf00	//data offset
- u32	    0xa00	//cert size
- u32	    0x2a4	//ticket size
- u32	    0x208	//tmd size
- u32[ 3 ]   0s		//padding till 0x20
-
-0x20 - 0x9f0
-cert
-root ca00000001
-Root-CA00000001 CP00000004
-Root-CA00000001 XS00000003
-
-round up to 0xa20
-ticket for boot2
-
-0xcc4
-tmd?
-
-0xecc - 0xf00
-gibberish padding
-
-0xf00
-start of boot2 contents? ( mine is 0x00023E91 bytes in the TMD for v2 )
-there is room for 0x1F100 bytes of it left in this block with 0x4D91 leftover
-
-
-block 2
-bunch of gibberish till 0x4da0
-probably the rest of the contents of boot2, padded with gibberish
-
-
-0x4da0
-0s till 0x5000
-
-0x5000 - 0x1f800
-bunch of 0xffff
-maybe this is untouched nand.  never been written to
-
-
-
-0x1f800 - 0x1f8e4  blockmap?
-
-26F29A401EE684CF0000000201000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000201000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000201000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-0x1f8e4 - 0x20000 ( end of block )
-more 0s
-
-
-block 2 ( looks a lot like block 1 )
-wad type header again with the same values
-
-same cert looking doodad again
-same ticket again
-
-tmd is different ( zero'd RSA )
-1 content, 0x00027B5D bytes
-
-
-
-
-
-block 4 ( the rest of bootmii )
-0 - 0x8a60
-gibberish - rest of bootmii content still encrypted
-
-0x8a60 - 0x1f800
-0s
-
-0x1f800
-26F29A401EE684CF0000000501010100
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000501010100
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000501010100
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-then 0s till 0x20000 ( end of block )
-
-
-
-block 5
-all 0xff
-
-block 6
-identical to block 2 except this  only difference is the 0x02 is 0x03
-26F29A401EE684CF0000000301000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000301000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000301000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-
-block 7
-identical to block 1
-
-
-
-
-
-
-///////////
-nand #2 ( no bootmii )
-///////////
-
-block 0 ( boot 1c )
-gibberish till 0x43f0.  then 0s for the rest of the block
-
-block 1
-same wad header as before, with the same values
-cert doodad and ticket are the same
-tmd is v4 and the content is 0x00027BE8 bytes
-
-block 2
-0 - 0x8af0
-the rest of the content from boot2 ( padded to 0x40 )
-
-0s till 0x9000
-0xff till 0x18f00
-
-26F29A401EE684CF0000000201000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000201000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000201000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-
-
-block 3 - all 0xff
-block 4 - all 0xff
-block 5 - all 0xff
-
-block 6 - identical to block 2 except the blockmap ( generation 3 ? )
-
-26F29A401EE684CF0000000301000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000301000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-26F29A401EE684CF0000000301000000
-00000000010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-010101010101010101010101
-
-block 7 matches block 1
-
-
-
-
-/////////////
-nand #3
-/////////////
-
-block 2
-26F29A401EE684CF
-00000004
-01000000000000000101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-
-block 4
-26F29A401EE684CF
-0000000F
-01010100000000000101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-
-block 6
-26F29A401EE684CF
-00000005
-01000000000000000101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-26F29A401EE684CF
-00000002
-
-01000000000000000101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-
-
-26F29A401EE684CF
-00000005
-01010100000000000101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-01010101010101010101010101010101
-
-
- */
+quint16 NandBin::CreateNode( const QString &name, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm )
+{
+    attr = attr | ( ( user_perm & 3 ) << 6 ) | ( ( group_perm & 3 ) << 4 ) | ( ( other_perm & 3 ) << 2 );
+
+    quint32 i;//TODO:  maybe add in some sort of wear-leveling emulation so all new entries arent created in sequential order
+    for( i = 1; i < 0x17ff; i++ )//cant be entry 0 because that is the root
+    {
+	fst_t fst = fsts[ i ];
+	if( !fst.filename[ 0 ] )//this one doesnt have a filename, it cant be used already
+	    break;
+    }
+    if( i == 0x17ff )
+    {
+	return 0;
+    }
+    QByteArray n = name.toLatin1().data();
+    n.resize( 12 );
+    memcpy( &fsts[ i ].filename, n, 12 );
+    fsts[ i ].attr = attr;
+    fsts[ i ].wtf = 0;
+    if( ( attr & 3 ) == 2 )
+    {
+	fsts[ i ].sub = 0xffff;
+    }
+    else
+    {
+	fsts[ i ].sub = 0xfffb;
+    }
+    fsts[ i ].sib = 0xffff;
+    fsts[ i ].size = 0;
+    fsts[ i ].uid = uid;
+    fsts[ i ].gid = gid;
+    fsts[ i ].x3 = 0;
+
+    return i;
+}
+
+quint16 NandBin::CreateEntry( const QString &path, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm )
+{
+    qDebug() << "NandBin::CreateEntry" << path;
+
+    quint16 ret = 0;
+    QTreeWidgetItem *par = GetParent( path );
+    if( !par )
+    {
+	qDebug() << "NandBin::CreateEntry -> parent doesnt exist for" << path;
+	return ret;
+    }
+
+    QString name = path;
+    name.remove( 0, name.lastIndexOf( "/" ) + 1 );
+    if( name.size() > 12 )
+	return 0;
+    //QTreeWidgetItem *cur = NULL;
+    quint32 cnt = par->childCount();
+    for( quint32 i = 0; i < cnt; i++ )
+    {
+	if( par->child( i )->text( 0 ) == name )
+	{
+	    qDebug() << "NandBin::CreateEntry ->" << path << "already exists";
+	    return ret;
+	}
+    }
+    bool ok = false;
+    quint16 parIdx = par->text( 1 ).toInt( &ok );
+    if( !ok || parIdx > 0x17fe )
+	return 0;//wtf
+
+    //fst_t parFst = fsts[ parIdx ];
+    if( fsts[ parIdx ].sub == 0xffff )//directory has no entries yet
+    {
+	ret = CreateNode( name, uid, gid, attr, user_perm, group_perm, other_perm );
+	if( !ret )
+	    return 0;
+	fsts[ parIdx ].sub = ret;
+    }
+    else//find the last entry in this directory
+    {
+	quint16 entryNo = 0;
+	for( quint32 i = cnt; i > 0; i-- )
+	{
+	    entryNo = par->child( i - 1 )->text( 1 ).toInt( &ok );
+	    if( !ok || entryNo > 0x17fe )
+		return 0;//wtf
+
+	    if( fsts[ entryNo ].sib == 0xffff )
+		break;
+
+	    if( i == 1 )//wtf
+		return 0;
+	}
+	if( !entryNo )//something is busted, none of the child entries is marked as the last one
+	    return 0;
+
+	ret = CreateNode( name, uid, gid, attr, user_perm, group_perm, other_perm );
+	if( !ret )
+	    return 0;
+
+	fsts[ entryNo ].sib = ret;
+    }
+    QTreeWidgetItem *child = CreateItem( par, name, 0, ret, uid, gid, 0, fsts[ ret ].attr, 0 );
+    if( attr == 1 )
+    {
+	child->setIcon( 0, keyIcon );
+    }
+    else
+    {
+	child->setIcon( 0, groupIcon );
+    }
+    return ret;
+}
+
+bool NandBin::Delete( const QString &path )
+{
+    QTreeWidgetItem *i = ItemFromPath( path );
+    return DeleteItem( i );
+}
+
+bool NandBin::DeleteItem( QTreeWidgetItem *item )
+{
+    qDebug() << "NandBin::DeleteItem" << item->text( 0 );
+    if( !item )
+    {
+	qWarning() << "cant delete a null item";
+	return false;
+    }
+
+    bool ok = false;
+    quint16 idx = item->text( 1 ).toInt( &ok );//get the index of the entry to remove
+    if( !ok || idx > 0x17fe )
+    {
+	qWarning() << "wtf1";
+	return false;//wtf
+    }
+
+    //find the entry that is this one's previous sibling
+    quint16 pId = 0xffff;//this is the index of the item in relation to its parent
+    quint16 prevSib = 0;
+    QTreeWidgetItem *par = item->parent();
+    if( !par )
+    {
+	qWarning() << "wtf2";
+	return false;//trying to delete the root item
+    }
+    quint16 parIdx = par->text( 1 ).toInt( &ok );
+    if( !ok || parIdx > 0x17fe )
+    {
+	qWarning() << "wtf1a";
+	return false;//wtf
+    }
+    if( fsts[ parIdx ].sub == idx )		//this is the first item in the folder, point the parent to this items first sibling
+	fsts[ parIdx ].sub = fsts[ idx ].sib;
+
+    else					//point the previous entry to the next one
+    {
+
+	quint16 cnt = par->childCount();
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+	    //qDebug() << i << par->child( i )->text( 0 ) << pId << prevSib;
+	    quint16 r = par->child( i )->text( 1 ).toInt( &ok );
+	    if( !ok || r > 0x17fe )
+	    {
+		qWarning() << "wtf3";
+		return false;//wtf
+	    }
+
+	    if( fsts[ r ].sib == idx )//this is the one we want
+		prevSib = r;
+
+	    if( par->child( i )->text( 0 ) == item->text( 0 ) )
+	    {
+		pId = i;
+		//qDebug() << "found the item";
+	    }
+
+	    if( pId != 0xffff && prevSib )
+		break;
+
+	    if( i == cnt - 1 )//not found
+	    {
+		qWarning() << "wtf4" << pId << prevSib;
+		return false;
+	    }
+	}
+	fsts[ prevSib ].sib = fsts[ idx ].sib;
+    }
+
+    switch( fsts[ idx ].attr & 3 )
+    {
+    case 1:
+	{
+	    int q = 0;
+	    qDebug() << "deleting clusters of" << item->text( 0 ) << idx;
+	    quint16 fat = fsts[ idx ].sub;//delete all this file's clusters
+	    //fats.replace( fat, 0xfffe );
+	    do
+	    {
+		fats.replace( fat, 0xfffe );
+		//qDebug() << "fat" << hex << fat;
+		fat = GetFAT( fat );
+		//fats.replace( fat, 0xfffe );
+		//qDebug() << "deleting cluster" << hex << fat << "from table";
+		q++;
+	    }
+	    while( fat < 0x17ff );
+	    qDebug() << "delete loop done.  freed" << q << "clusters";
+	}
+	break;
+    case 2:
+	{
+	    qDebug() << "deleting children of" << item->text( 0 );
+	    quint32 cnt = item->childCount();//delete all the children of this item
+	    for( quint32 i = cnt - 1; i > 0; i-- )
+	    {
+		if( !DeleteItem( item->child( i - 1 ) ) )
+		{
+		    qWarning() << "wtf6";
+		    return false;
+		}
+	    }
+	}
+	break;
+
+    }
+    memset( &fsts[ idx ], 0, sizeof( fst_t ) );	    //clear this entry
+    QTreeWidgetItem *d = par->takeChild( pId );
+    delete d;
+    return true;
+}
+
+bool NandBin::SetData( const QString &path, const QByteArray data )
+{
+    QTreeWidgetItem *i = ItemFromPath( path );
+    if( !i )
+	return false;
+
+    bool ok = false;
+    quint16 idx = i->text( 1 ).toInt( &ok );//find the entry
+    if( !ok || idx > 0x17fe )
+	return false;
+
+    return SetData( idx, data );
+}
+
+bool NandBin::SetData( quint16 idx, const QByteArray data )
+{
+    fst_t fst = fsts[ idx ];
+    if( ( fst.attr & 3 ) != 1 )
+	return false;
+
+    QList<quint16> fts = GetFatsForFile( idx );	//get the currently used fats and overwrite them.  this doesnt serve much purpose, but it seems cleaner
+    QByteArray pData = PaddedByteArray( data, 0x4000 );//actual data that must be written to the nand
+    quint32 size = pData.size();		//the actual space used in the nand for this file
+    quint16 clCnt = size / 0x4000;		//the number of clusters needed to hold this file
+
+    //if this new data will take more clusters than the old data, create the new ones
+    if( clCnt > fts.size() )
+    {
+	//list all the free clusters
+	QList<quint16>freeClusters;
+	for( quint16 i = 0; i < 0x8000; i++ )
+	{
+	    if( fats.at( i ) == 0xfffe )
+		freeClusters << i;
+	}
+	if( freeClusters.size() < clCnt - fts.size() )
+	{
+	    qWarning() << "not enough free clusters to write the file";
+	    return false;
+	}
+
+	//setup random number stuff to emulate wear leveling
+	QTime midnight( 0, 0, 0 );
+	qsrand( midnight.secsTo( QTime::currentTime() ) );
+
+	//now grab the clusters that will be used from the list
+	qDebug() << "trying to find" << ( clCnt - fts.size() ) << "free clusters";
+	while( fts.size() < clCnt )
+	{
+	    if( !freeClusters.size() )//avoid endless loop in case there are some clusters that should be free, but the spare data says theyre bad
+		return false;
+
+	    //grab a random cluster from the list
+	    quint16 idx = qrand() % freeClusters.size();
+	    quint16 cl = freeClusters.takeAt( idx );	//remove this number from the list
+	    fts << cl;					//add this one to the clusters that will be used to hold the data
+	    quint16 block = cl / 8;			//try to find other clusters in the same block
+	    for( quint16 i = block * 8; i < ( ( block + 1 ) * 8 ) && fts.size() < clCnt; i++ )
+	    {
+		if( cl == i )				//this one is already added to the list
+		    continue;
+
+		if( fats.at( i ) == 0xfffe )		//theres more free clusters in this same block, grab them
+		{
+		    fts << i;
+		    freeClusters.removeAt( freeClusters.indexOf( i, MAX( cl - 8, 0 ) ) );
+		}
+	    }
+	    //read the spare data to see that the cluster is good - removed for now.  but its probably not a bad idea to do this
+	    /*if( type )//if the dump doesnt have spare data, dont try to read it, just assume the cluster is good
+	    {
+		QByteArray page = GetPage( cl * 8, true );
+		if( page.isEmpty() )
+		    continue;
+
+		QByteArray spr = page.right( 0x40 );
+		if( !spr.startsWith( 0xff ) )
+		{
+		    qWarning() << "page" << hex << ( cl * 8 ) << "is bad??";
+		    continue;
+		}
+	    }*/
+
+	}
+    }
+    //qDebug() << "about to writing shit" << clCnt << fts.size();
+    //qDebug() << "file will be on clusters" << hex << fts;
+    for( quint32 i = 0; i < clCnt; i++ )
+    {
+	QByteArray cluster = pData.mid( i * 0x4000, 0x4000 );
+	if( !WriteDecryptedCluster( ( fts.at( i ) * 8 ), cluster, fst, i ) )
+	    return false;
+    }
+    //qDebug() << "done writing shit, fix the fats now" << clCnt << fts.size();
+    //all the data has been written, now make sure the fats are correct
+    fsts[ idx ].sub = fts.at( 0 );
+
+    for( quint16 i = 0; i < clCnt - 1; i++ )
+    {
+	//qDebug() << "replacing fat" << hex << fts.at( 0 );
+	fats.replace( fts.at( 0 ), fts.at( 1 ) );
+	fts.takeFirst();
+    }
+    //qDebug() << "loop is done";
+    fats.replace( fts.at( 0 ), 0xfffb );//last cluster in chain
+    fts.takeFirst();
+    //qDebug() << "fixed the last one" << hex << fts;
+    // if the new data uses less clusters than the previous data, mark the extra ones as free
+    while( !fts.isEmpty() )
+    {
+	fats.replace( fts.at( 0 ), 0xfffe );
+	fts.takeFirst();
+    }
+    //qDebug() << "2nd loop is done";
+
+    fsts[ idx ].size = data.size();
+
+    QTreeWidgetItem *i = ItemFromEntry( idx, root );
+    if( !i )
+	return false;
+
+    i->setText( 2, QString( "%1" ).arg( data.size(), 0, 16 ) );
+    return true;
+}

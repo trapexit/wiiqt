@@ -7,8 +7,8 @@
 struct fst_t
 {
     quint8 filename[ 0xc ];
-    quint8 mode;
     quint8 attr;
+    quint8 wtf;
     quint16 sub;
     quint16 sib;
     quint32 size;
@@ -20,6 +20,8 @@ struct fst_t
 // class to deal with an encrypted wii nand dump
 // basic usage... create an object, set a path, call InitNand.  then you can get the detailed list of entries with GetTree()
 // extract files with GetFile()
+//! so far, all functions for writing to the nand are just dummies.  i have only run a few test with them, but now actually used them to write to a nand
+//! dont try to use them yet
 
 //once InitNand() is called, you can get the contents of the nand in a nice QTreeWidgetItem* with GetTree()
 class NandBin : public QObject
@@ -87,11 +89,32 @@ public:
     //get the fats for a given file
     const QList<quint16> GetFatsForFile( quint16 i );
 
+    //recurse folders and files and get all fats used for them
+    //! this is probably a more expensive function than you want to use
+    //! it was added only to aid in checking for bugs and lost clusters
+    const QList<quint16> GetFatsForEntry( quint16 i );
+
+    //use the above function to search and display lost clusters
+    void ShowLostClusters();
+
     const Blocks0to7 BootBlocks(){ return bootBlocks; }
     const QList<Boot2Info> Boot2Infos();
     quint8 Boot1Version();
 
     QByteArray GetPage( quint32 pageNo, bool withEcc = false );
+
+    //create new entry
+    //returns the index of the entry on success, or 0 on error
+    quint16 CreateEntry(  const QString &path, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm );
+
+    //delete a file/folder
+    bool Delete( const QString &path );
+
+    //sets the data for a given file ( overwrites existing data )
+    bool SetData( quint16 idx, const QByteArray data );
+
+    //overloads the above function
+    bool SetData( const QString &path, const QByteArray data );
 
 
 private:
@@ -133,6 +156,8 @@ private:
     bool ExtractDir( fst_t fst, QString parent );
     bool ExtractFile( fst_t fst, QString parent );
 
+    QTreeWidgetItem *CreateItem( QTreeWidgetItem *parent, const QString &name, quint32 size, quint16 entry, quint32 uid, quint32 gid, quint32 x3, quint8 attr, quint8 wtf);
+
 
 
     QTreeWidgetItem *root;
@@ -146,6 +171,15 @@ private:
     bool WriteCluster( quint32 pageNo, const QByteArray data, const QByteArray hmac );
     bool WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_t fst, quint16 idx );
     bool WritePage( quint32 pageNo, const QByteArray data );
+
+    quint16 CreateNode( const QString &name, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm );
+
+    bool DeleteItem( QTreeWidgetItem *item );
+    //find a parent entry for a path to be created - "/title/00000001" should give the entry for "/title"
+    QTreeWidgetItem *GetParent( const QString &path );
+
+    QTreeWidgetItem *ItemFromEntry( quint16 i, QTreeWidgetItem *parent = NULL );
+    QTreeWidgetItem *ItemFromEntry( const QString &i, QTreeWidgetItem *parent = NULL );
 
 signals:
     //connect to these to receive messages from this object

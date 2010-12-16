@@ -152,7 +152,7 @@ void NandThread::run()
 
 quint32 NandThread::FileCount( QTreeWidgetItem *item )
 {
-    if( item->text( 6 ) == "00" )//its a folder, recurse through it and count all the files
+    if( item->text( 7 ).startsWith( "02" ) )//its a folder, recurse through it and count all the files
     {
 	quint32 ret = 0;
 	quint16 cnt = item->childCount();

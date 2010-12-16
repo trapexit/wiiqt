@@ -20,7 +20,7 @@
       <item>
        <widget class="QLineEdit" name="lineEdit_tid">
         <property name="text">
-         <string>0000000100000002</string>
+         <string/>
         </property>
         <property name="maxLength">
          <number>16</number>
@@ -43,7 +43,7 @@
          </size>
         </property>
         <property name="text">
-         <string>513</string>
+         <string/>
         </property>
         <property name="maxLength">
          <number>5</number>
@@ -218,7 +218,7 @@
     </property>
     <addaction name="actionSetting_txt"/>
     <addaction name="actionFlush"/>
-	<addaction name="actionImportWad"/>
+    <addaction name="actionImportWad"/>
    </widget>
    <addaction name="menuNand_Dump"/>
   </widget>

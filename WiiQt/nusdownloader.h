@@ -82,7 +82,7 @@ public:
     static QMap< quint64, quint16 > List30e();
     static QMap< quint64, quint16 > List31e();
     //static QMap< quint64, quint16 > List32e();
-    //static QMap< quint64, quint16 > List33e();
+    static QMap< quint64, quint16 > List33e();
     static QMap< quint64, quint16 > List34e();
     static QMap< quint64, quint16 > List40e();
     static QMap< quint64, quint16 > List41e();
@@ -98,7 +98,7 @@ public:
     //static QMap< quint64, quint16 > List30j();
     static QMap< quint64, quint16 > List31j();
     //static QMap< quint64, quint16 > List32j();
-    //static QMap< quint64, quint16 > List33j();
+    static QMap< quint64, quint16 > List33j();
     static QMap< quint64, quint16 > List34j();
     static QMap< quint64, quint16 > List40j();
     static QMap< quint64, quint16 > List41j();

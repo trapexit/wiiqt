@@ -185,7 +185,7 @@ void fs_hmac_data( const unsigned char *data, quint32 uid, const unsigned char *
 
 QByteArray NandSpare::Get_hmac_data( const QByteArray cluster, quint32 uid, const unsigned char *name, quint32 entry_n, quint32 x3, quint16 blk )
 {
-    qDebug() << "NandSpare::Get_hmac_data" << hex << cluster.size() << uid << QString( (const char*)name, 12 ) << entry_n << x3 << blk;
+    //qDebug() << "NandSpare::Get_hmac_data" << hex << cluster.size() << uid << QString( (const char*)name ) << entry_n << x3 << blk;
     if( hmacKey.size() != 0x14 || cluster.size() != 0x4000 )
 	return QByteArray();
 

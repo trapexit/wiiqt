@@ -365,7 +365,7 @@ void NandWindow::on_treeWidget_currentItemChanged( QTreeWidgetItem* current, QTr
 {
     Q_UNUSED( previous );
 
-    if( !current || current->text( 6 ) == "00" )
+    if( !current || current->text( 7 ).startsWith( "02" ) )
 	return;
     bool ok = false;
     quint16 entry = current->text( 1 ).toInt( &ok );

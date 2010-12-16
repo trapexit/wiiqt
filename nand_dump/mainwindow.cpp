@@ -322,30 +322,16 @@ void MainWindow::on_actionImportWad_triggered()
 		ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" ).arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
 		return;
 	}
-	QString fn = QFileDialog::getSaveFileName(this,
+	QString fn = QFileDialog::getOpenFileName( this,
 			tr("Wad files(*.wad)"),
 			QCoreApplication::applicationDirPath(),
 			tr("WadFiles (*.wad)"));
 	if(fn == "") return;
 
-	QFile f(fn);
-	if(!f.open( QIODevice::ReadOnly)) {
-		ShowMessage( tr( "Error opening %1" ).arg( fn ) );
-		return;
-	}
+	QByteArray data = ReadFile( fn );
+	if( data.isEmpty() )
+	    return;
 
-	qint64 len = f.size();
-	char* buffer = new char[len];
-	qint64 read = f.read(buffer, len);
-	f.close();
-	hexdump(buffer, 0x40);
-	if(read != len) {
-		ShowMessage( tr( "Error reading %1" ).arg( fn ) );
-		free(buffer);
-		return;
-	}
-	QByteArray data(buffer, len);
-	free(buffer);
 	Wad wad(data);
 	if( !wad.IsOk() ) {
 		ShowMessage( tr( "Wad data not ok" ) );;
