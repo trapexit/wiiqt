@@ -320,24 +320,26 @@ bool CheckTitleIntegrity( quint64 tid )
     //remember the tmd for checking the actual contents
     for( quint8 i = 0; i < 2; i++ )
     {
+	QString it = ( i ? "tmd" : "ticket" );
 	QByteArray ba = nand.GetData( i ? tmdp : tikp );
 	if( ba.isEmpty() )
 	{
-	    if( i )
-		qDebug() << "error getting tmd data";
-	    else
-		qDebug() << "error getting ticket data";
+	    qDebug() << "error getting" << it << "data";
 	    return false;
 	}
 	switch( check_cert_chain( ba ) )
 	{
 	case ERROR_SIG_TYPE:
 	case ERROR_SUB_TYPE:
+	case ERROR_RSA_HASH:
 	case ERROR_RSA_TYPE_UNKNOWN:
 	case ERROR_RSA_TYPE_MISMATCH:
 	case ERROR_CERT_NOT_FOUND:
-	    qDebug() << "the RSA signature isn't even close";
-	    return false;
+	    qDebug() << "\t" << it << "RSA signature isn't even close";
+	    //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
+	    break;
+	case ERROR_RSA_FAKESIGNED:
+	    qDebug() << "\t" << it << "fakesigned";
 	    break;
 	default:
 	    break;
@@ -631,7 +633,7 @@ int main( int argc, char *argv[] )
 
 	qDebug() << "found" << tids.size() << "titles installed";
 	BuildGoodIosList();
-	qDebug() << "found" << validIoses.size() << "good IOS";
+	qDebug() << "found" << validIoses.size() << "bootable IOS";
 	foreach( quint64 tid, tids )
 	{
 	    CheckTitleIntegrity( tid );
