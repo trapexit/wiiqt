@@ -117,6 +117,22 @@ QString SharedContentMap::GetNextEmptyCid()
 void SharedContentMap::AddEntry( const QString &app, const QByteArray &hash )
 {
     data += app.toAscii() + hash;
-    //qDebug() << "SharedContentMap::AddEntry -> added entry, rechecking this beast";
-    //Check();
+}
+
+const QByteArray SharedContentMap::Hash( quint16 i )
+{
+    if( Count() < i )
+	return QByteArray();
+    return data.mid( ( i * 28 ) + 8, 20 );
+}
+
+const QString SharedContentMap::Cid( quint16 i )
+{
+    if( Count() < i )
+	return QByteArray();
+    return QString( data.mid( ( i * 28 ), 8 ) );
+}
+quint16 SharedContentMap::Count()
+{
+    return ( data.size() / 28 );
 }

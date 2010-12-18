@@ -28,6 +28,10 @@ public:
     //get the entire data ready for writing to a wii nand
     const QByteArray Data(){ return data; }
 
+    const QByteArray Hash( quint16 i );
+    const QString Cid( quint16 i );
+    quint16 Count();
+
 private:
     QByteArray data;
 };

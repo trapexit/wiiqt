@@ -116,12 +116,25 @@ public:
     //overloads the above function
     bool SetData( const QString &path, const QByteArray data );
 
+    //write the current changes to the metadata( if you dont do this, then none of the other stuff youve done wont be saved )
+    bool WriteMetaData();
+
+    //functions to verify spare data
+    bool CheckEcc( quint32 pageNo );
+    bool CheckHmacData( quint16 entry );
+
+    //verify hmac stuff for a given supercluster
+    //expects 0x7f00 - 0x7ff0
+    bool CheckHmacMeta( quint16 clNo );
+
 
 private:
     QByteArray key;
     qint32 loc_super;
     qint32 loc_fat;
     qint32 loc_fst;
+    quint16 currentSuperCluster;
+    quint32 superClusterVersion;
     QString extractPath;
     QString nandPath;
     QFile f;
@@ -180,6 +193,8 @@ private:
 
     QTreeWidgetItem *ItemFromEntry( quint16 i, QTreeWidgetItem *parent = NULL );
     QTreeWidgetItem *ItemFromEntry( const QString &i, QTreeWidgetItem *parent = NULL );
+
+
 
 signals:
     //connect to these to receive messages from this object

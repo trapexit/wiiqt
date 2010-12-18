@@ -1,0 +1,8 @@
+this is a simple cli program to check a nand.bin for various things...
+boot1/2 info, fs integrity, signatures, hashes, ecc, hmac, lost clusters, and title sanity.
+
+i have written this as an aide to help debugging the write functions in the nand.bin class.  but it likely will serve other purposes.
+
+run it with no args to see the usage/options
+
+giantpune

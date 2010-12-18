@@ -1,7 +1,7 @@
 #ifndef INCLUDES_H
 #define INCLUDES_H
 
-
+#include <QtGui/QApplication>
 #include <QAction>
 #include <QBuffer>
 #include <QDialog>

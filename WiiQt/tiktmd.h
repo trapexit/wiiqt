@@ -139,7 +139,7 @@ typedef struct _cert_ecdsa {
 class Ticket
 {
 public:
-    Ticket( QByteArray stuff );
+    Ticket( QByteArray stuff = QByteArray() );
 
     //expose the tik data to the rest of the code so it cas read directly from the p_tmd instead of having to add a function to access all the data
     //the pointer should be good until "data" is changed
@@ -172,7 +172,7 @@ private:
 class Tmd
 {
 public:
-    Tmd( QByteArray stuff );
+    Tmd( QByteArray stuff = QByteArray() );
 
     //expose the tmd data to the rest of the code so it cas read directly from the p_tmd instead of having to add a function to access all the data
     //the pointer should be good until "data" is changed
@@ -188,6 +188,9 @@ public:
     quint64 Size( quint16 i );
     quint16 Type( quint16 i );
     quint64 Tid();
+    quint64 IOS();
+    quint16 Gid();
+
 
     //gets the number of contents
     quint16 Count();
@@ -202,6 +205,7 @@ public:
     bool SetType( quint16 i, quint16 type );
     bool SetSize( quint16 i, quint32 size );
     bool SetHash( quint16 i, const QByteArray hash );
+    bool SetIOS( quint64 ios );
 
     bool FakeSign();
 
@@ -226,5 +230,22 @@ private:
     //whenever data is changed, this pointer will become invalid and needs to be reset
     tmd *p_tmd;
 };
+
+enum
+{
+  ERROR_SUCCESS = 0,
+  ERROR_SIG_TYPE,
+  ERROR_SUB_TYPE,
+  ERROR_RSA_FAKESIGNED,
+  ERROR_RSA_HASH,
+  ERROR_RSA_TYPE_UNKNOWN,
+  ERROR_RSA_TYPE_MISMATCH,
+  ERROR_CERT_NOT_FOUND,
+  ERROR_COUNT
+};
+
+//checks the signatures in a tmd/ticket
+//returns 1 of the above enums
+int check_cert_chain( const QByteArray data );
 
 #endif // TIKTMD_H
