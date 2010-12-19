@@ -1,8 +1,6 @@
 #include "nandbin.h"
 #include "tools.h"
 
-//#define NAND_BIN_CAN_WRITE
-
 NandBin::NandBin( QObject * parent, const QString &path ) : QObject( parent )
 {
     type = -1;
@@ -32,18 +30,119 @@ bool NandBin::SetPath( const QString &path )
 	f.close();
 
     f.setFileName( path );
-    bool ret = !f.exists() ||
+    bool ret = ( f.exists() &&
 #ifdef NAND_BIN_CAN_WRITE
-	    !f.open( QIODevice::ReadWrite );
+	    f.open( QIODevice::ReadWrite ) );
 #else
-	    !f.open( QIODevice::ReadOnly );
+	    f.open( QIODevice::ReadOnly ) );
 #endif
-    if( ret )
+    if( !ret )
     {
 	emit SendError( tr( "Cant open %1" ).arg( path ) );
     }
 
-    return !ret;
+    return ret;
+}
+
+bool NandBin::CreateNew( const QString &path, QByteArray keys, QByteArray first8, QList<quint16> badBlocks )
+{
+    if( keys.size() != 0x400 || first8.size() != 0x108000 )
+    {
+	qWarning() << "NandBin::CreateNew -> bad sizes" << hex << keys.size() << first8.size();
+	return false;
+    }
+
+    if( f.isOpen() )
+	f.close();
+
+    //create the new file, write the first 8 blocks, fill it with 0xff, and write the keys.bin at the end
+    f.setFileName( path );
+    if( !f.open( QIODevice::ReadWrite | QIODevice::Truncate ) )
+    {
+	qWarning() << "NandBin::CreateNew -> can't create file" << path;
+	return false;
+    }
+
+    f.write( first8 );
+    QByteArray block( 0x4200, 0xff );//generic empty block
+    for( quint16 i = 0; i < 0x7fc0; i++ )
+	f.write( block );
+
+    f.write( keys );
+    if( f.pos() != 0x21000400 )//no room left on the drive?
+    {
+	qWarning() << "NandBin::CreateNew -> dump size is wrong" << (quint32)f.pos();
+	return false;
+    }
+
+    //setup variables
+    nandPath = path;
+    currentSuperCluster = 0x7f00;
+    superClusterVersion = 1;
+    type = 2;
+    fats.clear();
+    memset( &fsts, 0, sizeof( fst_t ) * 0x17ff );
+
+    //reserve blocks 0 - 7
+    for( quint16 i = 0; i < 0x40; i++ )
+    {
+	fats << 0xfffc;
+    }
+    //find 90 blocks to reserve.  they always appear to be close to the end of the nand
+    //TODO - this isnt always 90, all my nands have a different number, and 90 is right in the middle
+    quint16 bCnt = badBlocks.size();
+    quint16 offset = 0;
+    for( quint16 i = 0; i < bCnt; i++ )
+    {
+	if( i >= 3998 )
+	    offset++;
+    }
+
+    //mark all the "normal" blocks - free, or bad
+    for( quint16 i = 0x40; i < 0x7cf0 - bCnt; i++ )
+    {
+	if( badBlocks.contains( i / 8 ) )
+	    fats << 0xfffd;
+	else
+	    fats << 0xfffe;
+
+    }
+    //mark the 90 reserved ones from above and reserve the superclusters
+    for( quint16 i = 0x7cf0 - bCnt; i < 0x8000; i++ )
+    {
+	fats << 0xfffc;
+    }
+
+    //make the root item
+    fsts[ 0 ].filename[ 0 ] = '/';
+    fsts[ 0 ].attr = 0x16;
+    fsts[ 0 ].sib = 0xffff;
+    fsts[ 0 ].sub = 0xffff;
+
+    fstInited = true;
+
+    //set keys
+    QByteArray hmacKey = keys.mid( 0x144, 0x14 );
+    spare.SetHMacKey( hmacKey );//set the hmac key for calculating spare data
+    key = keys.mid( 0x158, 0x10 );
+
+    //write the metada to each of the superblocks
+    for( quint8 i = 0; i < 0x10; i++ )
+    {
+	if( !WriteMetaData() )
+	{
+	    qWarning() << "NandBin::CreateNew -> error writing superblock" << i;
+	    return false;
+	}
+    }
+
+    //build the tree
+    if( root )
+	delete root;
+    root = new QTreeWidgetItem( QStringList() << nandPath );
+    AddChildren( root, 0 );
+
+    return true;
 }
 
 QTreeWidgetItem *NandBin::GetTree()
@@ -111,8 +210,10 @@ QTreeWidgetItem *NandBin::CreateItem( QTreeWidgetItem *parent, const QString &na
 
 bool NandBin::AddChildren( QTreeWidgetItem *parent, quint16 entry )
 {
+    //qDebug() << "NandBin::AddChildren" << parent->text( 0 ) << hex << entry;
     if( entry >= 0x17ff )
     {
+	qDebug() << "NandBin::AddChildren: entry >= 0x17ff";
 	emit SendError( tr( "entry is above 0x17ff mmmmkay [ 0x%1 ]" ).arg( entry, 0, 16 ) );
 	return false;
     }
@@ -120,7 +221,10 @@ bool NandBin::AddChildren( QTreeWidgetItem *parent, quint16 entry )
     fst_t fst = GetFST( entry );
 
     if( !fst.filename[ 0 ] )//something is amiss, better quit now
+    {
+	qDebug() << "NandBin::AddChildren: !fst.filename[ 0 ]";
 	return false;
+    }
 
     if( fst.sib != 0xffff )
     {
@@ -287,102 +391,119 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
     }
 
     //debug shitzz
-    //ecc
-    /*int blNo = 7;
-    for( int b = 0; b < 8; b++ )
+    /*QList<quint16> fffcs;
+    QList<quint16> ffffs;
+    QList<quint16> fffds;
+    for( quint16 i = 0; i < 0x8000; i++ )
     {
-	qDebug() << "cluster" << b << "of block" << hex << blNo;
-	int clNo = ( blNo * 8 ) + b;
-	for( int i = 0; i < 8; i++ )
+	switch( fats.at( i ) )
 	{
-	    qDebug() << "page" << i << "of cluster" << hex << ( clNo - ( blNo * 8 ) )  << "(" << clNo << ")";
-	    QByteArray whole = GetPage( ( clNo * 8 ) + i, true );
-	    if( whole.size() != 0x840 )
+	case 0xFFFB:
+	    break;
+	case 0xFFFC:
+	    fffcs << i;
+	    break;
+	case 0xFFFD:
+	    fffds << i;
+	    break;
+	case 0xFFFE:
+	    break;
+	case 0xFFFF:
+	    ffffs << i;
+	    break;
+	default:
+	    break;
+	}
+    }*/
+    /*foreach( quint16 cl, fffds )
+    {
+	qDebug() << "bad cluster" << hex << cl;
+	for( quint16 i = 0; i < 8; i++ )
+	{
+	    QByteArray page = GetPage( (cl * 8 ) + i, true );
+	    for( quint16 j = 0; j < page.size(); j++ )
 	    {
-		qDebug() << "wrong size" << hex << whole.size();
+		if( page.at( j ) != '\0' )
+		{
+		     hexdump( page );
+		     break;
+		}
+	    }
+	    //hexdump( page );
+	}
+	//break;
+
+    }*/
+
+    /*qDebug() << "total ffff clusters:" << ffffs.size();
+    quint16 u = 0;
+    while( ffffs.size() )
+    {
+	quint16 fc = ffffs.takeFirst();
+	if( fc < 0x40 || fc >= 0x7F00 )
+	    continue;
+	QByteArray cl = GetCluster( fc, false );
+	while( ffffs.size() && ( ( fc / 8 ) == ( ffffs.at( 0 ) / 8 ) ) )
+	{
+	    fc = ffffs.takeFirst();
+	    if( fc < 0x40 || fc >= 0x7F00 )
 		continue;
-	    }
-	    QByteArray eccR = whole.mid( 0x800, 0x40 );
-	    QByteArray eccC = NandSpare::CalcEcc( whole.left( 0x800 ) );
+	    cl += GetCluster( fc, false );
 
-	    hexdump( eccR );
-	    hexdump( eccC );
 	}
+	WriteFile( QString("./aaaa_ff_%1_%2.bin" ).arg( u++).arg( fc ), cl );
     }*/
-
-    //this makes correct hmac data for the superblocks
-    /*int blNo = 0xff0;//first superblock
-    //int blNo = 0xffe;//last superblock
-    for( int b = blNo; b < 16 + blNo; b += 2 )
+    /*QList<quint16> fcBlocks;
+    quint16 cnt = fffcs.size();
+    quint16 rr = 0;
+    for( quint16 i = 0; i < cnt; i++ )
     {
-	//if( !( b % 2 ) )
-	    //continue;
-	QByteArray clData;
-	for( int c = 0; c < 16; c++ )
+	quint16 block = fffcs.at( i )/8;
+	if( !fcBlocks.contains( block ) )
+	    fcBlocks << block;
+
+	if( fffcs.at( i ) < 0x40 || fffcs.at( i ) >= 0x7F00 )
+	    continue;
+
+	rr++;
+    }
+    qDebug() << "fcBlocks:" << fcBlocks << "total reserved clusters:" << fffcs.size() << "reserved not used for superblock/boot" << rr;*/
+    /*quint16 ppp = 0;
+    for( quint16 i = 0; i < fcBlocks.size(); i++ )
+    {
+	for( quint16 j = 0; j < 8; j++ )
 	{
-	    for( int p = 0; p < 8; p++ )
+	    if( !fffcs.contains( ( i * 8 ) + j ) )
 	    {
-		QByteArray whole = GetPage( ( ( b * 64 ) + ( c * 8 ) + p ), true );
-		clData += whole.left( 0x800 );
+		ppp++;
+		break;
 	    }
 	}
-	qDebug() << "hmac:";
-	QByteArray hmR = spare.Get_hmac_meta( clData, ( b * 8 ) );
-	hexdump( hmR );
-    }*/
-    //GetFile( 369 );
-
-    /*QByteArray scl;
-    for( quint16 i = 0; i < 16; i++ )
-    {
-	scl += GetCluster( currentSuperCluster + i, false );
     }
-    WriteFile( "./aaaa_superCluster.bin", scl );
-    qDebug() << "starting scl" << hex << currentSuperCluster;*/
-
-    //testing creating new items
-    /*quint16 n = CreateEntry( "/test1", 0x4444, 0x5555, 2, 1, 2, 0 );
-    qDebug() << "created item" << n;
-
-    n = CreateEntry( "/test1/test4", 0x4444, 0x5555, 1, 1, 2, 3 );
-    qDebug() << "created item" << n;
-    if( n )
+    qDebug() << "partial reserved blocks:" << ppp;*/
+    /*quint16 u = 0;
+    while( fffcs.size() )
     {
-	bool dd = SetData( n, QByteArray( 0x4000000, '\x69') );
-	qDebug() << "added data" << dd;
+	quint16 fc = fffcs.takeFirst();
+	if( fc < 0x40 || fc >= 0x7F00 )
+	    continue;
+	QByteArray cl = GetCluster( fc );
+	while( fffcs.size() && ( ( fc / 8 ) == ( fffcs.at( 0 ) / 8 ) ) )
+	{
+	    fc = fffcs.takeFirst();
+	    if( fc < 0x40 || fc >= 0x7F00 )
+		continue;
+	    cl += GetCluster( fc );
 
-	dd = WriteMetaData();
-	qDebug() << "write meta" << dd;
+	}
+	WriteFile( QString("./aaaa_fc_%1_%2.bin" ).arg( u++).arg( fc ), cl );
     }*/
-
-    /*scl.clear();
-    for( quint16 i = 0; i < 16; i++ )
-    {
-	scl += GetCluster( currentSuperCluster + i, false );
-    }
-    qDebug() << "tests" << scl.count( "test" ) << "in scl" << hex << currentSuperCluster;
-    WriteFile( "./aaaa_superCluster2.bin", scl );*/
-
-    //QByteArray fu = GetData( "/test1/test2" );
-    //if( !fu.isEmpty() )
-	//hexdump( fu, 0, 0x30 );
-
-    /*ShowLostClusters();
-    bool x= Delete( "/ticket" );
-    qDebug() << "delete" << x;
-
-    ShowLostClusters();*/
-    //delete root;
-    //root = new QTreeWidgetItem( QStringList() << nandPath );
-    //AddChildren( root, 0 );
-
-    //bool l = TestMetaData();
-    //qDebug() << "test meta" << l;
 
 
     if( !bootBlocks.SetBlocks( blocks ) )
 	return false;
 
+    ShowInfo();
     return true;
 }
 
@@ -930,6 +1051,7 @@ void NandBin::ShowInfo()
     quint16 badBlocks = 0;
     quint16 reserved = 0;
     quint16 freeBlocks = 0;
+    quint16 used = 0;
     QList<quint16>badOnes;
     for( quint16 i = 0; i < 0x8000; i++ )
     {
@@ -946,6 +1068,8 @@ void NandBin::ShowInfo()
 	}
 	else if( 0xfffe == fat )
 	    freeBlocks++;
+	else
+	    used ++;
     }
     if( badBlocks )
 	 badBlocks /= 8;
@@ -956,9 +1080,10 @@ void NandBin::ShowInfo()
     if( freeBlocks )
 	 freeBlocks /= 8;
 
-    qDebug() << "free blocks:" << hex << freeBlocks
-	     << "\nbadBlocks:" << hex << badBlocks << badOnes
-	     << "\nreserved:" << hex << reserved;
+    qDebug() << "free blocks:" << freeBlocks
+	     << "\nbadBlocks:" << badBlocks << badOnes
+	     << "\nreserved :" << reserved
+	     << "\nused      :" << used;
 }
 
 QTreeWidgetItem *NandBin::ItemFromEntry( quint16 i, QTreeWidgetItem *parent )
@@ -1104,7 +1229,7 @@ quint16 NandBin::CreateNode( const QString &name, quint32 uid, quint16 gid, quin
 
 quint16 NandBin::CreateEntry( const QString &path, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm )
 {
-    qDebug() << "NandBin::CreateEntry" << path;
+    //qDebug() << "NandBin::CreateEntry" << path;
 
     quint16 ret = 0;
     QTreeWidgetItem *par = GetParent( path );
@@ -1504,7 +1629,7 @@ bool NandBin::WriteMetaData()
     b.write( (const char*)&tmp, 4 );		    //version
     tmp = qFromBigEndian( (quint32)0x10 );
     b.write( (const char*)&tmp, 4 );		    //wiibrew says its always 0x10.  but mine is 0
-    qDebug() << "writing the fats at" << hex << (quint32)b.pos();
+    //qDebug() << "writing the fats at" << hex << (quint32)b.pos();
 
     //write all the fats
     for( quint16 i = 0; i < 0x8000; i++ )
@@ -1513,7 +1638,7 @@ bool NandBin::WriteMetaData()
 	b.write( (const char*)&t, 2 );
     }
 
-    qDebug() << "writing the fsts at" << hex << (quint32)b.pos();
+    //qDebug() << "writing the fsts at" << hex << (quint32)b.pos();
     //write all the fst entries
     for( quint16 i = 0; i < 0x17ff; i++ )
     {
@@ -1545,10 +1670,8 @@ bool NandBin::WriteMetaData()
 
     //qDebug() << "done adding shit" << hex << (quint32)b.pos();
     b.close();
-    //qDebug() << "tests" << scl.count( "test" );
-    //get hmac data
     QByteArray hmR = spare.Get_hmac_meta( scl, nextSuperCluster );
-    qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
+    //qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
 
     for( quint8 i = 0; i < 0x10; i++ )
     {
@@ -1561,18 +1684,6 @@ bool NandBin::WriteMetaData()
     }
     currentSuperCluster = nextSuperCluster;
     superClusterVersion = nextClusterVersion; //probably need to put some magic here in case the version wraps around back to 0
-
-
-    //testing 1,2
-    /*QByteArray tt;
-    for( quint16 i = 0; i < 16; i++ )
-    {
-	tt += GetCluster( currentSuperCluster + i, false );
-    }
-    if( tt != scl )
-	qDebug() << "shit doesnt match :(";
-    else
-	qDebug() << "wrote what was expected :)";*/
 
     return true;
 }
@@ -1587,6 +1698,17 @@ bool NandBin::CheckEcc( quint32 pageNo )
 	return false;
 
     QByteArray data = whole.left( 0x800 );
+    bool used = false;			    //dont calculate ecc for unused pages
+    for( quint16 i = 0; i < 0x800; i++ )
+    {
+	if( data.at( i ) != '\xff' )
+	{
+	    used = true;
+	    break;
+	}
+    }
+    if( !used )
+	return true;
     QByteArray ecc = whole.right( 0x10 );
     QByteArray calc = spare.CalcEcc( data );
     return ( ecc == calc );
@@ -1645,6 +1767,7 @@ bool NandBin::CheckHmacData( quint16 entry )
 	hmac = spare.Get_hmac_data( cluster, fst.uid, (const unsigned char*)&fst.filename, entry, fst.x3, i );
 
 	//this part is kinda ugly, but this is how it is layed out by big N
+	//really it allows 1 copy of hmac to be bad, but im being strict about it
 	if( sp1.mid( 1, 0x14 ) != hmac )
 	{
 	    qDebug() << "hmac bad (1)";
@@ -1700,6 +1823,7 @@ bool NandBin::CheckHmacMeta( quint16 clNo )
     sp2 = sp2.right( 0x40 );
 
     //this part is kinda ugly, but this is how it is layed out by big N
+    //really it allows 1 copy of hmac to be bad, but im being strict about it
     if( sp1.mid( 1, 0x14 ) != hmac )
     {
 	qDebug() << "hmac bad (1)";
@@ -1725,3 +1849,5 @@ error:
     return false;
 
 }
+
+

@@ -4,6 +4,13 @@
 #include "includes.h"
 #include "blocks0to7.h"
 #include "nandspare.h"
+
+#define NAND_FILE   1
+#define NAND_DIR    2
+#define NAND_READ   1
+#define NAND_WRITE  2
+#define NAND_RW	    ( NAND_READ | NAND_WRITE )
+
 struct fst_t
 {
     quint8 filename[ 0xc ];
@@ -34,6 +41,12 @@ public:
 
     //destroys this object, and all its used resources ( closes the nand.bin file and deletes the filetree )
     ~NandBin();
+
+    //create a "blank" nand at the given path, with spare data and keeys.bin appended to the end
+    //keys should be a 0x400 byte array containing a keys.bin from bootmii
+    //first8 should be a bytearray containing 0x108000 bytes - the first 8 blocks of the nand with spare data
+    //badBlocks is a list of blocks to be marked bad, in the range 8 - 4079
+    bool CreateNew( const QString &path, QByteArray keys, QByteArray first8, QList<quint16> badBlocks = QList<quint16>() );
 
     //sets the path of this object to path.  returns false if it cannot open an already existing file
     //keys.bin should be in this same path if they are to be used

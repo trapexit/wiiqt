@@ -304,6 +304,7 @@ bool CheckTitleIntegrity( quint64 tid )
 {
     if( validIoses.contains( tid ) )//this one has already been checked
 	return true;
+
     qDebug() << "Checking" << TidTxt( tid ).insert( 8, "-" ) << "...";
     QString p = TidTxt( tid );
     p.insert( 8 ,"/" );
@@ -339,7 +340,7 @@ bool CheckTitleIntegrity( quint64 tid )
 	    //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
 	    break;
 	case ERROR_RSA_FAKESIGNED:
-	    qDebug() << "\t" << it << "fakesigned";
+//	    qDebug() << "\t" << it << "fakesigned";
 	    break;
 	default:
 	    break;
@@ -363,6 +364,11 @@ bool CheckTitleIntegrity( quint64 tid )
 	    }
 	}
     }
+
+    quint32 upper = ((tid >>32 ) & 0xffffffff);
+    if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
+	return true;
+
 
     quint16 cnt = t.Count();
     for( quint16 i = 0; i < cnt; i++ )
@@ -390,10 +396,10 @@ bool CheckTitleIntegrity( quint64 tid )
 	    QByteArray realH = GetSha1( ba );
 	    if( realH != t.Hash( i ) )
 	    {
-		qDebug() << "one of the private contents' hash doesnt check out" << i << pA <<
-			"\nexpected" << t.Hash( i ).toHex() <<
-			"\nactual  " << realH.toHex();
-		return false;
+		qDebug() << "\tone of the private contents' hash doesnt check out" << i << pA <<
+			"\n\texpected" << t.Hash( i ).toHex() <<
+			"\n\tactual  " << realH.toHex();
+		//return false;									    //dont return false, as this this title may still boot
 	    }
 	}
 
@@ -412,7 +418,8 @@ bool CheckTitleIntegrity( quint64 tid )
 	return false;
     }
 
-    //make sure all the stuff in this title's data directory belongs to it ( im looking at you priibricker & dop-mii )
+    //make sure all the stuff in this title's data directory belongs to it, and all the contents belong to nobody
+    //( im looking at you priibricker & dop-mii )
     QString dataP = tmdp;
     dataP.resize( 25 );
     dataP += "data";
@@ -423,13 +430,26 @@ bool CheckTitleIntegrity( quint64 tid )
 	QString uidS = QString( "%1" ).arg( uid, 8, 16, QChar( '0' ) );
 	QString gidS = QString( "%1" ).arg( gid, 4, 16, QChar( '0' ) );
 	if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
-	    qDebug() << "incorrect uid/gid for data folder";
+	    qDebug() << "\tincorrect uid/gid for data folder";
 	quint16 cnt = dataI->childCount();
 	for( quint16 i = 0; i < cnt; i++ )
 	{
 	    QTreeWidgetItem *item = dataI->child( i );
 	    if( item->text( 3 ) != uidS || !item->text( 4 ).startsWith( gidS ) )
-		qDebug() << "incorrect uid/gid for" << QString( "data/" + item->text( 0 ) );
+		qDebug() << "\tincorrect uid/gid for" << QString( "data/" + item->text( 0 ) );
+	}
+    }
+    dataP.resize( 25 );
+    dataP += "content";
+    dataI = ItemFromPath( dataP );
+    if( dataI )
+    {
+	quint16 cnt = dataI->childCount();
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+	    QTreeWidgetItem *item = dataI->child( i );
+	    if( item->text( 3 ) != "00000000" || !item->text( 4 ).startsWith( "0000" ) )
+		qDebug() << "\tincorrect uid/gid for" << QString( "content/" + item->text( 0 ) );
 	}
     }
     return true;

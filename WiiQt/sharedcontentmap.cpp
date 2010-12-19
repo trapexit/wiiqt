@@ -132,6 +132,7 @@ const QString SharedContentMap::Cid( quint16 i )
 	return QByteArray();
     return QString( data.mid( ( i * 28 ), 8 ) );
 }
+
 quint16 SharedContentMap::Count()
 {
     return ( data.size() / 28 );
