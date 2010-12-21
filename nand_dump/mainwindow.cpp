@@ -22,7 +22,7 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 
     //TODO, really get these paths from settings
 
-    QString cachePath = "./NUS_cache";
+    QString cachePath = "../NUS_cache";
     QString nandPath = "./dump";
 
 

@@ -30,6 +30,7 @@ void Usage()
     qDebug() << "     -clInfo      shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
     qDebug() << "     -spare       calculate & compare ecc for all pages in the nand";
     qDebug() << "                  calculate & compare hmac signatures for all files and superblocks";
+    qDebug() << "     -all         does all of the above";
     exit( 1 );
 }
 
@@ -340,7 +341,7 @@ bool CheckTitleIntegrity( quint64 tid )
 	    //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
 	    break;
 	case ERROR_RSA_FAKESIGNED:
-//	    qDebug() << "\t" << it << "fakesigned";
+	    qDebug() << "\t" << it << "fakesigned";
 	    break;
 	default:
 	    break;
@@ -408,13 +409,13 @@ bool CheckTitleIntegrity( quint64 tid )
     quint64 ios = t.IOS();
     if( ios && !validIoses.contains( ios ) )
     {
-	qDebug() << "the IOS for this title is not bootable";
+	qDebug() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" ) ;
 	return false;
     }
     quint32 uid = uidM.GetUid( tid, false );
     if( !uid )
     {
-	qDebug() << "this title has no UID entry";
+	qDebug() << "\tthis title has no UID entry";
 	return false;
     }
 
@@ -629,13 +630,13 @@ int main( int argc, char *argv[] )
     root = NULL;
 
     //these only serve to show info.  no action is taken
-    if( args.contains( "-boot", Qt::CaseInsensitive ) )
+    if( args.contains( "-boot", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
     {
 	qDebug() << "checking boot1 & 2...";
 	ShowBootInfo( nand.Boot1Version(), nand.Boot2Infos() );
     }
 
-    if( args.contains( "-fs", Qt::CaseInsensitive ) )
+    if( args.contains( "-fs", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
     {
 	qDebug() << "checking uid.sys...";
 	QByteArray ba = nand.GetData( "/sys/uid.sys" );
@@ -662,13 +663,13 @@ int main( int argc, char *argv[] )
 	}
     }
 
-    if( args.contains( "-clInfo", Qt::CaseInsensitive ) )
+    if( args.contains( "-clInfo", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
     {
 	qDebug() << "checking for lost clusters...";
 	CheckLostClusters();
     }
 
-    if( args.contains( "-spare", Qt::CaseInsensitive ) )
+    if( args.contains( "-spare", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
     {
 	qDebug() << "verifying ecc...";
 	CheckEcc();

@@ -616,7 +616,7 @@ QMap< quint64, quint16 > NusDownloader::List31j()
     titles.insert( 0x100000022ull, 1039 );//34v1039
     titles.insert( 0x100000023ull, 1040 );//35v1040
     titles.insert( 0x100000024ull, 1042 );//36v1042
-    //titles.insert( 0x100000025ull, 2070 );//37v2070//3.1u has this one but not 3.1j??
+    //titles.insert( 0x100000025ull, 2070 );//37v2070	//3.1u has this one but not 3.1j??
     titles.insert( 0x1000248415941ull, 0x1 );//photo2v1
     titles.insert( 0x1000848414B4aull, 0 );//EULA - HAKJ
     titles.insert( 0x100024841464aull, 0x7 );// forcast v7 HAFJ

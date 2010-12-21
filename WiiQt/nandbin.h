@@ -27,8 +27,8 @@ struct fst_t
 // class to deal with an encrypted wii nand dump
 // basic usage... create an object, set a path, call InitNand.  then you can get the detailed list of entries with GetTree()
 // extract files with GetFile()
-//! so far, all functions for writing to the nand are just dummies.  i have only run a few test with them, but now actually used them to write to a nand
-//! dont try to use them yet
+//! so far, all functions for writing to the nand are highly untested.  it is not recommended to try to use this code productively!!
+//! you should verify anything written with this code before attempting to install it on you wii
 
 //once InitNand() is called, you can get the contents of the nand in a nice QTreeWidgetItem* with GetTree()
 class NandBin : public QObject
@@ -70,7 +70,6 @@ public:
     // 6 mode
     // 7 attr
     QTreeWidgetItem *GetTree();
-
 
     //extracts an item( and all its children ) to a directory
     //this function is BLOCKING and will block the current thread, so if done in the gui thread, it will freeze your GUI till it returns
@@ -130,6 +129,7 @@ public:
     bool SetData( const QString &path, const QByteArray data );
 
     //write the current changes to the metadata( if you dont do this, then none of the other stuff youve done wont be saved )
+    // but at the same time, you probably dont need to overuse this.  ( no need to write metadata every time you make a single change )
     bool WriteMetaData();
 
     //functions to verify spare data
@@ -207,10 +207,9 @@ private:
     QTreeWidgetItem *ItemFromEntry( quint16 i, QTreeWidgetItem *parent = NULL );
     QTreeWidgetItem *ItemFromEntry( const QString &i, QTreeWidgetItem *parent = NULL );
 
-
-
 signals:
     //connect to these to receive messages from this object
+    //so far, many errors are only outputting to qDebug()  and qWarning().
     void SendError( QString );
     void SendText( QString );
 };

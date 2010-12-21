@@ -15,7 +15,10 @@ NandBin::NandBin( QObject * parent, const QString &path ) : QObject( parent )
 NandBin::~NandBin()
 {
     if( f.isOpen() )
+    {
+	f.flush();
 	f.close();
+    }
 
     if( root )
 	delete root;
@@ -147,6 +150,7 @@ bool NandBin::CreateNew( const QString &path, QByteArray keys, QByteArray first8
 
 QTreeWidgetItem *NandBin::GetTree()
 {
+    //qDebug() << "NandBin::GetTree()";
     return root->clone();
 }
 
@@ -371,7 +375,17 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
 
     root = new QTreeWidgetItem( QStringList() << nandPath );
     AddChildren( root, 0 );
+/*#ifdef NAND_BIN_CAN_WRITE
+    CreateEntry( "/testDir", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW );
+    quint16 pp = CreateEntry( "/testDir/testFile", 0, 0, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
+    qDebug() << "created entry" << pp;
+    Delete( "/testDir/testFile" );
+    pp = CreateEntry( "/testDir/testFile", 0, 0, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
+    qDebug() << "created entry" << pp;
+    SetData( pp, QByteArray( 0x10000, '\x0' ) );
 
+    WriteMetaData();
+#endif*/
 
     //checkout the blocks for boot1&2
     QList<QByteArray>blocks;
@@ -390,120 +404,10 @@ bool NandBin::InitNand( QIcon dirs, QIcon files )
 	blocks << block;
     }
 
-    //debug shitzz
-    /*QList<quint16> fffcs;
-    QList<quint16> ffffs;
-    QList<quint16> fffds;
-    for( quint16 i = 0; i < 0x8000; i++ )
-    {
-	switch( fats.at( i ) )
-	{
-	case 0xFFFB:
-	    break;
-	case 0xFFFC:
-	    fffcs << i;
-	    break;
-	case 0xFFFD:
-	    fffds << i;
-	    break;
-	case 0xFFFE:
-	    break;
-	case 0xFFFF:
-	    ffffs << i;
-	    break;
-	default:
-	    break;
-	}
-    }*/
-    /*foreach( quint16 cl, fffds )
-    {
-	qDebug() << "bad cluster" << hex << cl;
-	for( quint16 i = 0; i < 8; i++ )
-	{
-	    QByteArray page = GetPage( (cl * 8 ) + i, true );
-	    for( quint16 j = 0; j < page.size(); j++ )
-	    {
-		if( page.at( j ) != '\0' )
-		{
-		     hexdump( page );
-		     break;
-		}
-	    }
-	    //hexdump( page );
-	}
-	//break;
-
-    }*/
-
-    /*qDebug() << "total ffff clusters:" << ffffs.size();
-    quint16 u = 0;
-    while( ffffs.size() )
-    {
-	quint16 fc = ffffs.takeFirst();
-	if( fc < 0x40 || fc >= 0x7F00 )
-	    continue;
-	QByteArray cl = GetCluster( fc, false );
-	while( ffffs.size() && ( ( fc / 8 ) == ( ffffs.at( 0 ) / 8 ) ) )
-	{
-	    fc = ffffs.takeFirst();
-	    if( fc < 0x40 || fc >= 0x7F00 )
-		continue;
-	    cl += GetCluster( fc, false );
-
-	}
-	WriteFile( QString("./aaaa_ff_%1_%2.bin" ).arg( u++).arg( fc ), cl );
-    }*/
-    /*QList<quint16> fcBlocks;
-    quint16 cnt = fffcs.size();
-    quint16 rr = 0;
-    for( quint16 i = 0; i < cnt; i++ )
-    {
-	quint16 block = fffcs.at( i )/8;
-	if( !fcBlocks.contains( block ) )
-	    fcBlocks << block;
-
-	if( fffcs.at( i ) < 0x40 || fffcs.at( i ) >= 0x7F00 )
-	    continue;
-
-	rr++;
-    }
-    qDebug() << "fcBlocks:" << fcBlocks << "total reserved clusters:" << fffcs.size() << "reserved not used for superblock/boot" << rr;*/
-    /*quint16 ppp = 0;
-    for( quint16 i = 0; i < fcBlocks.size(); i++ )
-    {
-	for( quint16 j = 0; j < 8; j++ )
-	{
-	    if( !fffcs.contains( ( i * 8 ) + j ) )
-	    {
-		ppp++;
-		break;
-	    }
-	}
-    }
-    qDebug() << "partial reserved blocks:" << ppp;*/
-    /*quint16 u = 0;
-    while( fffcs.size() )
-    {
-	quint16 fc = fffcs.takeFirst();
-	if( fc < 0x40 || fc >= 0x7F00 )
-	    continue;
-	QByteArray cl = GetCluster( fc );
-	while( fffcs.size() && ( ( fc / 8 ) == ( fffcs.at( 0 ) / 8 ) ) )
-	{
-	    fc = fffcs.takeFirst();
-	    if( fc < 0x40 || fc >= 0x7F00 )
-		continue;
-	    cl += GetCluster( fc );
-
-	}
-	WriteFile( QString("./aaaa_fc_%1_%2.bin" ).arg( u++).arg( fc ), cl );
-    }*/
-
-
     if( !bootBlocks.SetBlocks( blocks ) )
 	return false;
 
-    ShowInfo();
+    //ShowInfo();
     return true;
 }
 
@@ -764,11 +668,7 @@ quint16 NandBin::GetFAT( quint16 fat_entry )
 {
     if( fstInited )
 	return fats.at( fat_entry );
-    /*
-    * compensate for "off-16" storage at beginning of superblock
-    * 53 46 46 53   XX XX XX XX   00 00 00 00
-    * S  F  F  S     "version"     padding?
-    *   1     2       3     4       5     6*/
+
     fat_entry += 6;
 
     // location in fat of cluster chain
@@ -1127,7 +1027,7 @@ bool NandBin::WriteCluster( quint32 pageNo, const QByteArray data, const QByteAr
 	QByteArray spareData( 0x40, '\0' );
 	quint8* sp = (quint8*)spareData.data();
 	QByteArray ecc = spare.CalcEcc( data.mid( i * 0x800, 0x800 ) );
-	memcpy( sp + 0x30, ecc.data(), 0x14 );
+	memcpy( sp + 0x30, ecc.data(), 0x10 );
 	sp[ 0 ] = 0xff; // good block
 	if( !hmac.isEmpty() )
 	{
@@ -1138,7 +1038,7 @@ bool NandBin::WriteCluster( quint32 pageNo, const QByteArray data, const QByteAr
 	    }
 	    else if( i == 7 )
 	    {
-		memcpy( (char*)sp + 1, hmac.data() + 12, 8 );
+		memcpy( (char*)sp + 1, (char*)(hmac.data()) + 12, 8 );
 	    }
 	}
 	if( !WritePage( pageNo + i, data.mid( i * 0x800, 0x800 ) + spareData ) )
@@ -1192,10 +1092,11 @@ quint16 NandBin::CreateNode( const QString &name, quint32 uid, quint16 gid, quin
     attr = attr | ( ( user_perm & 3 ) << 6 ) | ( ( group_perm & 3 ) << 4 ) | ( ( other_perm & 3 ) << 2 );
 
     quint32 i;
+    //qDebug() << "looking for first empty node";
     for( i = 1; i < 0x17ff; i++ )//cant be entry 0 because that is the root
     {
-	fst_t fst = fsts[ i ];
-	if( !fst.filename[ 0 ] )//this one doesnt have a filename, it cant be used already
+	//qDebug() << hex << i << FstName( fsts[ i ] );
+	if( !fsts[ i ].filename[ 0 ] )//this one doesnt have a filename, it cant be used already
 	    break;
     }
     if( i == 0x17ff )
@@ -1291,7 +1192,7 @@ quint16 NandBin::CreateEntry( const QString &path, quint32 uid, quint16 gid, qui
 	fsts[ entryNo ].sib = ret;
     }
     QTreeWidgetItem *child = CreateItem( par, name, 0, ret, uid, gid, 0, fsts[ ret ].attr, 0 );
-    if( attr == 1 )
+    if( attr == NAND_FILE )
     {
 	child->setIcon( 0, keyIcon );
     }
@@ -1310,13 +1211,13 @@ bool NandBin::Delete( const QString &path )
 
 bool NandBin::DeleteItem( QTreeWidgetItem *item )
 {
-    qDebug() << "NandBin::DeleteItem" << item->text( 0 );
     if( !item )
     {
 	qWarning() << "cant delete a null item";
 	return false;
     }
 
+    qDebug() << "NandBin::DeleteItem" << item->text( 0 );
     bool ok = false;
     quint16 idx = item->text( 1 ).toInt( &ok );//get the index of the entry to remove
     if( !ok || idx > 0x17fe )
@@ -1341,7 +1242,24 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
 	return false;//wtf
     }
     if( fsts[ parIdx ].sub == idx )		//this is the first item in the folder, point the parent to this items first sibling
+    {
 	fsts[ parIdx ].sub = fsts[ idx ].sib;
+	quint16 cnt = par->childCount();
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+	    if( par->child( i )->text( 0 ) == item->text( 0 ) )
+	    {
+		pId = i;
+		//qDebug() << "found the item";
+		break;
+	    }
+	    if( i == cnt - 1 )//not found
+	    {
+		qWarning() << "wtf 15" << pId << i << cnt;
+		return false;
+	    }
+	}
+    }
 
     else					//point the previous entry to the next one
     {
@@ -1382,28 +1300,22 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
     {
     case 1:
 	{
-	    int q = 0;
+	    //int q = 0;
 	    qDebug() << "deleting clusters of" << item->text( 0 ) << idx;
-	    quint16 fat = fsts[ idx ].sub;//delete all this file's clusters
-	    //fats.replace( fat, 0xfffe );
-	    do
+	    QList<quint16> toFree = GetFatsForFile( idx );
+	    foreach( quint16 cl, toFree )
 	    {
-		fats.replace( fat, 0xfffe );
-		//qDebug() << "fat" << hex << fat;
-		fat = GetFAT( fat );
-		//fats.replace( fat, 0xfffe );
-		//qDebug() << "deleting cluster" << hex << fat << "from table";
-		q++;
+		fats.replace( cl, 0xfffe );
 	    }
-	    while( fat < 0x17ff );
-	    qDebug() << "delete loop done.  freed" << q << "clusters";
+	    qDebug() << "delete loop done.  freed" << toFree.size() << "clusters";
 	}
 	break;
     case 2:
 	{
 	    qDebug() << "deleting children of" << item->text( 0 );
 	    quint32 cnt = item->childCount();//delete all the children of this item
-	    for( quint32 i = cnt - 1; i > 0; i-- )
+	    qDebug() << cnt << "childern";
+	    for( quint32 i = cnt; i > 0; i-- )
 	    {
 		if( !DeleteItem( item->child( i - 1 ) ) )
 		{
@@ -1416,7 +1328,9 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
 
     }
     memset( &fsts[ idx ], 0, sizeof( fst_t ) );	    //clear this entry
+    fsts[ idx ].fst_pos = idx;				    //reset this
     QTreeWidgetItem *d = par->takeChild( pId );
+    qDebug() << "deleting tree item" << d->text( 0 );
     delete d;
     return true;
 }
@@ -1425,12 +1339,18 @@ bool NandBin::SetData( const QString &path, const QByteArray data )
 {
     QTreeWidgetItem *i = ItemFromPath( path );
     if( !i )
+    {
+	qDebug() << "!item" << path;
 	return false;
+    }
 
     bool ok = false;
     quint16 idx = i->text( 1 ).toInt( &ok );//find the entry
     if( !ok || idx > 0x17fe )
+    {
+	qDebug() << "out of range" << path;
 	return false;
+    }
 
     return SetData( idx, data );
 }
@@ -1438,8 +1358,12 @@ bool NandBin::SetData( const QString &path, const QByteArray data )
 bool NandBin::SetData( quint16 idx, const QByteArray data )
 {
     fst_t fst = fsts[ idx ];
+    qDebug() << "NandBin::SetData" << FstName( fst );
     if( ( fst.attr & 3 ) != 1 )
+    {
+	qDebug() << idx << "is a folder";
 	return false;
+    }
 
     QList<quint16> fts = GetFatsForFile( idx );	//get the currently used fats and overwrite them.  this doesnt serve much purpose, but it seems cleaner
     QByteArray pData = PaddedByteArray( data, 0x4000 );//actual data that must be written to the nand
@@ -1467,7 +1391,7 @@ bool NandBin::SetData( quint16 idx, const QByteArray data )
 	qsrand( midnight.secsTo( QTime::currentTime() ) );
 
 	//now grab the clusters that will be used from the list
-	qDebug() << "trying to find" << ( clCnt - fts.size() ) << "free clusters";
+	//qDebug() << "trying to find" << ( clCnt - fts.size() ) << "free clusters";
 	while( fts.size() < clCnt )
 	{
 	    if( !freeClusters.size() )//avoid endless loop in case there are some clusters that should be free, but the spare data says theyre bad
@@ -1601,9 +1525,13 @@ bool NandBin::SetData( quint16 idx, const QByteArray data )
 
     QTreeWidgetItem *i = ItemFromEntry( idx, root );
     if( !i )
+    {
+	qDebug() << "!ItemFromEntry";
 	return false;
+    }
 
     i->setText( 2, QString( "%1" ).arg( data.size(), 0, 16 ) );
+    //f.flush();
     return true;
 }
 
@@ -1671,7 +1599,7 @@ bool NandBin::WriteMetaData()
     //qDebug() << "done adding shit" << hex << (quint32)b.pos();
     b.close();
     QByteArray hmR = spare.Get_hmac_meta( scl, nextSuperCluster );
-    //qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
+    qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
 
     for( quint8 i = 0; i < 0x10; i++ )
     {
@@ -1684,6 +1612,9 @@ bool NandBin::WriteMetaData()
     }
     currentSuperCluster = nextSuperCluster;
     superClusterVersion = nextClusterVersion; //probably need to put some magic here in case the version wraps around back to 0
+
+    //make sure all the data is really written
+    f.flush();
 
     return true;
 }
