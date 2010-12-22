@@ -160,6 +160,7 @@ private:
 
     //let data hold the entire tik data
     QByteArray data;
+    QByteArray decKey;
 
     //point the p_tik to the spot in "data" we want
     void SetPointer();

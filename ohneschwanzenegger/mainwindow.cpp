@@ -574,7 +574,7 @@ bool MainWindow::InstallNUSItem( NusJob job )
     {
 	//nand.WriteMetaData();
 	UpdateTree();
-	ShowMessage( tr( "Deleted old TMD and private contents for\n%1" ).arg( title ) );
+	ShowMessage( tr( "Deleted old TMD and private contents for<br>%1" ).arg( title ) );
     }
 
     cnt = t.Count();

@@ -94,7 +94,8 @@ QByteArray PaddedByteArray( const QByteArray &orig, quint32 padTo )
 
 QByteArray AesDecrypt( quint16 index, const QByteArray source )
 {
-	static quint8 iv[ 16 ];
+    //qDebug() << "AesDecrypt" << hex << index << source.size();
+	quint8 iv[ 16 ];
 
 	quint16 beidx = qFromBigEndian( index );
 	memset( iv, 0, 16 );
@@ -118,6 +119,7 @@ QByteArray AesEncrypt( quint16 index, const QByteArray source )
 
 void AesSetKey( const QByteArray key )
 {
+//    qDebug() << "AesSetKey()" << key.toHex();
     aes_set_key( (const quint8*)key.data() );
 }
 

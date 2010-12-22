@@ -214,6 +214,23 @@ Ticket::Ticket( QByteArray stuff )
 	return;
 
     SetPointer();
+
+    quint8 iv[ 16 ];
+    quint8 keyin[ 16 ];
+    quint8 keyout[ 16 ];
+    quint8 commonkey[ 16 ] = COMMON_KEY;
+
+    quint8 *enc_key = (quint8 *)&p_tik->cipher_title_key;
+    memcpy( keyin, enc_key, sizeof keyin );
+    memset( keyout, 0, sizeof keyout );
+    memset( iv, 0, sizeof iv);
+    memcpy( iv, &p_tik->titleid, sizeof p_tik->titleid );
+
+    aes_set_key( commonkey );
+    aes_decrypt( iv, keyin, keyout, sizeof( keyin ) );
+
+    decKey = QByteArray( (const char*)&keyout, 16 );
+
     if( (quint32)data.size() != SignedSize() )
     {
 	data.resize( SignedSize() );
@@ -232,29 +249,17 @@ bool Ticket::SetTid( quint64 tid )
 {
     if( !p_tik )
 	return false;
+    //hexdump( data, payLoadOffset, data.size() - payLoadOffset );
 
-    p_tik->titleid = qFromBigEndian( tid );
+    quint64 t = qFromBigEndian( tid );
+    p_tik->titleid = t;
+    //hexdump( data, payLoadOffset, data.size() - payLoadOffset );
     return true;
 }
 
 QByteArray Ticket::DecryptedKey()
 {
-    quint8 iv[ 16 ];
-    quint8 keyin[ 16 ];
-    quint8 keyout[ 16 ];
-    static quint8 commonkey[ 16 ] = COMMON_KEY;
-
-    quint8 *enc_key = (quint8 *)&p_tik->cipher_title_key;
-    memcpy( keyin, enc_key, sizeof keyin );
-    memset( keyout, 0, sizeof keyout );
-    memset( iv, 0, sizeof iv);
-    memcpy( iv, &p_tik->titleid, sizeof p_tik->titleid );
-
-    aes_set_key( commonkey );
-    aes_decrypt( iv, keyin, keyout, sizeof( keyin ) );
-
-    return QByteArray( (const char*)&keyout, 16 );
-
+    return decKey;
 }
 
 quint32 Ticket::SignedSize()
@@ -274,7 +279,7 @@ void Ticket::SetPointer()
     else if( data.startsWith( "\x0\x1\x0\x2" ) )
 	payLoadOffset = sizeof( sig_ecdsa );
 
-    p_tik = (tik*)((quint8*)data.data() + payLoadOffset);
+    p_tik = (tik*)((quint8*)(data.data()) + payLoadOffset);
 }
 
 bool Ticket::FakeSign()
