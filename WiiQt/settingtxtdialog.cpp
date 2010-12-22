@@ -2,7 +2,7 @@
 #include "ui_settingtxtdialog.h"
 #include "tools.h"
 
-SettingTxtDialog::SettingTxtDialog( QWidget *parent, const QByteArray &old ) : QDialog(parent), ui(new Ui::SettingTxtDialog)
+SettingTxtDialog::SettingTxtDialog( QWidget *parent, const QByteArray &old, qint8 region ) : QDialog(parent), ui(new Ui::SettingTxtDialog)
 {
     ui->setupUi( this );
     if( !old.isEmpty() )
@@ -62,6 +62,36 @@ SettingTxtDialog::SettingTxtDialog( QWidget *parent, const QByteArray &old ) : Q
 	    }
 	}
     }
+    else
+    {
+	switch( region )
+	{
+	case SETTING_TXT_PAL:
+	    ui->lineEdit_area->setText( "EUR" );
+	    ui->lineEdit_model->setText( "RVL-001(EUR)" );
+	    ui->lineEdit_code->setText( "LEH" );
+	    ui->lineEdit_video->setText( "PAL" );
+	    ui->lineEdit_game->setText( "EU" );
+	    break;
+	case SETTING_TXT_JAP:
+	    ui->lineEdit_area->setText( "JPN" );
+	    ui->lineEdit_model->setText( "RVL-001(JPN)" );
+	    ui->lineEdit_code->setText( "LJF" );
+	    ui->lineEdit_video->setText( "NTSC" );
+	    ui->lineEdit_game->setText( "JP" );
+	    break;
+	case SETTING_TXT_KOR:
+	    ui->lineEdit_area->setText( "KOR" );
+	    ui->lineEdit_model->setText( "RVL-001(KOR)" );
+	    ui->lineEdit_code->setText( "LKM" );
+	    ui->lineEdit_video->setText( "NTSC" );
+	    ui->lineEdit_game->setText( "KR" );
+	    break;
+	case SETTING_TXT_USA://these are already the default values
+	default:
+	    break;
+	}
+    }
 }
 
 SettingTxtDialog::~SettingTxtDialog()
@@ -107,9 +137,9 @@ QByteArray SettingTxtDialog::LolCrypt( QByteArray ba )
     return ret;
 }
 
-QByteArray SettingTxtDialog::Edit( QWidget *parent, const QByteArray &old )
+QByteArray SettingTxtDialog::Edit( QWidget *parent, const QByteArray &old, qint8 region )
 {
-    SettingTxtDialog d( parent, old );
+    SettingTxtDialog d( parent, old, region );
     if( d.exec() )
 	return d.ret;
     return QByteArray();

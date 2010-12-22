@@ -4,6 +4,7 @@
 
 NewNandBin::NewNandBin( QWidget *parent, QList<quint16> badBlocks ) : QDialog(parent), ui(new Ui::NewNandBin), nand( this )
 {
+    dir = QDir::currentPath();
     ui->setupUi(this);
     foreach( quint16 block, badBlocks )
     {
@@ -20,26 +21,29 @@ NewNandBin::~NewNandBin()
 
 void NewNandBin::on_pushButton_keys_clicked()
 {
-    QString f = QFileDialog::getOpenFileName( this, tr( "Select Keys.bin" ) );
+    QString f = QFileDialog::getOpenFileName( this, tr( "Select Keys.bin" ), dir );
     if( f.isEmpty() )
 	return;
     ui->lineEdit_keys->setText( f );
+    dir = QFileInfo( f ).canonicalPath();
 }
 
 void NewNandBin::on_pushButton_boot_clicked()
 {
-    QString f = QFileDialog::getOpenFileName( this, tr( "Select Boot 1 & 2" ) );
+    QString f = QFileDialog::getOpenFileName( this, tr( "Select Boot 1 & 2" ), dir );
     if( f.isEmpty() )
 	return;
     ui->lineEdit_boot->setText( f );
+    dir = QFileInfo( f ).canonicalPath();
 }
 
 void NewNandBin::on_pushButton_dest_clicked()
 {
-    QString f = QFileDialog::getSaveFileName( this, tr( "Output file" ) );
+    QString f = QFileDialog::getSaveFileName( this, tr( "Output file" ), dir );
     if( f.isEmpty() )
 	return;
     ui->lineEdit_dest->setText( f );
+    dir = QFileInfo( f ).canonicalPath();
 }
 
 QList<quint16> NewNandBin::BadBlocks()
@@ -62,7 +66,6 @@ void NewNandBin::on_pushButton_bb_add_clicked()
     if( !BadBlocks().contains( val ) )
     {
 	ui->listWidget_badBlocks->addItem( QString( "%1" ).arg( val ) );
-	//QListWidgetItem *i = new QListWidgetItem( QString( "%1" ).arg( val ), ui->listWidget_badBlocks );
     }
 }
 
@@ -120,4 +123,38 @@ QString NewNandBin::GetNewNandPath( QWidget *parent, QList<quint16> badBlocks )
     if( !d.exec() )
 	return QString();
     return d.ret;
+}
+
+//read bad blocks from a txt file
+void NewNandBin::on_pushButton_badBlockFile_clicked()
+{
+    QString f = QFileDialog::getOpenFileName( this, tr( "Select File with Bad Block List" ), dir );
+    if( f.isEmpty() )
+	return;
+    dir = QFileInfo( f ).canonicalPath();
+    QString str = QString( ReadFile( f ) );
+    if( str.isEmpty() )
+    {
+	qWarning() << "NewNandBin::on_pushButton_badBlockFile_clicked -> error reading file";
+	return;
+    }
+    ui->listWidget_badBlocks->clear();
+
+    str.replace( "\r\n", "\n" );
+    QStringList lines = str.split( "\n", QString::SkipEmptyParts );
+    foreach( QString line, lines )
+    {
+	if( line.size() > 5 )
+	    continue;
+	bool ok = false;
+
+	if( ui->listWidget_badBlocks->findItems( line, Qt::MatchExactly ).size() )//this one is already in the list
+	    continue;
+
+	quint16 bb = line.toInt( &ok );
+	if( !ok || bb < 8 || bb > 4079 )
+	    continue;
+
+	ui->listWidget_badBlocks->addItem( line );
+    }
 }

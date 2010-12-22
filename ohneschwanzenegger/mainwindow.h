@@ -54,6 +54,7 @@ public slots:
     void ReceiveTitleFromNus( NusJob job );
 
 private slots:
+    void on_pushButton_CachePathBrowse_clicked();
     void on_actionAbout_triggered();
     void on_pushButton_initNand_clicked();
     void on_actionNew_nand_from_keys_triggered();

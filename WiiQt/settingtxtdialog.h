@@ -8,20 +8,29 @@
 namespace Ui {
     class SettingTxtDialog;
 }
+enum
+{
+    SETTING_TXT_JAP = 0,
+    SETTING_TXT_USA,
+    SETTING_TXT_PAL,
+    SETTING_TXT_KOR,
+    SETTING_TXT_UNK
+};
 
 class SettingTxtDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit SettingTxtDialog( QWidget *parent = 0, const QByteArray &old = QByteArray() );
+    explicit SettingTxtDialog( QWidget *parent = 0, const QByteArray &old = QByteArray(), qint8 region = SETTING_TXT_UNK );
     ~SettingTxtDialog();
 
-    //displays a dialog window with teh given parent.  if any data is ginev as old, it will try to populate the dialog with that
+    //displays a dialog window with the given parent.  if any data is given as old, it will try to populate the dialog with that
     // otherwise it will use the defaulte values
     // returns empty if the user clicked cancel, or a bytearray containing an encrypted setting.txt if they clicked ok
     // the data is ready for writing to a wii nand
-    static QByteArray Edit( QWidget *parent = 0, const QByteArray &old = QByteArray() );
+    // if an empty byte array is given as old, a region can be specified to populate default values instaed
+    static QByteArray Edit( QWidget *parent = 0, const QByteArray &old = QByteArray(), qint8 region = SETTING_TXT_UNK );
     static QByteArray LolCrypt( QByteArray ba );
 
 private:

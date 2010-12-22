@@ -39,6 +39,7 @@ public slots:
 
 
 private slots:
+    void on_pushButton_CachePathBrowse_clicked();
     void on_actionFlush_triggered();
     void on_actionSetting_txt_triggered();
 	void on_actionImportWad_triggered();

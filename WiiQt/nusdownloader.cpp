@@ -2,7 +2,7 @@
 #include "tools.h"
 
 
-NusDownloader::NusDownloader( QObject *parent, const QString &cPath ) : QObject( parent ), cachePath( cPath ), curTmd( QByteArray() )//, manager( this )
+NusDownloader::NusDownloader( QObject *parent, const QString &cPath ) : QObject( parent ), cachePath( cPath ), curTmd( QByteArray() )
 {
     currentJob.tid = 0;
     currentJob.version = 0;

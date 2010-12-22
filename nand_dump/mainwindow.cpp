@@ -22,7 +22,11 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 
     //TODO, really get these paths from settings
 
+#ifdef Q_WS_WIN
+    QString cachePath = "../../NUS_cache";
+#else
     QString cachePath = "../NUS_cache";
+#endif
     QString nandPath = "./dump";
 
 
@@ -32,12 +36,7 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 
 
     //nand.SetPath( nandPath );
-
-
-
     nus.SetCachePath( cachePath );
-
-
 }
 
 MainWindow::~MainWindow()
@@ -92,7 +91,14 @@ void MainWindow::NusIsDone()
 	QByteArray set = nand.GetSettingTxt();
 	if( set.isEmpty() )
 	{
-	    set = SettingTxtDialog::Edit( this );
+	    quint8 reg = SETTING_TXT_UNK;
+	    if( ui->lineEdit_tid->text().endsWith( "e", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
+		reg = SETTING_TXT_PAL;
+	    if( ui->lineEdit_tid->text().endsWith( "j", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
+		reg = SETTING_TXT_JAP;
+	    if( ui->lineEdit_tid->text().endsWith( "k", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
+		reg = SETTING_TXT_KOR;
+	    set = SettingTxtDialog::Edit( this, QByteArray(), reg );
 	    if( !set.isEmpty() )
 		nand.SetSettingTxt( set );
 	}
@@ -409,7 +415,7 @@ void MainWindow::SaveJobToFolder( NusJob job )
     ShowMessage( tr( "Wrote title to %1" ).arg( fi.absoluteFilePath() + "/" + newFName ) );
 }
 
-//save a conpleted job to wad
+//save a completed job to wad
 void MainWindow::SaveJobToWad( NusJob job )
 {
     QString title = QString( "%1v%2" ).arg( job.tid, 16, 16, QChar( '0' ) ).arg( job.version );
@@ -462,4 +468,14 @@ void MainWindow::SaveJobToWad( NusJob job )
     ShowMessage( "Saved " + title + " to " + fi.absoluteFilePath() + "/" + name );
 
 
+}
+
+void MainWindow::on_pushButton_CachePathBrowse_clicked()
+{
+    QString f = QFileDialog::getExistingDirectory( this, tr( "Select NUS Cache base folder" ) );
+    if( f.isEmpty() )
+	return;
+
+    ui->lineEdit_cachePath->setText( f );
+    nus.SetCachePath( ui->lineEdit_cachePath->text() );
 }

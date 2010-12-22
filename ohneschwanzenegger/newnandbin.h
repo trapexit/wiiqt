@@ -25,8 +25,10 @@ private:
     NandBin nand;
 
     QString ret;
+    QString dir;
 
 private slots:
+    void on_pushButton_badBlockFile_clicked();
     void on_buttonBox_accepted();
     void on_pushButton_bb_rm_clicked();
     void on_pushButton_bb_add_clicked();

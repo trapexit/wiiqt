@@ -32,15 +32,16 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nand, SIGNAL( SendText( QString ) ), ui->statusBar, SLOT( showMessage( QString ) ) );
 
     //TODO, really get these paths from settings
-
+#ifdef Q_WS_WIN
+    QString cachePath = "../../NUS_cache";
+#else
     QString cachePath = "../NUS_cache";
+#endif
     QString nandPath = "./testNand.bin";
-    //QString keyPath = "../keys.bin";
 
 
     ui->lineEdit_cachePath->setText( cachePath );
     ui->lineEdit_nandPath->setText( nandPath );
-    //ui->lineEdit_keys->setText( keyPath );
 
     nus.SetCachePath( cachePath );
 }
@@ -91,7 +92,14 @@ void MainWindow::NusIsDone()
     QTreeWidgetItem *item = ItemFromPath( "/title/00000001/00000002/data/setting.txt" );
     if( !item )
     {
-	QByteArray ba = SettingTxtDialog::Edit( this );	//call a dialog to create a new setting.txt
+	quint8 reg = SETTING_TXT_UNK;
+	if( ui->lineEdit_tid->text().endsWith( "e", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
+	    reg = SETTING_TXT_PAL;
+	if( ui->lineEdit_tid->text().endsWith( "j", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
+	    reg = SETTING_TXT_JAP;
+	if( ui->lineEdit_tid->text().endsWith( "k", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
+	    reg = SETTING_TXT_KOR;
+	QByteArray ba = SettingTxtDialog::Edit( this, QByteArray(), reg );	//call a dialog to create a new setting.txt
 	if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand
 	{
 	    quint16 r = nand.CreateEntry( "/title/00000001/00000002/data/setting.txt", 0x1000, 1, NAND_FILE, NAND_READ, NAND_READ, NAND_READ );
@@ -201,6 +209,15 @@ void MainWindow::on_pushButton_nandPath_clicked()
 	return;
 
     ui->lineEdit_nandPath->setText( f );
+}
+
+void MainWindow::on_pushButton_CachePathBrowse_clicked()
+{
+    QString f = QFileDialog::getExistingDirectory( this, tr( "Select NUS Cache base folder" ) );
+    if( f.isEmpty() )
+	return;
+
+    ui->lineEdit_cachePath->setText( f );
     nus.SetCachePath( ui->lineEdit_cachePath->text() );
 }
 
