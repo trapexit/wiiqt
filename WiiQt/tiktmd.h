@@ -207,6 +207,8 @@ public:
     bool SetSize( quint16 i, quint32 size );
     bool SetHash( quint16 i, const QByteArray hash );
     bool SetIOS( quint64 ios );
+	bool SetAhb( bool remove = true );
+	bool SetDiskAccess( bool allow = true );
 
     bool FakeSign();
 

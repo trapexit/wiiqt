@@ -34,8 +34,8 @@ Wad::Wad( const QByteArray stuff )
 	b.read( (char*)&tmp, 4 );
 	tmp = qFromBigEndian( tmp );
 	if( tmp != 0x49730000 &&
-			tmp != 0x69620000 &&
-			tmp != 0x426b0000 )
+		tmp != 0x69620000 &&
+		tmp != 0x426b0000 )
 	{
 		b.close();
 		hexdump( stuff, 0, 0x40 );
@@ -43,91 +43,93 @@ Wad::Wad( const QByteArray stuff )
 		return;
 	}
 
-    quint32 certSize;
-    quint32 tikSize;
-    quint32 tmdSize;
-    quint32 appSize;
-    quint32 footerSize;
+	quint32 certSize;
+	quint32 tikSize;
+	quint32 tmdSize;
+	quint32 appSize;
+	quint32 footerSize;
 
-    b.read( (char*)&certSize, 4 );
-    certSize = qFromBigEndian( certSize );
+	b.read( (char*)&certSize, 4 );
+	certSize = qFromBigEndian( certSize );
 
-    b.seek( 0x10 );
-    b.read( (char*)&tikSize, 4 );
-    tikSize = qFromBigEndian( tikSize );
-    b.read( (char*)&tmdSize, 4 );
-    tmdSize = qFromBigEndian( tmdSize );
-    b.read( (char*)&appSize, 4 );
-    appSize = qFromBigEndian( appSize );
-    b.read( (char*)&footerSize, 4 );
-    footerSize = qFromBigEndian( footerSize );
+	b.seek( 0x10 );
+	b.read( (char*)&tikSize, 4 );
+	tikSize = qFromBigEndian( tikSize );
+	b.read( (char*)&tmdSize, 4 );
+	tmdSize = qFromBigEndian( tmdSize );
+	b.read( (char*)&appSize, 4 );
+	appSize = qFromBigEndian( appSize );
+	b.read( (char*)&footerSize, 4 );
+	footerSize = qFromBigEndian( footerSize );
 
-    b.close();//close the buffer, the rest of the data can be checked without it
+	b.close();//close the buffer, the rest of the data can be checked without it
 
-    //sanity check this thing
-    quint32 s = stuff.size();
-    if( s < ( RU( 0x40, certSize ) + RU( 0x40, tikSize ) + RU( 0x40, tmdSize ) + RU( 0x40, appSize ) + RU( 0x40, footerSize ) ) )
-    {
-	Err( "Total size is less than the combined sizes of all the parts that it is supposed to contain" );
-	return;
-    }
-
-    quint32 pos = 0x40;
-    certData = stuff.mid( pos, certSize );
-    pos += RU( 0x40, certSize );
-    tikData = stuff.mid( pos, tikSize );
-    pos += RU( 0x40, tikSize );
-    tmdData = stuff.mid( pos, tmdSize );
-    pos += RU( 0x40, tmdSize );
-
-    Ticket ticket( tikData );
-    Tmd t( tmdData );
-
-    //hexdump( tikData );
-    //hexdump( tmdData );
-
-    if( ticket.Tid() != t.Tid() )
-	qWarning() << "wad contains 2 different TIDs";
-
-    quint32 cnt = t.Count();
-    //qDebug() << "Wad contains" << hex << cnt << "contents";
-
-    //another quick sanity check
-    quint32 totalSize = 0;
-    for( quint32 i = 0; i < cnt; i++ )
-	totalSize += t.Size( i );
-
-    if( totalSize > appSize )
-    {
-	Err( "Size of all the apps in the tmd is greater than the size in the wad header" );
-	return;
-    }
-    //read all the contents, check the hash, and remember the data ( still encrypted )
-    for( quint32 i = 0; i < cnt; i++ )
-    {
-
-	quint32 s = RU( 0x40, t.Size( i ) );
-	//qDebug() << "content" << i << "is at" << hex << pos << "with size" << s;
-	QByteArray encData = stuff.mid( pos, s );
-	pos += s;
-
-	//doing this here in case there is some other object that is using the AES that would change the key on us
-	AesSetKey( ticket.DecryptedKey() );
-
-	QByteArray decData = AesDecrypt( i, encData );
-	decData.resize( t.Size( i ) );
-	QByteArray realHash = GetSha1( decData );
-	if( realHash != t.Hash( i ) )
+	//sanity check this thing
+	quint32 s = stuff.size();
+	if( s < ( RU( 0x40, certSize ) + RU( 0x40, tikSize ) + RU( 0x40, tmdSize ) + RU( 0x40, appSize ) + RU( 0x40, footerSize ) ) )
 	{
-	    Err( QString( "hash doesnt match for content %1" ).arg( i ) );
+		Err( "Total size is less than the combined sizes of all the parts that it is supposed to contain" );
+		return;
 	}
-	partsEnc << encData;
-    }
-    //wtf?  some VC titles have a full banner as the footer?  maybe somebody's wad packer is busted
-    //QByteArray footer = stuff.mid( pos, stuff.size() - pos );
-    //qDebug() << "footer";
-    //hexdump( footer );
-    ok = true;
+
+	quint32 pos = 0x40;
+	certData = stuff.mid( pos, certSize );
+	pos += RU( 0x40, certSize );
+	tikData = stuff.mid( pos, tikSize );
+	pos += RU( 0x40, tikSize );
+	tmdData = stuff.mid( pos, tmdSize );
+	pos += RU( 0x40, tmdSize );
+
+	Ticket ticket( tikData );
+	Tmd t( tmdData );
+
+	//hexdump( tikData );
+	//hexdump( tmdData );
+
+	if( ticket.Tid() != t.Tid() )
+		qWarning() << "wad contains 2 different TIDs";
+
+	quint32 cnt = t.Count();
+	//qDebug() << "Wad contains" << hex << cnt << "contents";
+
+	//another quick sanity check
+	quint32 totalSize = 0;
+	for( quint32 i = 0; i < cnt; i++ )
+		totalSize += t.Size( i );
+
+	if( totalSize > appSize )
+	{
+		Err( "Size of all the apps in the tmd is greater than the size in the wad header" );
+		return;
+	}
+	//read all the contents, check the hash, and remember the data ( still encrypted )
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+
+		quint32 s = RU( 0x40, t.Size( i ) );
+		qDebug() << "content" << i << "is at" << hex << pos
+			<< "with size" << s;
+		QByteArray encData = stuff.mid( pos, s );
+		pos += s;
+
+		//doing this here in case there is some other object that
+		//is using the AES that would change the key on us
+		AesSetKey( ticket.DecryptedKey() );
+
+		QByteArray decData = AesDecrypt( i, encData );
+		decData.resize( t.Size( i ) );
+		QByteArray realHash = GetSha1( decData );
+		if( realHash != t.Hash( i ) )
+		{
+			Err( QString( "hash doesnt match for content %1" ).arg( i ) );
+		}
+		partsEnc << encData;
+	}
+	//wtf?  some VC titles have a full banner as the footer?  maybe somebody's wad packer is busted
+	//QByteArray footer = stuff.mid( pos, stuff.size() - pos );
+	//qDebug() << "footer";
+	//hexdump( footer );
+	ok = true;
 }
 
 Wad::Wad( QList< QByteArray > stuff, bool encrypted )
@@ -245,93 +247,94 @@ void Wad::Err( QString str )
 
 const QByteArray Wad::Data( quint32 magicWord, const QByteArray footer )
 {
-    //qDebug() << "Wad::Data" << hex << magicWord << footer.size();
-    if( !partsEnc.size() || tmdData.isEmpty() || tikData.isEmpty() || ( certData.isEmpty() && globalCert.isEmpty() ) )
-    {
-	Err( "Dont have all the parts to make a wad" );
-	return QByteArray();
-    }
-
-    //do some brief checks to make sure that wad is good
-    Ticket ticket( tikData );
-    Tmd t( tmdData );
-    if( t.Tid() != ticket.Tid() )
-    {
-	Err( "Ticket and TMD have different TID" );
-	return QByteArray();
-    }
-    if( partsEnc.size() != t.Count() )
-    {
-	Err( "Dont have enough contents according to the TMD" );
-	return QByteArray();
-    }
-
-    //everything seems in order, try to make the thing
-    QByteArray cert = certData.isEmpty() ? globalCert : certData;
-    quint32 certSize = cert.size();
-    quint32 tikSize = ticket.SignedSize();
-    quint32 tmdSize = t.SignedSize();
-    quint32 appSize = 0;
-    quint32 footerSize = footer.size();
-
-    //add all the app sizes together and check that they match the TMD
-    quint16 cnt = t.Count();
-    for( quint16 i = 0; i < cnt; i++ )
-    {
-	quint32 s = RU( 0x40, partsEnc.at( i ).size() );
-	if( RU( 0x40, t.Size( i ) ) != s )
+	//qDebug() << "Wad::Data" << hex << magicWord << footer.size();
+	if( !partsEnc.size() || tmdData.isEmpty() || tikData.isEmpty() || ( certData.isEmpty() && globalCert.isEmpty() ) )
 	{
-	    Err( QString( "Size of content %1 is bad ( %2, %3, %4 )" ).arg( i )
-		 .arg( t.Size( i ), 0, 16 )
-		 .arg( RU( 0x40, t.Size( i ) ), 0, 16 )
-		 .arg( s, 0, 16 ) );
-	    return QByteArray();
+		Err( "Dont have all the parts to make a wad" );
+		return QByteArray();
 	}
-	appSize += s;
-    }
 
-    QByteArray header( 0x20, '\0' );
-    QBuffer buf( &header );
-    buf.open( QIODevice::WriteOnly );
+	//do some brief checks to make sure that wad is good
+	Ticket ticket( tikData );
+	Tmd t( tmdData );
+	if( t.Tid() != ticket.Tid() )
+	{
+		Err( "Ticket and TMD have different TID" );
+		return QByteArray();
+	}
+	if( partsEnc.size() != t.Count() )
+	{
+		Err( "Dont have enough contents according to the TMD" );
+		return QByteArray();
+	}
 
-    quint32 tmp = qFromBigEndian( 0x20 );//header size
-    buf.write( (const char*)&tmp, 4 );
-    tmp = qFromBigEndian( magicWord );//magic word
-    buf.write( (const char*)&tmp, 4 );
-    tmp = qFromBigEndian( certSize );
-    buf.write( (const char*)&tmp, 4 );
-    buf.seek( 0x10 );
-    tmp = qFromBigEndian( tikSize );
-    buf.write( (const char*)&tmp, 4 );
-    tmp = qFromBigEndian( tmdSize );
-    buf.write( (const char*)&tmp, 4 );
-    tmp = qFromBigEndian( appSize );
-    buf.write( (const char*)&tmp, 4 );
-    tmp = qFromBigEndian( footerSize );
-    buf.write( (const char*)&tmp, 4 );
-    buf.close();
-    //hexdump( header, 0, 0x20 );
+	//everything seems in order, try to make the thing
+	QByteArray cert = certData.isEmpty() ? globalCert : certData;
+	quint32 certSize = cert.size();
+	quint32 tikSize = ticket.SignedSize();
+	quint32 tmdSize = t.SignedSize();
+	quint32 appSize = 0;
+	quint32 footerSize = footer.size();
 
-    QByteArray ret = PaddedByteArray( header, 0x40 ) + PaddedByteArray( cert, 0x40 );
-    //make sure we dont have the huge ticket and TMD that come when downloading from NUS
-    QByteArray tik = tikData;
-    tik.resize( tikSize );
-    tik = PaddedByteArray( tik, 0x40 );
+	//add all the app sizes together and check that they match the TMD
+	quint16 cnt = t.Count();
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+		quint32 s = RU( 0x40, partsEnc.at( i ).size() );
+		if( RU( 0x40, t.Size( i ) ) != s )
+		{
+			Err( QString( "Size of content %1 is bad ( %2, %3, %4 )" )
+					.arg( i )
+					.arg( t.Size( i ), 0, 16 )
+					.arg( RU( 0x40, t.Size( i ) ), 0, 16 )
+					.arg( s, 0, 16 ) );
+			return QByteArray();
+		}
+		appSize += s;
+	}
 
-    QByteArray tm = tmdData;
-    tm.resize( tmdSize );
-    tm = PaddedByteArray( tm, 0x40 );
+	QByteArray header( 0x20, '\0' );
+	QBuffer buf( &header );
+	buf.open( QIODevice::WriteOnly );
 
-    //hexdump( tik );
-    //hexdump( tm );
+	quint32 tmp = qFromBigEndian( 0x20 );//header size
+	buf.write( (const char*)&tmp, 4 );
+	tmp = qFromBigEndian( magicWord );//magic word
+	buf.write( (const char*)&tmp, 4 );
+	tmp = qFromBigEndian( certSize );
+	buf.write( (const char*)&tmp, 4 );
+	buf.seek( 0x10 );
+	tmp = qFromBigEndian( tikSize );
+	buf.write( (const char*)&tmp, 4 );
+	tmp = qFromBigEndian( tmdSize );
+	buf.write( (const char*)&tmp, 4 );
+	tmp = qFromBigEndian( appSize );
+	buf.write( (const char*)&tmp, 4 );
+	tmp = qFromBigEndian( footerSize );
+	buf.write( (const char*)&tmp, 4 );
+	buf.close();
+	//hexdump( header, 0, 0x20 );
 
-    ret += tik + tm;
-    for( quint16 i = 0; i < cnt; i++ )
-    {
-	ret += PaddedByteArray( partsEnc.at( i ), 0x40 );
-    }
-    ret += footer;
-    return ret;
+	QByteArray ret = PaddedByteArray( header, 0x40 ) + PaddedByteArray( cert, 0x40 );
+	//make sure we dont have the huge ticket and TMD that come when downloading from NUS
+	QByteArray tik = tikData;
+	tik.resize( tikSize );
+	tik = PaddedByteArray( tik, 0x40 );
+
+	QByteArray tm = tmdData;
+	tm.resize( tmdSize );
+	tm = PaddedByteArray( tm, 0x40 );
+
+	//hexdump( tik );
+	//hexdump( tm );
+
+	ret += tik + tm;
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+		ret += PaddedByteArray( partsEnc.at( i ), 0x40 );
+	}
+	ret += footer;
+	return ret;
 }
 
 QString Wad::WadName( QString path )
@@ -546,58 +549,129 @@ QByteArray Wad::FromDirectory( QDir dir )
 
 bool Wad::SetTid( quint64 tid )
 {
-    if( !tmdData.size() || !tikData.size() )
-    {
-	Err( "Mising parts of the wad" );
-	return false;
-    }
-    Tmd t( tmdData );
-    Ticket ti( tikData );
+	if( !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+	Tmd t( tmdData );
+	Ticket ti( tikData );
 
-    t.SetTid( tid );
-    ti.SetTid( tid );
+	t.SetTid( tid );
+	ti.SetTid( tid );
 
-    if( !t.FakeSign() )
-    {
-	Err( "Error signing TMD" );
-	return false;
-    }
-    if( !ti.FakeSign() )
-    {
-	Err( "Error signing ticket" );
-	return false;
-    }
-    tmdData = t.Data();
-    tikData = ti.Data();
-    return true;
+	if( !t.FakeSign() )
+	{
+		Err( "Error signing TMD" );
+		return false;
+	}
+	if( !ti.FakeSign() )
+	{
+		Err( "Error signing ticket" );
+		return false;
+	}
+	tmdData = t.Data();
+	tikData = ti.Data();
+	return true;
+}
+
+bool Wad::SetIOS( quint32 ios )
+{
+	if( !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+	Tmd t( tmdData );
+
+	t.SetIOS( ios );
+
+	if( !t.FakeSign() )
+	{
+		Err( "Error signing TMD" );
+		return false;
+	}
+	tmdData = t.Data();
+	return true;
+}
+
+bool Wad::SetAhb( bool remove )
+{
+	if( !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+	Tmd t( tmdData );
+
+	t.SetAhb( remove );
+
+	if( !t.FakeSign() )
+	{
+		Err( "Error signing TMD" );
+		return false;
+	}
+	tmdData = t.Data();
+	return true;
+}
+
+bool Wad::SetDiskAccess( bool allow )
+{
+	if( !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+	Tmd t( tmdData );
+
+	t.SetDiskAccess( allow );
+
+	if( !t.FakeSign() )
+	{
+		Err( "Error signing TMD" );
+		return false;
+	}
+	tmdData = t.Data();
+	return true;
 }
 
 bool Wad::ReplaceContent( quint16 idx, const QByteArray ba )
 {
-    if( idx >= partsEnc.size() || !tmdData.size() || !tikData.size() )
-    {
-	Err( "Mising parts of the wad" );
-	return false;
-    }
-    QByteArray hash = GetSha1( ba );
-    quint32 size = ba.size();
+	if( idx >= partsEnc.size() || !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+	QByteArray hash = GetSha1( ba );
+	quint32 size = ba.size();
 
-    Tmd t( tmdData );
-    t.SetHash( idx, hash );
-    t.SetSize( idx, size );
-    if( !t.FakeSign() )
-    {
-	Err( "Error signing the tmd" );
-	return false;
-    }
-    tmdData = t.Data();
+	Tmd t( tmdData );
+	if( !t.SetHash( idx, hash ) )
+	{
+		Err( "Error setting content hash" );
+		return false;
+	}else{
+		qDebug() << "Hash :" << hash.toHex();
+	}
+	if( !t.SetSize( idx, size ) )
+	{
+		Err( "Error setting content size" );
+		return false;
+	}
+	if( !t.FakeSign() )
+	{
+		Err( "Error signing the tmd" );
+		return false;
+	}
+	tmdData = t.Data();
 
-    Ticket ti( tikData );
-    AesSetKey( ti.DecryptedKey() );
-    QByteArray decDataPadded = PaddedByteArray( ba, 0x40 );
+	Ticket ti( tikData );
+	AesSetKey( ti.DecryptedKey() );
+	QByteArray decDataPadded = PaddedByteArray( ba, 0x40 );
 
-    QByteArray encData = AesEncrypt( idx, decDataPadded );
-    partsEnc.replace( idx, encData );
+	QByteArray encData = AesEncrypt( idx, decDataPadded );
+	partsEnc.replace( idx, encData );
 
-    return true;
+	return true;
 }
+

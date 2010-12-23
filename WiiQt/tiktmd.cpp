@@ -52,6 +52,34 @@ bool Tmd::SetIOS( quint64 ios )
     return true;
 }
 
+bool Tmd::SetAhb( bool remove )
+{
+    if( !p_tmd )
+	return false;
+
+	quint32 access = qFromBigEndian( p_tmd->access_rights );
+	if( remove )
+		access |=  1;
+	else
+		access &= 0xfffffffe;
+	p_tmd->access_rights = qToBigEndian( access );
+    return true;
+}
+
+bool Tmd::SetDiskAccess( bool allow )
+{
+    if( !p_tmd )
+	return false;
+
+	quint32 access = qFromBigEndian( p_tmd->access_rights );
+	if( allow )
+		access |=  2;
+	else
+		access &= 0xfffffffd;
+	p_tmd->access_rights = qToBigEndian( access );
+    return true;
+}
+
 quint16 Tmd::Gid()
 {
     if( !p_tmd )
@@ -122,7 +150,7 @@ bool Tmd::SetSize( quint16 cid, quint32 size )
     if( !p_tmd || cid >= qFromBigEndian( p_tmd->num_contents ) )
 	return false;
 
-    p_tmd->contents[ cid ].size = qFromBigEndian( size );
+    p_tmd->contents[ cid ].size = qFromBigEndian( (quint64)size );
     return true;
 }
 
@@ -249,11 +277,23 @@ bool Ticket::SetTid( quint64 tid )
 {
     if( !p_tik )
 	return false;
-    //hexdump( data, payLoadOffset, data.size() - payLoadOffset );
 
-    quint64 t = qFromBigEndian( tid );
-    p_tik->titleid = t;
-    //hexdump( data, payLoadOffset, data.size() - payLoadOffset );
+	p_tik->titleid = qFromBigEndian( tid );
+
+	//create new title key
+	quint8 iv[ 16 ];
+	quint8 keyin[ 16 ];
+	quint8 commonkey[ 16 ] = COMMON_KEY;
+
+	memcpy( &keyin, (quint8 *)decKey.data(), 16 );
+	memset( &p_tik->cipher_title_key, 0, 16 );
+	memset( &iv, 0, 16 );
+	memcpy( &iv, &p_tik->titleid, sizeof(quint64) );
+
+	aes_set_key( (quint8 *)&commonkey );
+	aes_encrypt( (quint8 *)&iv, (quint8 *)&keyin,
+			(quint8 *)&p_tik->cipher_title_key, 16 );
+
     return true;
 }
 

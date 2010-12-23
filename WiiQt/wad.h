@@ -25,6 +25,15 @@ public:
     //set the tid in the ticket&tmd and fakesign the wad
     bool SetTid( quint64 tid );
 
+    //set the ios in the ticket&tmd and fakesign the wad
+    bool SetIOS( quint32 ios );
+
+	//set the tmd to allow AHBPROT removal
+	bool SetAhb( bool remove = true );
+
+	//set the tmd to allow direct disc access
+	bool SetDiskAccess( bool allow = true );
+
     //replace a content of this wad, update the size & hash in the tmd and sign it
     //ba should be decrypted
     bool ReplaceContent( quint16 idx, const QByteArray ba );
