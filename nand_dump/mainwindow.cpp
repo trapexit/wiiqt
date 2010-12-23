@@ -343,7 +343,6 @@ void MainWindow::on_actionImportWad_triggered()
 		ShowMessage( tr( "Wad data not ok" ) );;
 		return;
 	}
-
 	bool ok = nand.InstallWad( wad );
 	if( ok )
 	    ShowMessage( tr( "Installed %1 title to nand" ).arg( wad.WadName() ) );

@@ -1,7 +1,7 @@
 #include "uidmap.h"
 #include "tools.h"
 
-UIDmap::UIDmap( const QByteArray old )
+UIDmap::UIDmap( const QByteArray &old )
 {
     data = old;
     if( data.isEmpty() )

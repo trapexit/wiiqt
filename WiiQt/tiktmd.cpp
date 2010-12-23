@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-Tmd::Tmd( QByteArray stuff )
+Tmd::Tmd( const QByteArray &stuff )
 {
     data = stuff;
     p_tmd = NULL;
@@ -102,7 +102,7 @@ QByteArray Tmd::Hash( quint16 i )
     return QByteArray( (const char*)&p_tmd->contents[ i ].hash, 20 );
 }
 
-bool Tmd::SetHash( quint16 cid, const QByteArray hash )
+bool Tmd::SetHash( quint16 cid, const QByteArray &hash )
 {
     if( !p_tmd || cid >= qFromBigEndian( p_tmd->num_contents ) || hash.size() != 20 )
 	return false;
@@ -234,7 +234,7 @@ bool Tmd::FakeSign()
     return ret;
 }
 
-Ticket::Ticket( QByteArray stuff )
+Ticket::Ticket( const QByteArray &stuff )
 {
     data = stuff;
     p_tik = NULL;
@@ -451,7 +451,7 @@ static int get_sub_len( const quint8 *sub )
     return -ERROR_SUB_TYPE;
 }
 
-static int check_rsa( QByteArray h, const quint8 *sig, const quint8 *key, const quint32 n )
+static int check_rsa( const QByteArray &h, const quint8 *sig, const quint8 *key, const quint32 n )
 {
     quint8 correct[ 0x200 ], x[ 0x200 ];
     static const quint8 ber[ 16 ] = { 0x00,0x30,0x21,0x30,0x09,0x06,0x05,0x2b,
@@ -476,7 +476,7 @@ static int check_rsa( QByteArray h, const quint8 *sig, const quint8 *key, const 
     return ERROR_RSA_HASH;
 }
 
-static int check_hash( QByteArray h, const quint8 *sig, const quint8 *key )
+static int check_hash( const QByteArray &h, const quint8 *sig, const quint8 *key )
 {
     quint32 type;
     type = BE32( sig ) - 0x10000;
@@ -528,7 +528,7 @@ static const quint8* find_cert_in_chain( const quint8 *sub, const quint8 *cert, 
     return NULL;
 }
 
-int check_cert_chain( const QByteArray data )
+int check_cert_chain( const QByteArray &data )
 {
     int cert_err;
     const quint8* key;

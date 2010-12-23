@@ -3,10 +3,6 @@
 #include "aes.h"
 #include "sha1.h"
 
-//QString currentDir;
-//QString cachePath = "./NUS_cache";
-//QString nandPath = "./dump";
-
 char ascii( char s ) {
     if ( s < 0x20 ) return '.';
     if ( s > 0x7E ) return '.';
@@ -92,20 +88,20 @@ QByteArray PaddedByteArray( const QByteArray &orig, quint32 padTo )
     return orig + padding;
 }
 
-QByteArray AesDecrypt( quint16 index, const QByteArray source )
+QByteArray AesDecrypt( quint16 index, const QByteArray &source )
 {
     //qDebug() << "AesDecrypt" << hex << index << source.size();
 	quint8 iv[ 16 ];
 
 	quint16 beidx = qFromBigEndian( index );
-	memset( iv, 0, 16 );
-	memcpy( iv, &beidx, 2 );
+	memset( &iv, 0, 16 );
+	memcpy( &iv, &beidx, 2 );
 	QByteArray ret( source.size(), '\0' );
-	aes_decrypt( iv, (const quint8*)source.data(), (quint8*)ret.data(), source.size() );
+	aes_decrypt( (quint8*)&iv, (const quint8*)source.data(), (quint8*)ret.data(), source.size() );
 	return ret;
 }
 
-QByteArray AesEncrypt( quint16 index, const QByteArray source )
+QByteArray AesEncrypt( quint16 index, const QByteArray &source )
 {
 	static quint8 iv[ 16 ];
 
@@ -117,13 +113,13 @@ QByteArray AesEncrypt( quint16 index, const QByteArray source )
 	return ret;
 }
 
-void AesSetKey( const QByteArray key )
+void AesSetKey( const QByteArray &key )
 {
 //    qDebug() << "AesSetKey()" << key.toHex();
     aes_set_key( (const quint8*)key.data() );
 }
 
-QByteArray GetSha1( QByteArray stuff )
+QByteArray GetSha1( const QByteArray &stuff )
 {
     SHA1Context sha;
     SHA1Reset( &sha );
@@ -157,7 +153,7 @@ QByteArray ReadFile( const QString &path )
     return ret;
 }
 
-bool WriteFile( const QString &path, const QByteArray ba )
+bool WriteFile( const QString &path, const QByteArray &ba )
 {
     QFile file( path );
     if( !file.open( QIODevice::WriteOnly | QIODevice::Truncate ) )

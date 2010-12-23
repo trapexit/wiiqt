@@ -6,18 +6,18 @@ class Wad
 {
 public:
     //create a wad instance from a bytearray containing a wad
-    Wad( const QByteArray stuff = QByteArray() );
+    Wad( const QByteArray &stuff = QByteArray() );
 
     //create a wad object from a list of byteArrays.
     //the first one should be the tmd, the second one the ticket, and the rest are the contents, in order
     //it will use the global cert unless one is given with SetCert
-    Wad( QList< QByteArray > stuff, bool isEncrypted = true );
+    Wad( const QList< QByteArray > &stuff, bool isEncrypted = true );
 
     //check if this wad is valid
     bool IsOk(){ return ok; }
 
     //set the cert for this wad
-    void SetCert( const QByteArray stuff );
+    void SetCert( const QByteArray &stuff );
 
     //returns the tid of the tmd of this wad( which may be different than the one in the ticket if somebody did something stupid )
     quint64 Tid();
@@ -36,7 +36,7 @@ public:
 
     //replace a content of this wad, update the size & hash in the tmd and sign it
     //ba should be decrypted
-    bool ReplaceContent( quint16 idx, const QByteArray ba );
+    bool ReplaceContent( quint16 idx, const QByteArray &ba );
 
     //add a new content to this wad and fakesign
     //if the data is encrypted, set that arguement to true
@@ -50,15 +50,21 @@ public:
     static void SetGlobalCert( const QByteArray &stuff );
 
     //pack a wad from the given directory
+    //returns a bytearray containing a wad reading for writing to a file
+    //or an empty bytearray on error
+    //! dir should be a directory containing a tmd ( "*.tmd" or "tmd.*" ), a ticket ( "*.tik" or "cetk" ),
+    //! all the contents ( <cid>.app :where cid is the correct cid from the tmd, not the "0, 1, 2, 3..." bullshit some broken wad-unpackers create )
+    //! if any of the .apps do not match in size or hash what is in the TMD, then the TMD will be updated and fakesigned
+    //! a cert ( "*.cert" ) is also supported, but not required
     static QByteArray FromDirectory( QDir dir );
 
     //get a assembled wad from the list of parts
     //the first one should be the tmd, the second one the ticket, and the rest are the contents, in order
     //it will use the global cert
-    static QByteArray FromPartList( QList< QByteArray > stuff, bool isEncrypted = true );
+    static QByteArray FromPartList( const QList< QByteArray > &stuff, bool isEncrypted = true );
 
     //get all the parts of this wad put together in a wad ready for writing to disc or whatever
-    const QByteArray Data( quint32 magicWord = 0x49730000, const QByteArray footer = QByteArray() );
+    const QByteArray Data( quint32 magicWord = 0x49730000, const QByteArray &footer = QByteArray() );
 	
     //get the tmd for the wad
     const QByteArray getTmd();
@@ -78,10 +84,10 @@ public:
     //get a name for a wad as it would be seen in a wii disc update partition
     //if a path is given, it will check that path for existing wads with the name and append a number to the end "(1)" to avoid duplicate files
     //returns an empty string if it cant guess the title based on TID
-    static QString WadName( quint64 tid, quint16 version, QString path = QString() );
+    static QString WadName( quint64 tid, quint16 version, const QString &path = QString() );
 
     //get this Wad's name as it would appear on a disc update partition
-    QString WadName( QString path = QString() );
+    QString WadName( const QString &path = QString() );
 
 private:
     bool ok;
@@ -93,7 +99,7 @@ private:
     QByteArray tikData;
     QByteArray certData;
 
-    void Err( QString str );
+    void Err( const QString &str );
 };
 
 #endif // WAD_H

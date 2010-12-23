@@ -144,7 +144,7 @@ QByteArray NandDump::GetSettingTxt()
     return GetFile( "/title/00000001/00000002/data/setting.txt" );
 }
 
-bool NandDump::SetSettingTxt( const QByteArray ba )
+bool NandDump::SetSettingTxt( const QByteArray &ba )
 {
     if( basePath.isEmpty() )
 	return false;
@@ -163,7 +163,7 @@ const QByteArray NandDump::GetFile( const QString &path )
 }
 
 //write some file to the nand
-bool NandDump::SaveData( const QByteArray ba, const QString& path )
+bool NandDump::SaveData( const QByteArray &ba, const QString& path )
 {
     if( basePath.isEmpty() || !path.startsWith( "/" ) )
 	return false;
@@ -181,7 +181,7 @@ void NandDump::DeleteData( const QString & path )
     QFile::remove( basePath + path );
 }
 
-bool NandDump::InstallTicket( const QByteArray ba, quint64 tid )
+bool NandDump::InstallTicket( const QByteArray &ba, quint64 tid )
 {
     Ticket t( ba );
     if( t.Tid() != tid )
@@ -208,7 +208,7 @@ bool NandDump::InstallTicket( const QByteArray ba, quint64 tid )
     return SaveData( start, p );
 }
 
-bool NandDump::InstallTmd( const QByteArray ba, quint64 tid )
+bool NandDump::InstallTmd( const QByteArray &ba, quint64 tid )
 {
     Tmd t( ba );
     if( t.Tid() != tid )
@@ -225,7 +225,7 @@ bool NandDump::InstallTmd( const QByteArray ba, quint64 tid )
     return SaveData( start, p );
 }
 
-bool NandDump::InstallSharedContent( const QByteArray ba, const QByteArray hash )
+bool NandDump::InstallSharedContent( const QByteArray &ba, const QByteArray &hash )
 {
     QByteArray h = hash;
     if( h.isEmpty() )
@@ -245,7 +245,7 @@ bool NandDump::InstallSharedContent( const QByteArray ba, const QByteArray hash 
     return true;
 }
 
-bool NandDump::InstallPrivateContent( const QByteArray ba, quint64 tid, const QString &cid )
+bool NandDump::InstallPrivateContent( const QByteArray &ba, quint64 tid, const QString &cid )
 {
     QString p = QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) );
     p.insert( 8 ,"/" );
@@ -322,7 +322,7 @@ bool NandDump::RecurseDeleteFolder( const QString &path )
     return  QDir().rmdir( path );
 }
 
-bool NandDump::InstallNusItem( NusJob job )
+bool NandDump::InstallNusItem( const NusJob &job )
 {
     if( !job.tid || job.data.size() < 3 )
     {
@@ -345,13 +345,13 @@ bool NandDump::InstallNusItem( NusJob job )
     if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
 	return false;
 
-    QByteArray ba = job.data.takeFirst();
+    QByteArray ba = job.data.at( 0 );
     if( !InstallTmd( ba, job.tid ) )
 	return false;
 
     Tmd t( ba );
 
-    ba = job.data.takeFirst();
+    ba = job.data.at( 1 );
     Ticket ti( ba );
     if( !InstallTicket( ba, job.tid ) )
     {
@@ -372,14 +372,14 @@ bool NandDump::InstallNusItem( NusJob job )
 	QByteArray decData;
 	if( job.decrypt )
 	{
-	    decData = job.data.takeFirst();
+	    decData = job.data.at( i + 2 );
 	}
 	else
 	{
 	    //seems like a waste to keep setting the key, but for now im doing it this way
 	    //so multiple objects can be decrypting titles at the same time
 	    AesSetKey( ti.DecryptedKey() );
-	    QByteArray paddedEncrypted = PaddedByteArray( job.data.takeFirst(), 0x40 );
+	    QByteArray paddedEncrypted = PaddedByteArray( job.data.at( i + 2 ), 0x40 );
 	    decData = AesDecrypt( i, paddedEncrypted );
 	    decData.resize( t.Size( i ) );
 	    QByteArray realHash = GetSha1( decData );
@@ -448,7 +448,7 @@ bool NandDump::InstallWad( Wad wad )
 	Tmd t( ba );
 
 	ba = wad.getTik();
-	Ticket ti( ba );
+	//Ticket ti( ba );
 	if( !InstallTicket( ba, wad.Tid() ) )
 	{
 		AbortInstalling( wad.Tid() );
@@ -565,7 +565,7 @@ void NandDump::ReadReplacementStrings()
     }
 }
 
-bool NandDump::SetReplaceString( const QString ch, const QString &replaceWith )
+bool NandDump::SetReplaceString( const QString &ch, const QString &replaceWith )
 {
     qWarning() << "NandDump::SetReplaceString(" << ch << "," << replaceWith << ")";
     QRegExp re( "[^/?*:;{}\\]+" );
@@ -749,7 +749,7 @@ SaveGame NandDump::GetSaveData( quint64 tid )
     return ret;
 }
 
-bool NandDump::InstallSave( SaveGame save )
+bool NandDump::InstallSave( const SaveGame &save )
 {
     if( basePath.isEmpty() || !IsValidSave( save ) )
 	return false;
@@ -791,7 +791,7 @@ bool NandDump::InstallSave( SaveGame save )
     return true;
 }
 
-bool NandDump::IsValidSave( SaveGame save )
+bool NandDump::IsValidSave( const SaveGame &save )
 {
     if( !save.tid || save.entries.size() != save.isFile.size() )
 	return false;

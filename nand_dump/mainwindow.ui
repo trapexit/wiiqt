@@ -245,6 +245,9 @@
    <property name="text">
     <string>Import Wad</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+I</string>
+   </property>
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>

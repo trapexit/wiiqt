@@ -8,7 +8,7 @@
 class UIDmap
 {
 public:
-    UIDmap( const QByteArray old = QByteArray() );
+    UIDmap( const QByteArray &old = QByteArray() );
     ~UIDmap();
 
     //makes sure there are the default entries in the map and that the entries are sane

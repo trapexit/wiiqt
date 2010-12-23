@@ -39,7 +39,7 @@ public:
     //giving an empty replacement string will remove that entry and all the actual character will be used in paths
     //! this function will recurse the "/title" folder and apply any change to any existing files if finds
     //! if that fails ( like you tried to tell it to use a ':' while writing to a FAT32 drive), it will try to recurse that folder again and undo the change
-    bool SetReplaceString( const QString ch, const QString &replaceWith = QString() );
+    bool SetReplaceString( const QString &ch, const QString &replaceWith = QString() );
 
     //get a list of the replacement strings used when writing save data
     // they are returned as ( character as it would be on the wii nand, string as it is on this nand dump )
@@ -53,7 +53,7 @@ public:
 
     //installs a title to the nand dump from an already existing NusJob
     //returns false if something went wrong
-    bool InstallNusItem( NusJob job );
+    bool InstallNusItem( const NusJob &job );
 
     //installs a title to the nand dump from a wad
     //returns false if something went wrong
@@ -76,13 +76,13 @@ public:
 
     //overloads GetFile() with "/title/00000001/00000002/data/setting.txt"
     QByteArray GetSettingTxt();
-    bool SetSettingTxt( const QByteArray ba );
+    bool SetSettingTxt( const QByteArray &ba );
 
     //reads a file from the nand and returns it as a qbytearray
     const QByteArray GetFile( const QString &path );
 
     //tries to write the given bytearray to a file of the given path
-    bool SaveData( const QByteArray ba, const QString& path );
+    bool SaveData( const QByteArray &ba, const QString& path );
 
     //expects a file, not directory
     void DeleteData( const QString & path );
@@ -92,7 +92,7 @@ public:
     SaveGame GetSaveData( quint64 tid );
 
     //installs a save to the nand
-    bool InstallSave( SaveGame save );
+    bool InstallSave( const SaveGame &save );
 
     //convert a name TO the format that will be writen to the nand
     // it would be wise to only give these functions the name of the exact file you want to convert instead of the path
@@ -110,7 +110,7 @@ public:
     const QString FromNandPath( const QString &path );
 
     //sanity check a save object
-    static bool IsValidSave( SaveGame save );
+    static bool IsValidSave( const SaveGame &save );
 
 
 
@@ -132,10 +132,10 @@ private:
     bool cmDirty;
     bool FlushContentMap();
 
-    bool InstallTicket( const QByteArray ba, quint64 tid );
-    bool InstallTmd( const QByteArray ba, quint64 tid );
-    bool InstallSharedContent( const QByteArray ba, const QByteArray hash = QByteArray() );
-    bool InstallPrivateContent( const QByteArray ba, quint64 tid, const QString &cid );
+    bool InstallTicket( const QByteArray &ba, quint64 tid );
+    bool InstallTmd( const QByteArray &ba, quint64 tid );
+    bool InstallSharedContent( const QByteArray &ba, const QByteArray &hash = QByteArray() );
+    bool InstallPrivateContent( const QByteArray &ba, quint64 tid, const QString &cid );
     void AbortInstalling( quint64 tid );
 
     //go through and delete all the stuff in a given folder and then delete the folder itself

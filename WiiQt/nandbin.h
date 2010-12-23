@@ -46,7 +46,7 @@ public:
     //keys should be a 0x400 byte array containing a keys.bin from bootmii
     //first8 should be a bytearray containing 0x108000 bytes - the first 8 blocks of the nand with spare data
     //badBlocks is a list of blocks to be marked bad, in the range 8 - 4079
-    bool CreateNew( const QString &path, QByteArray keys, QByteArray first8, QList<quint16> badBlocks = QList<quint16>() );
+    bool CreateNew( const QString &path, const QByteArray &keys, const QByteArray &first8, const QList<quint16> &badBlocks = QList<quint16>() );
 
     //sets the path of this object to path.  returns false if it cannot open an already existing file
     //keys.bin should be in this same path if they are to be used
@@ -55,7 +55,7 @@ public:
     //try to read the filesystem and create a tree from its contents
     //this takes care of the stuff like reading the keys, finding teh superblock, and creating the QTreeWidgetItem* tree
     //icons given here will be the ones used when asking for that tree
-    bool InitNand( QIcon dirs = QIcon(), QIcon files = QIcon() );
+    bool InitNand( const QIcon &dirs = QIcon(), const QIcon &files = QIcon() );
 
     //get a root item containing children that are actually entries in the nand dump
     //the root itself is just a container to hold them all and can be deleted once its children are taken
@@ -83,7 +83,7 @@ public:
     void SetFixNamesForFAT( bool fix = true );
 
     //returns the data that makes up the file of a given entry#
-    QByteArray GetFile( quint16 entry );
+    const QByteArray GetFile( quint16 entry );
 
 
     //get data for a given path
@@ -113,7 +113,7 @@ public:
     const QList<Boot2Info> Boot2Infos();
     quint8 Boot1Version();
 
-    QByteArray GetPage( quint32 pageNo, bool withEcc = false );
+    const QByteArray GetPage( quint32 pageNo, bool withEcc = false );
 
     //create new entry
     //returns the index of the entry on success, or 0 on error
@@ -123,10 +123,10 @@ public:
     bool Delete( const QString &path );
 
     //sets the data for a given file ( overwrites existing data )
-    bool SetData( quint16 idx, const QByteArray data );
+    bool SetData( quint16 idx, const QByteArray &data );
 
     //overloads the above function
-    bool SetData( const QString &path, const QByteArray data );
+    bool SetData( const QString &path, const QByteArray &data );
 
     //write the current changes to the metadata( if you dont do this, then none of the other stuff youve done wont be saved )
     // but at the same time, you probably dont need to overuse this.  ( no need to write metadata every time you make a single change )
@@ -170,17 +170,17 @@ private:
 
     int GetDumpType( quint64 fileSize );
     bool GetKey( int type );
-    QByteArray ReadKeyfile( QString path, quint8 type );//type 0 for nand key, type 1 for hmac
+    const QByteArray ReadKeyfile( const QString &path, quint8 type );//type 0 for nand key, type 1 for hmac
     qint32 FindSuperblock();
     quint16 GetFAT( quint16 fat_entry );
     fst_t GetFST( quint16 entry );
-    QByteArray GetCluster( quint16 cluster_entry, bool decrypt = true );
-    QByteArray GetFile( fst_t fst );
+    const QByteArray GetCluster( quint16 cluster_entry, bool decrypt = true );
+    const QByteArray GetFile( fst_t fst );
 
-    QString FstName( fst_t fst );
+    const QString FstName( fst_t fst );
     bool ExtractFST( quint16 entry, const QString &path, bool singleFile = false );
-    bool ExtractDir( fst_t fst, QString parent );
-    bool ExtractFile( fst_t fst, QString parent );
+    bool ExtractDir( fst_t fst, const QString &parent );
+    bool ExtractFile( fst_t fst, const QString &parent );
 
     QTreeWidgetItem *CreateItem( QTreeWidgetItem *parent, const QString &name, quint32 size, quint16 entry, quint32 uid, quint32 gid, quint32 x3, quint8 attr, quint8 wtf);
 
@@ -194,9 +194,9 @@ private:
     //holds info about boot1 & 2
     Blocks0to7 bootBlocks;
 
-    bool WriteCluster( quint32 pageNo, const QByteArray data, const QByteArray hmac );
-    bool WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_t fst, quint16 idx );
-    bool WritePage( quint32 pageNo, const QByteArray data );
+    bool WriteCluster( quint32 pageNo, const QByteArray &data, const QByteArray &hmac );
+    bool WriteDecryptedCluster( quint32 pageNo, const QByteArray &data, fst_t fst, quint16 idx );
+    bool WritePage( quint32 pageNo, const QByteArray &data );
 
     quint16 CreateNode( const QString &name, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm );
 

@@ -50,8 +50,8 @@ public:
     void SetCachePath( const QString &cPath = QString() );
 
     //get a title from NUS.  if version is 0, get the latest one
-    void GetTitle( NusJob job );
-    void GetTitles( QList<NusJob> jobs );
+    void GetTitle( const NusJob &job );
+    void GetTitles( const QList<NusJob> &jobs );
     void Get( quint64 tid, bool decrypt, quint16 version = TITLE_LATEST_VERSION );
 
     //TODO!  this function is far from complete
@@ -108,7 +108,7 @@ public:
 private:
 
     //helper function to create a job
-    downloadJob CreateJob( QString name, quint16 index );
+    downloadJob CreateJob( const QString &name, quint16 index );
 
     //path on the PC to try and get files from and save to to avoid downloading deplicates from NUS
     QString cachePath;
@@ -121,7 +121,7 @@ private:
     bool SaveDataToCache( const QString &path, const QByteArray &stuff );
 
     //check the tmd and try to ticket
-    void ReadTmdAndGetTicket( QByteArray ba );
+    void ReadTmdAndGetTicket( const QByteArray &ba );
 
     bool DecryptCheckHashAndAppendData( const QByteArray &encData, quint16 idx );
 

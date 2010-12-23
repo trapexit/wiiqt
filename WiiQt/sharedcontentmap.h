@@ -7,7 +7,7 @@
 class SharedContentMap
 {
 public:
-    SharedContentMap( QByteArray old = QByteArray() );
+    SharedContentMap( const QByteArray &old = QByteArray() );
 
     //checks that the content map is sane
     //size should be correct, contents should be in numerical order
@@ -16,7 +16,7 @@ public:
 
     //gets a string containing the 8 letter app that matches the given hash.
     //returns an empty string if the hash is not found in the map
-    QString GetAppFromHash( QByteArray hash );
+    QString GetAppFromHash( const QByteArray &hash );
 
     //gets the first available u32 that is not already in the map and returns it as a string
     QString GetNextEmptyCid();

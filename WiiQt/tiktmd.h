@@ -139,7 +139,7 @@ typedef struct _cert_ecdsa {
 class Ticket
 {
 public:
-    Ticket( QByteArray stuff = QByteArray() );
+    Ticket( const QByteArray &stuff = QByteArray() );
 
     //expose the tik data to the rest of the code so it cas read directly from the p_tmd instead of having to add a function to access all the data
     //the pointer should be good until "data" is changed
@@ -173,7 +173,7 @@ private:
 class Tmd
 {
 public:
-    Tmd( QByteArray stuff = QByteArray() );
+    Tmd( const QByteArray &stuff = QByteArray() );
 
     //expose the tmd data to the rest of the code so it cas read directly from the p_tmd instead of having to add a function to access all the data
     //the pointer should be good until "data" is changed
@@ -205,7 +205,7 @@ public:
     bool SetVersion( quint16 v );
     bool SetType( quint16 i, quint16 type );
     bool SetSize( quint16 i, quint32 size );
-    bool SetHash( quint16 i, const QByteArray hash );
+    bool SetHash( quint16 i, const QByteArray &hash );
     bool SetIOS( quint64 ios );
 	bool SetAhb( bool remove = true );
 	bool SetDiskAccess( bool allow = true );
@@ -249,6 +249,6 @@ enum
 
 //checks the signatures in a tmd/ticket
 //returns 1 of the above enums
-int check_cert_chain( const QByteArray data );
+int check_cert_chain( const QByteArray &data );
 
 #endif // TIKTMD_H

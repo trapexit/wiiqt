@@ -47,8 +47,12 @@ bool NandBin::SetPath( const QString &path )
     return ret;
 }
 
-bool NandBin::CreateNew( const QString &path, QByteArray keys, QByteArray first8, QList<quint16> badBlocks )
+bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByteArray &first8, const QList<quint16> &badBlocks )
 {
+#ifndef NAND_BIN_CAN_WRITE
+    qWarning() << __FILE__ << "was built without write support";
+    return false;
+#endif
     if( keys.size() != 0x400 || first8.size() != 0x108000 )
     {
 	qWarning() << "NandBin::CreateNew -> bad sizes" << hex << keys.size() << first8.size();
@@ -256,7 +260,7 @@ bool NandBin::AddChildren( QTreeWidgetItem *parent, quint16 entry )
     return true;
 }
 
-QString NandBin::FstName( fst_t fst )
+const QString NandBin::FstName( fst_t fst )
 {
     QByteArray ba( (char*)fst.filename, 0xc );
     QString ret = QString( ba );
@@ -294,7 +298,7 @@ bool NandBin::ExtractFST( quint16 entry, const QString &path, bool singleFile )
     return true;
 }
 
-bool NandBin::ExtractDir( fst_t fst, QString parent )
+bool NandBin::ExtractDir( fst_t fst, const QString &parent )
 {
     //qDebug() << "NandBin::ExtractDir(" << parent << ")";
     QByteArray ba( (char*)fst.filename, 0xc );
@@ -316,7 +320,7 @@ bool NandBin::ExtractDir( fst_t fst, QString parent )
     return true;
 }
 
-bool NandBin::ExtractFile( fst_t fst, QString parent )
+bool NandBin::ExtractFile( fst_t fst, const QString &parent )
 {
     QByteArray ba( (char*)fst.filename, 0xc );
     QString filename( ba );
@@ -336,7 +340,7 @@ bool NandBin::ExtractFile( fst_t fst, QString parent )
     return true;
 }
 
-bool NandBin::InitNand( QIcon dirs, QIcon files )
+bool NandBin::InitNand( const QIcon &dirs, const QIcon &files )
 {
     fstInited = false;
     memset( (void*)&fsts, 0, sizeof( fst_t ) * 0x17ff );
@@ -525,7 +529,7 @@ bool NandBin::GetKey( int type )
     return true;
 }
 
-QByteArray NandBin::ReadKeyfile( QString path, quint8 type )
+const QByteArray NandBin::ReadKeyfile( const QString &path, quint8 type )
 {
     QByteArray retval;
     QFile f( path );
@@ -688,7 +692,7 @@ quint16 NandBin::GetFAT( quint16 fat_entry )
     return ret;
 }
 
-QByteArray NandBin::GetPage( quint32 pageNo, bool withEcc )
+const QByteArray NandBin::GetPage( quint32 pageNo, bool withEcc )
 {
     //qDebug() << "NandBin::GetPage( " << hex << pageNo << ", " << withEcc << " )";
     quint32 n_pagelen[] = { 0x800, 0x840, 0x840 };
@@ -704,7 +708,7 @@ QByteArray NandBin::GetPage( quint32 pageNo, bool withEcc )
     return page;
 }
 
-QByteArray NandBin::GetCluster( quint16 cluster_entry, bool decrypt )
+const QByteArray NandBin::GetCluster( quint16 cluster_entry, bool decrypt )
 {
     //qDebug() << "NandBin::GetCluster" << hex << cluster_entry;
     quint32 n_clusterlen[] = { 0x4000, 0x4200, 0x4200 };
@@ -746,7 +750,7 @@ QByteArray NandBin::GetCluster( quint16 cluster_entry, bool decrypt )
     return ret;
 }
 
-QByteArray NandBin::GetFile( quint16 entry )
+const QByteArray NandBin::GetFile( quint16 entry )
 {
     fst_t fst = GetFST( entry );
     if( !fst.filename[ 0 ] )//something is amiss, better quit now
@@ -754,7 +758,7 @@ QByteArray NandBin::GetFile( quint16 entry )
     return GetFile( fst );
 }
 
-QByteArray NandBin::GetFile( fst_t fst_ )
+const QByteArray NandBin::GetFile( fst_t fst_ )
 {
     //qDebug() << "NandBin::GetFile" << QByteArray( (const char*)fst_.filename, 12 );
     if( !fst_.size )
@@ -1014,7 +1018,7 @@ QTreeWidgetItem *NandBin::ItemFromEntry( const QString &i, QTreeWidgetItem *pare
     return NULL;
 }
 
-bool NandBin::WriteCluster( quint32 pageNo, const QByteArray data, const QByteArray hmac )
+bool NandBin::WriteCluster( quint32 pageNo, const QByteArray &data, const QByteArray &hmac )
 {
     if( data.size() != 0x4000 )
     {
@@ -1047,7 +1051,7 @@ bool NandBin::WriteCluster( quint32 pageNo, const QByteArray data, const QByteAr
     return true;
 }
 
-bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_t fst, quint16 idx )
+bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray &data, fst_t fst, quint16 idx )
 {
     //qDebug() << "NandBin::WriteDecryptedCluster";
     QByteArray hmac = spare.Get_hmac_data( data, fst.uid, (const unsigned char *)&fst.filename, fst.fst_pos, fst.x3, idx );
@@ -1060,7 +1064,7 @@ bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray data, fst_
     return WriteCluster( pageNo, encData, hmac );
 }
 
-bool NandBin::WritePage( quint32 pageNo, const QByteArray data )
+bool NandBin::WritePage( quint32 pageNo, const QByteArray &data )
 {
     //return true;
 #ifndef NAND_BIN_CAN_WRITE
@@ -1335,7 +1339,7 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
     return true;
 }
 
-bool NandBin::SetData( const QString &path, const QByteArray data )
+bool NandBin::SetData( const QString &path, const QByteArray &data )
 {
     QTreeWidgetItem *i = ItemFromPath( path );
     if( !i )
@@ -1355,7 +1359,7 @@ bool NandBin::SetData( const QString &path, const QByteArray data )
     return SetData( idx, data );
 }
 
-bool NandBin::SetData( quint16 idx, const QByteArray data )
+bool NandBin::SetData( quint16 idx, const QByteArray &data )
 {
     fst_t fst = fsts[ idx ];
     qDebug() << "NandBin::SetData" << FstName( fst );

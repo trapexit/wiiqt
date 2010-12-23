@@ -17,7 +17,7 @@ void NusDownloader::SetCachePath( const QString &cPath )
 }
 
 //add a single job to the list
-void NusDownloader::GetTitle( NusJob job )
+void NusDownloader::GetTitle( const NusJob &job )
 {
     //qDebug() << "NusDownloader::GetTitle";
     jobList.append( job );
@@ -32,7 +32,7 @@ void NusDownloader::GetTitle( NusJob job )
 }
 
 //add a list of jobs to the list
-void NusDownloader::GetTitles( QList<NusJob> jobs )
+void NusDownloader::GetTitles( const QList<NusJob> &jobs )
 {
     //qDebug() << "NusDownloader::GetTitles";
     jobList.append( jobs );
@@ -140,7 +140,7 @@ QByteArray NusDownloader::GetDataFromCache( downloadJob job )
 }
 
 //load the tmd and try to get the ticket
-void NusDownloader::ReadTmdAndGetTicket( QByteArray ba )
+void NusDownloader::ReadTmdAndGetTicket( const QByteArray &ba )
 {
     //qDebug() << "NusDownloader::ReadTmdAndGetTicket" << hex << ba.size();
     curTmd = Tmd( ba );
@@ -227,7 +227,7 @@ bool NusDownloader::SaveDataToCache( const QString &path, const QByteArray &stuf
     return true;
 }
 
-downloadJob NusDownloader::CreateJob( QString name, quint16 index )
+downloadJob NusDownloader::CreateJob( const QString &name, quint16 index )
 {
     downloadJob r;
     r.tid = QString( "%1" ).arg( currentJob.tid, 16, 16, QChar( '0' ) );
@@ -984,7 +984,7 @@ QMap< quint64, quint16 > NusDownloader::List41e()
 QMap< quint64, quint16 > NusDownloader::List42e()
 {
     QMap< quint64, quint16 > titles = List41e();
-    titles.insert( 0x100000001ull, 0x4 );//make people really ask for the boot2 update if they want it
+    //titles.insert( 0x100000001ull, 0x4 );//make people really ask for the boot2 update if they want it
     titles.insert( 0x100000009ull, 0x30a ); 	// IOS9
     titles.insert( 0x10000000cull, 0x10d ); 	// IOS12
     titles.insert( 0x10000000dull, 0x111 ); 	// IOS13
@@ -1107,7 +1107,6 @@ QMap< quint64, quint16 > NusDownloader::List31u()
 {
     QMap< quint64, quint16 > titles = List30u();
     //( from rockband2 )
-    //titles.insert( 0x100000001ull, 2 );//boot2
     titles.insert( 0x100000002ull, 257 );//sys menu
     titles.insert( 0x10000000eull, 262 );//14v262 - should actually be 14v257 but that version isnt available on NUS
     titles.insert( 0x10000001eull, 1040 );//30v1040

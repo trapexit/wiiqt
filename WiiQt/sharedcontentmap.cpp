@@ -1,7 +1,7 @@
 #include "sharedcontentmap.h"
 #include "tools.h"
 
-SharedContentMap::SharedContentMap( QByteArray old )
+SharedContentMap::SharedContentMap( const QByteArray &old )
 {
     data = old;
     if( data.size() )
@@ -79,7 +79,7 @@ bool SharedContentMap::Check( const QString &path )
     return true;
 }
 
-QString SharedContentMap::GetAppFromHash( QByteArray hash )
+QString SharedContentMap::GetAppFromHash( const QByteArray &hash )
 {
     quint32 cnt = data.size() / 28;
     for( quint32 i = 0; i < cnt; i++ )

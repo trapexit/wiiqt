@@ -4,7 +4,7 @@
 
 static QByteArray globalCert;
 
-Wad::Wad( const QByteArray stuff )
+Wad::Wad( const QByteArray &stuff )
 {
 	ok = false;
 	if( stuff.size() < 0x80 )//less than this and there is definitely nothing there
@@ -132,7 +132,7 @@ Wad::Wad( const QByteArray stuff )
 	ok = true;
 }
 
-Wad::Wad( QList< QByteArray > stuff, bool encrypted )
+Wad::Wad( const QList< QByteArray > &stuff, bool encrypted )
 {
     if( stuff.size() < 3 )
     {
@@ -173,7 +173,7 @@ Wad::Wad( QList< QByteArray > stuff, bool encrypted )
 
 }
 
-void Wad::SetCert( const QByteArray stuff )
+void Wad::SetCert( const QByteArray &stuff )
 {
     certData = stuff;
 }
@@ -238,14 +238,14 @@ quint32 Wad::content_count()
 	return partsEnc.size();
 }
 
-void Wad::Err( QString str )
+void Wad::Err( const QString &str )
 {
     ok = false;
     errStr = str;
     qWarning() << "Wad::Error" << str;
 }
 
-const QByteArray Wad::Data( quint32 magicWord, const QByteArray footer )
+const QByteArray Wad::Data( quint32 magicWord, const QByteArray &footer )
 {
 	//qDebug() << "Wad::Data" << hex << magicWord << footer.size();
 	if( !partsEnc.size() || tmdData.isEmpty() || tikData.isEmpty() || ( certData.isEmpty() && globalCert.isEmpty() ) )
@@ -337,7 +337,7 @@ const QByteArray Wad::Data( quint32 magicWord, const QByteArray footer )
 	return ret;
 }
 
-QString Wad::WadName( QString path )
+QString Wad::WadName( const QString &path )
 {
     if( !tmdData.size() )
     {
@@ -348,7 +348,7 @@ QString Wad::WadName( QString path )
     return WadName( t.Tid(), t.Version(), path );
 }
 
-QString Wad::WadName( quint64 tid, quint16 version, QString path )
+QString Wad::WadName( quint64 tid, quint16 version, const QString &path )
 {
     quint32 type = (quint32)( ( tid >> 32 ) & 0xffffffff );
     quint32 base = (quint32)( tid & 0xffffffff );
@@ -635,7 +635,7 @@ bool Wad::SetDiskAccess( bool allow )
 	return true;
 }
 
-bool Wad::ReplaceContent( quint16 idx, const QByteArray ba )
+bool Wad::ReplaceContent( quint16 idx, const QByteArray &ba )
 {
 	if( idx >= partsEnc.size() || !tmdData.size() || !tikData.size() )
 	{
@@ -675,3 +675,10 @@ bool Wad::ReplaceContent( quint16 idx, const QByteArray ba )
 	return true;
 }
 
+QByteArray FromPartList( const QList< QByteArray > &stuff, bool isEncrypted = true )
+{
+    Wad wad( stuff, isEncrypted );
+    if( !wad.IsOk() )
+	return QByteArray();
+    return wad.Data();
+}
