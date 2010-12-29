@@ -151,21 +151,21 @@ void MainWindow::on_actionLoad_triggered()
 // SHOW TPL ON SCREEN
 		//if you have a format that uses palette data, you need to add that to the last arg here
 		QImage img = ConvertTextureToImage( pic_data, pic_head.width, pic_head.height, pic_head.format );
-		if( img.isNull() )//error converting
-			continue;
-
-		QGraphicsPixmapItem *item = new QGraphicsPixmapItem( QPixmap::fromImage( img ) );
-		if( x + img.width() + spacing >= (quint32)gv->width() )//this row is filled up, skip down and start a new row
+		if( !img.isNull() )//error converting
 		{
-			x = spacing;
-			y += spacing + rowHeight;
-			rowHeight = 0;
+			QGraphicsPixmapItem *item = new QGraphicsPixmapItem( QPixmap::fromImage( img ) );
+			if( x + img.width() + spacing >= (quint32)gv->width() )//this row is filled up, skip down and start a new row
+			{
+				x = spacing;
+				y += spacing + rowHeight;
+				rowHeight = 0;
+			}
+			rowHeight = MAX( rowHeight, ((quint32)img.height()) );
+			//qDebug() << "setting image" << ii << "at" << x << y;
+			item->setPos( x, y );
+			gs.addItem( item );
+			x += img.width() + spacing;
 		}
-		rowHeight = MAX( rowHeight, ((quint32)img.height()) );
-		//qDebug() << "setting image" << ii << "at" << x << y;
-		item->setPos( x, y );
-		gs.addItem( item );
-		x += img.width() + spacing;
 
 // SAVE TPL TO FILE
 #if 0
