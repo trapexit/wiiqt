@@ -219,6 +219,7 @@
     <addaction name="actionSetting_txt"/>
     <addaction name="actionFlush"/>
     <addaction name="actionImportWad"/>
+	<addaction name="actionImportFolder"/>
    </widget>
    <addaction name="menuNand_Dump"/>
   </widget>
@@ -247,6 +248,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I</string>
+   </property>
+  </action>
+  <action name="actionImportFolder">
+   <property name="text">
+    <string>Import Folder</string>
    </property>
   </action>
  </widget>
