@@ -2,6 +2,7 @@
 
 #include "../WiiQt/tools.h"
 #include "breft.h"
+#include "texture.h"
 
 MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent)
 {
@@ -31,6 +32,13 @@ void MainWindow::setupForms()
 
 	plainTextEdit_log = new QPlainTextEdit;
 	mainLayout->addWidget(plainTextEdit_log);
+
+	gv = new QGraphicsView( this );
+	gv->setMaximumHeight( 300 );
+	gv->setScene( &gs );
+	gv->setAlignment( Qt::AlignLeft );
+	gv->setRenderHint( QPainter::Antialiasing );
+	mainLayout->addWidget( gv );
 
 	Layout->addLayout(mainLayout, 0, 0);
 
@@ -90,6 +98,13 @@ void MainWindow::on_actionLoad_triggered()
 	    return;
 	}
 
+	//clear the old images from the gui
+	foreach( QGraphicsItem *i, gs.items() )
+	{
+		gs.removeItem( i );
+		delete( i );
+	}
+
 	QDataStream stream(data);
 	header head;
 	stream >> head;
@@ -111,6 +126,11 @@ void MainWindow::on_actionLoad_triggered()
 	section1 sec1;
 	stream >> sec1;
 
+	quint16 spacing = 5;
+	quint32 x = spacing;
+	quint32 y = spacing;
+	quint32 rowHeight = 0;
+
 	for(quint32 ii=0; ii<sec1.count; ii++) {
 		quint16 len;
 		stream >> len;
@@ -129,6 +149,23 @@ void MainWindow::on_actionLoad_triggered()
 		stream.readRawData( pic_data.data() , pic_head.size );
 
 // SHOW TPL ON SCREEN
+		//if you have a format that uses palette data, you need to add that to the last arg here
+		QImage img = ConvertTextureToImage( pic_data, pic_head.width, pic_head.height, pic_head.format );
+		if( img.isNull() )//error converting
+			continue;
+
+		QGraphicsPixmapItem *item = new QGraphicsPixmapItem( QPixmap::fromImage( img ) );
+		if( x + img.width() + spacing >= (quint32)gv->width() )//this row is filled up, skip down and start a new row
+		{
+			x = spacing;
+			y += spacing + rowHeight;
+			rowHeight = 0;
+		}
+		rowHeight = MAX( rowHeight, ((quint32)img.height()) );
+		//qDebug() << "setting image" << ii << "at" << x << y;
+		item->setPos( x, y );
+		gs.addItem( item );
+		x += img.width() + spacing;
 
 // SAVE TPL TO FILE
 #if 0

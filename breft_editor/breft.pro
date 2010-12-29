@@ -10,8 +10,10 @@ SOURCES += main.cpp\
 		breft.cpp \
 	../WiiQt/tools.cpp \
     ../WiiQt/aes.c \
-    ../WiiQt/sha1.c
+    ../WiiQt/sha1.c \
+    texture.cpp
 
 HEADERS  += mainwindow.h \
 		breft.h \
 	../WiiQt/tools.h \
+    texture.h

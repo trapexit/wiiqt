@@ -23,6 +23,9 @@ private:
 	QMenu* menuFile;
 	QPlainTextEdit* plainTextEdit_log;
 
+	QGraphicsView *gv;
+	QGraphicsScene gs;
+
 public slots:
 
 private slots:
