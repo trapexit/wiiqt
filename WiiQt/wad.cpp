@@ -108,7 +108,7 @@ Wad::Wad( const QByteArray &stuff )
 
 		quint32 s = RU( 0x40, t.Size( i ) );
 		qDebug() << "content" << i << "is at" << hex << pos
-			<< "with size" << s;
+                << "with size" << s;
 		QByteArray encData = stuff.mid( pos, s );
 		pos += s;
 
@@ -136,8 +136,8 @@ Wad::Wad( const QList< QByteArray > &stuff, bool encrypted )
 {
     if( stuff.size() < 3 )
     {
-	Err( "Cant treate a wad with < 3 items" );
-	return;
+        Err( "Cant treate a wad with < 3 items" );
+        return;
     }
 
     tmdData = stuff.at( 0 );
@@ -149,25 +149,25 @@ Wad::Wad( const QList< QByteArray > &stuff, bool encrypted )
     quint16 cnt = stuff.size() - 2;
     if( cnt != t.Count() )
     {
-	Err( "The number of items given doesnt match the number in the tmd" );
-	return;
+        Err( "The number of items given doesnt match the number in the tmd" );
+        return;
     }
     for( quint16 i = 0; i < cnt; i++ )
     {
-	QByteArray encData;
+        QByteArray encData;
 
-	if( encrypted )
-	{
-	    encData = stuff.at( i + 2 );
-	}
-	else
-	{
-	    QByteArray decDataPadded = PaddedByteArray( stuff.at( i + 2 ), 0x40 );
-	    //doing this here in case there is some other object that is using the AES that would change the key on us
-	    AesSetKey( ticket.DecryptedKey() );
-	    encData = AesEncrypt( i, decDataPadded );
-	}
-	partsEnc << encData;
+        if( encrypted )
+        {
+            encData = stuff.at( i + 2 );
+        }
+        else
+        {
+            QByteArray decDataPadded = PaddedByteArray( stuff.at( i + 2 ), 0x40 );
+            //doing this here in case there is some other object that is using the AES that would change the key on us
+            AesSetKey( ticket.DecryptedKey() );
+            encData = AesEncrypt( i, decDataPadded );
+        }
+        partsEnc << encData;
     }
     ok = true;
 
@@ -182,8 +182,8 @@ quint64 Wad::Tid()
 {
     if( !tmdData.size() )
     {
-	Err( "There is no data in the TMD" );
-	return 0;
+        Err( "There is no data in the TMD" );
+        return 0;
     }
     Tmd t( tmdData );
     return t.Tid();
@@ -208,15 +208,15 @@ const QByteArray Wad::Content( quint16 i )
 {
     if( tmdData.isEmpty() || tikData.isEmpty() )
     {
-	Err( "Can't decryte data without a TMD and ticket" );
-	return QByteArray();
+        Err( "Can't decryte data without a TMD and ticket" );
+        return QByteArray();
     }
     Ticket ticket( tikData );
     Tmd t( tmdData );
     if( partsEnc.size() != t.Count() || i >= partsEnc.size() )
     {
-	Err( "I dont know whats going on some number is out of range and i dont like it" );
-	return QByteArray();
+        Err( "I dont know whats going on some number is out of range and i dont like it" );
+        return QByteArray();
     }
     QByteArray encData = partsEnc.at( i );
 
@@ -227,8 +227,8 @@ const QByteArray Wad::Content( quint16 i )
     QByteArray realHash = GetSha1( decData );
     if( realHash != t.Hash( i ) )
     {
-	Err( QString( "hash doesnt match for content %1" ).arg( i ) );
-	return QByteArray();
+        Err( QString( "hash doesnt match for content %1" ).arg( i ) );
+        return QByteArray();
     }
     return decData;
 }
@@ -284,10 +284,10 @@ const QByteArray Wad::Data( quint32 magicWord, const QByteArray &footer )
 		if( RU( 0x40, t.Size( i ) ) != s )
 		{
 			Err( QString( "Size of content %1 is bad ( %2, %3, %4 )" )
-					.arg( i )
-					.arg( t.Size( i ), 0, 16 )
-					.arg( RU( 0x40, t.Size( i ) ), 0, 16 )
-					.arg( s, 0, 16 ) );
+                 .arg( i )
+                 .arg( t.Size( i ), 0, 16 )
+                 .arg( RU( 0x40, t.Size( i ) ), 0, 16 )
+                 .arg( s, 0, 16 ) );
 			return QByteArray();
 		}
 		appSize += s;
@@ -341,8 +341,8 @@ QString Wad::WadName( const QString &path )
 {
     if( !tmdData.size() )
     {
-	Err( "There is no data in the TMD" );
-	return QString();
+        Err( "There is no data in the TMD" );
+        return QString();
     }
     Tmd t( tmdData );
     return WadName( t.Tid(), t.Version(), path );
@@ -358,109 +358,109 @@ QString Wad::WadName( quint64 tid, quint16 version, const QString &path )
     switch( reg )
     {
     case 0x45:
-	region = "US";
-	break;
+        region = "US";
+        break;
     case 0x50:
-	region = "EU";
-	break;
+        region = "EU";
+        break;
     case 0x4A:
-	region = "JP";
-	break;
+        region = "JP";
+        break;
     case 0x4B:
-	region = "KO";//is this correct??  i have no korean games
-	break;
+        region = "KO";//is this correct??  i have no korean games
+        break;
     default:
-	break;
+        break;
     }
     QString name;
     switch( type )
     {
     case 1:
-	switch( base )
-	{
-	case 1:
-	    name = QString( "BOOT2-v%1-64" ).arg( version );
-	    break;
-	case 2:
-	    name = QString( "RVL-WiiSystemmenu-v%1" ).arg( version );
-	    break;
-	case 0x100:
-	    name = QString( "RVL-bc-v%1" ).arg( version );
-	    break;
-	case 0x101:
-	    name = QString( "RVL-mios-v%1" ).arg( version );
-	    break;
-	default:
-	    if( base > 0xff )
-		break;
-	    name = QString( "IOS%1-64-v%2" ).arg( base ).arg( version );
-	    break;
-	}
-	break;
+        switch( base )
+        {
+        case 1:
+            name = QString( "BOOT2-v%1-64" ).arg( version );
+            break;
+        case 2:
+            name = QString( "RVL-WiiSystemmenu-v%1" ).arg( version );
+            break;
+        case 0x100:
+            name = QString( "RVL-bc-v%1" ).arg( version );
+            break;
+        case 0x101:
+            name = QString( "RVL-mios-v%1" ).arg( version );
+            break;
+        default:
+            if( base > 0xff )
+                break;
+            name = QString( "IOS%1-64-v%2" ).arg( base ).arg( version );
+            break;
+        }
+        break;
     case 0x10002:
-	switch( base )
-	{
-	case 0x48414141://HAAA
-	    name = QString( "RVL-photo-v%1" ).arg( version );
-	    break;
-	case 0x48415941://HAYA
-	    name = QString( "RVL-photo2-v%1" ).arg( version );
-	    break;
-	case 0x48414241://HABA
-	    name = QString( "RVL-Shopping-v%1" ).arg( version );
-	    break;
-	case 0x48414341://HACA
-	    name = QString( "RVL-NigaoeNR-v%1" ).arg( version );//mii channel
-	    break;
-	case 0x48414741://HAGA
-	    name = QString( "RVL-News-v%1" ).arg( version );
-	    break;
-	case 0x48414641://HAFA
-	    name = QString( "RVL-Weather-v%1" ).arg( version );
-	    break;
-	default:
-	    switch( regionFree )
-	    {
-	    case 0x48414600://HAF?
-		name = QString( "RVL-Forecast_%1-v%2" ).arg( region ).arg( version );
-		break;
-	    case 0x48414700://HAG?
-		name = QString( "RVL-News_%1-v%2" ).arg( region ).arg( version );
-		break;
-	    default:
-		break;
-	    }
-	    break;
-	}
-	break;
+        switch( base )
+        {
+        case 0x48414141://HAAA
+            name = QString( "RVL-photo-v%1" ).arg( version );
+            break;
+        case 0x48415941://HAYA
+            name = QString( "RVL-photo2-v%1" ).arg( version );
+            break;
+        case 0x48414241://HABA
+            name = QString( "RVL-Shopping-v%1" ).arg( version );
+            break;
+        case 0x48414341://HACA
+            name = QString( "RVL-NigaoeNR-v%1" ).arg( version );//mii channel
+            break;
+        case 0x48414741://HAGA
+            name = QString( "RVL-News-v%1" ).arg( version );
+            break;
+        case 0x48414641://HAFA
+            name = QString( "RVL-Weather-v%1" ).arg( version );
+            break;
+        default:
+            switch( regionFree )
+            {
+            case 0x48414600://HAF?
+                name = QString( "RVL-Forecast_%1-v%2" ).arg( region ).arg( version );
+                break;
+            case 0x48414700://HAG?
+                name = QString( "RVL-News_%1-v%2" ).arg( region ).arg( version );
+                break;
+            default:
+                break;
+            }
+            break;
+        }
+        break;
     case 0x10008:
-	switch( regionFree )
-	{
-	case 0x48414b00://HAK?
-	    name = QString( "RVL-Eulav_%1-v%2" ).arg( region ).arg( version );
-	    break;
-	case 0x48414c00://HAL?
-	    name = QString( "RVL-Rgnsel_%1-v%2" ).arg( region ).arg( version );
-	    break;
-	default:
-	    break;
-	}
-	break;
+        switch( regionFree )
+        {
+        case 0x48414b00://HAK?
+            name = QString( "RVL-Eulav_%1-v%2" ).arg( region ).arg( version );
+            break;
+        case 0x48414c00://HAL?
+            name = QString( "RVL-Rgnsel_%1-v%2" ).arg( region ).arg( version );
+            break;
+        default:
+            break;
+        }
+        break;
     default:
-	break;
+        break;
     }
     if( name.isEmpty() )
-	return QString();
+        return QString();
 
     if( path.isEmpty() )
-	return name + ".wad.out.wad";
+        return name + ".wad.out.wad";
 
     QString ret = name + ".wad.out.wad";
     int i = 1;
     while( QFile::exists( path + "/" + ret ) )
     {
-	ret = name + QString( "(copy %1)" ).arg( i ) + ".wad.out.wad";
-	i++;
+        ret = name + QString( "(copy %1)" ).arg( i ) + ".wad.out.wad";
+        i++;
     }
     return ret;
 }
@@ -470,21 +470,21 @@ QByteArray Wad::FromDirectory( QDir dir )
     QFileInfoList tmds = dir.entryInfoList( QStringList() << "*.tmd" << "tmd.*", QDir::Files );
     if( tmds.isEmpty() )
     {
-	qWarning() << "Wad::FromDirectory -> no tmd found in" << dir.absolutePath();
-	return QByteArray();
+        qWarning() << "Wad::FromDirectory -> no tmd found in" << dir.absolutePath();
+        return QByteArray();
     }
     QByteArray tmdD = ReadFile( tmds.at( 0 ).absoluteFilePath() );
     if( tmdD.isEmpty() )
-	return QByteArray();
+        return QByteArray();
     QFileInfoList tiks = dir.entryInfoList( QStringList() << "*.tik" << "cetk", QDir::Files );
     if( tiks.isEmpty() )
     {
-	qWarning() << "Wad::FromDirectory -> no tik found in" << dir.absolutePath();
-	return QByteArray();
+        qWarning() << "Wad::FromDirectory -> no tik found in" << dir.absolutePath();
+        return QByteArray();
     }
     QByteArray tikD = ReadFile( tiks.at( 0 ).absoluteFilePath() );
     if( tikD.isEmpty() )
-	return QByteArray();
+        return QByteArray();
 
     Tmd t( tmdD );
     Ticket ticket( tikD );
@@ -502,45 +502,45 @@ QByteArray Wad::FromDirectory( QDir dir )
     bool tmdChanged = false;
     for( quint16 i = 0; i < cnt; i++ )
     {
-	QByteArray appD = ReadFile( dir.absoluteFilePath( t.Cid( i ) + ".app" ) );
-	if( appD.isEmpty() )
-	    return QByteArray();
+        QByteArray appD = ReadFile( dir.absoluteFilePath( t.Cid( i ) + ".app" ) );
+        if( appD.isEmpty() )
+            return QByteArray();
 
-	if( (quint32)appD.size() != t.Size( i ) )
-	{
-	    t.SetSize( i, appD.size() );
-	    tmdChanged = true;
-	}
-	QByteArray realHash = GetSha1( appD );
-	if( t.Hash( i ) != realHash )
-	{
-	    t.SetHash( i, realHash );
-	    tmdChanged = true;
-	}
-	datas << appD;
+        if( (quint32)appD.size() != t.Size( i ) )
+        {
+            t.SetSize( i, appD.size() );
+            tmdChanged = true;
+        }
+        QByteArray realHash = GetSha1( appD );
+        if( t.Hash( i ) != realHash )
+        {
+            t.SetHash( i, realHash );
+            tmdChanged = true;
+        }
+        datas << appD;
     }
     //if something in the tmd changed, fakesign it and replace the data in our list with the new data
     if( tmdChanged )
     {
-	if( !t.FakeSign() )
-	{
-	    qWarning() << "Error signing the wad";
-	}
-	else
-	{
-	    datas.replace( 0, t.Data() );
-	}
+        if( !t.FakeSign() )
+        {
+            qWarning() << "Error signing the wad";
+        }
+        else
+        {
+            datas.replace( 0, t.Data() );
+        }
     }
     Wad wad( datas, false );
     if( !wad.IsOk() )
-	return QByteArray();
+        return QByteArray();
 
     QFileInfoList certs = dir.entryInfoList( QStringList() << "*.cert", QDir::Files );
     if( !certs.isEmpty() )
     {
-	QByteArray certD = ReadFile( certs.at( 0 ).absoluteFilePath() );
-	if( !certD.isEmpty() )
-	    wad.SetCert( certD );
+        QByteArray certD = ReadFile( certs.at( 0 ).absoluteFilePath() );
+        if( !certD.isEmpty() )
+            wad.SetCert( certD );
     }
 
     QByteArray ret = wad.Data();
@@ -679,6 +679,6 @@ QByteArray FromPartList( const QList< QByteArray > &stuff, bool isEncrypted = tr
 {
     Wad wad( stuff, isEncrypted );
     if( !wad.IsOk() )
-	return QByteArray();
+        return QByteArray();
     return wad.Data();
 }

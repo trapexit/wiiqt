@@ -1,19 +1,16 @@
 #ifndef NANDDUMP_H
 #define NANDDUMP_H
 
-#include "nusdownloader.h"
 #include "includes.h"
 #include "sharedcontentmap.h"
 #include "uidmap.h"
 #include "wad.h"
+#include "tools.h"
 
-struct SaveGame//struct to hold save data
-{
-    quint64 tid;		//tid this data belongs to
-    QStringList	entries;	//paths of all the files & folders
-    QList<bool>isFile;		//type of each entry.  false = folder, true = file
-    QList<QByteArray> data;	//data for each file.  size of this list should equal the number of files in the above list
-};
+//there is no way to know what attributes the save items were meant to have when reading from an extracted dump
+//these are just generic attributes that should work for all save data when writing back to a real nand
+#define DEFAULT_SAVE_ATTR_FILE	    NAND_ATTR( NAND_FILE, NAND_RW, NAND_RW, 0 )
+#define DEFAULT_SAVE_ATTR_DIR	    NAND_ATTR( NAND_DIR, NAND_RW, NAND_RW, 0 )
 
 //class for handeling an extracted wii nand filesystem
 //!  nothing can be done unless basePath is set.  do this either by setting it in the constructor, or by calling SetPath()
@@ -70,6 +67,10 @@ public:
     // returns a map of < tid, version >
     QMap< quint64, quint16 > GetInstalledTitles();
 
+    //get a list of all available saves in this nand
+    // returns <tid, size>
+    QMap< quint64, quint32 > GetSaveList();
+
     //write the current uid & content.map to the PC
     //failure to make sure this is done can end up with a broken nand
     bool Flush();
@@ -91,6 +92,9 @@ public:
     // if no save is found, it will return a SaveData object with an empty list of entries
     SaveGame GetSaveData( quint64 tid );
 
+    //deletes everything in the "data" folder for a title
+    bool DeleteSave( quint64 tid );
+
     //installs a save to the nand
     bool InstallSave( const SaveGame &save );
 
@@ -109,8 +113,8 @@ public:
     const QString ToNandPath( const QString &path );
     const QString FromNandPath( const QString &path );
 
-    //sanity check a save object
-    static bool IsValidSave( const SaveGame &save );
+    //get the current basepath
+    const QString BasePath();
 
 
 

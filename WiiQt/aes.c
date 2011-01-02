@@ -9,7 +9,7 @@
 
 */
 
-//#include <stdio.h>
+#include <stdio.h>
 //#include <stdlib.h>
 #include <string.h>
 
@@ -343,7 +343,8 @@ void aes_decrypt(u8 *iv, u8 *inbuf, u8 *outbuf, unsigned long long len) {
   u8 block[16];
   unsigned int blockno = 0, i;
 
-  //  debug_printf("aes_decrypt(%p, %p, %p, %lld)\n", iv, inbuf, outbuf, len);
+  //fprintf( stderr,"aes_decrypt(%p, %p, %p, %lld)\n", iv, inbuf, outbuf, len  );
+  //printf("aes_decrypt(%p, %p, %p, %lld)\n", iv, inbuf, outbuf, len);
 
   for (blockno = 0; blockno <= (len / sizeof(block)); blockno++) {
     unsigned int fraction;
@@ -373,7 +374,8 @@ void aes_encrypt(u8 *iv, u8 *inbuf, u8 *outbuf, unsigned long long len) {
   u8 block[16];
   unsigned int blockno = 0, i;
 
-  //  debug_printf("aes_decrypt(%p, %p, %p, %lld)\n", iv, inbuf, outbuf, len);
+  //printf("aes_decrypt(%p, %p, %p, %lld)\n", iv, inbuf, outbuf, len);
+  //fprintf( stderr,"aes_encrypt(%p, %p, %p, %lld)\n", iv, inbuf, outbuf, len);
 
   for (blockno = 0; blockno <= (len / sizeof(block)); blockno++) {
     unsigned int fraction;

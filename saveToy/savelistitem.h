@@ -2,8 +2,8 @@
 #define SAVELISTITEM_H
 
 
-#include "savebanner.h"
-#include "includes.h"
+#include "../WiiQt/savebanner.h"
+#include "../WiiQt/includes.h"
 
 
 class SaveListItem : public QListWidgetItem
@@ -15,8 +15,6 @@ public:
     SaveBanner *Banner(){ return &sb; }
     QString Tid(){ return id; }
     quint32 Size(){ return size; }
-    //quint32 Blocks(){ return size / 0x20000; }
-    //quint32 MiB(){ return size / 0x100000; }
 
 private:
     SaveBanner sb;

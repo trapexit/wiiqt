@@ -6,11 +6,11 @@ SaveListItem::SaveListItem( SaveBanner banner, const QString &tid, quint32 s, QL
     QImage im = banner.BannerImg();
     if( !im.isNull() )
     {
-	im.load( ";/noBanner.png" );
+        im.load( ";/noBanner.png" );
     }
     QString tex = banner.Title();
     if( tex.isEmpty() )
-	tex = "???";
+        tex = "???";
 
     this->setText( tex );
     this->setIcon( QIcon( QPixmap::fromImage( im ) ) );

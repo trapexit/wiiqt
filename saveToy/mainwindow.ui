@@ -175,13 +175,13 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_2">
+      <widget class="QWidget" name="PCtab">
        <attribute name="title">
-        <string>Tab 2</string>
+        <string>PC Backups</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_4">
         <item row="0" column="0">
-         <widget class="QListWidget" name="listWidget_sneekSaves_2">
+         <widget class="QListWidget" name="listWidget_pcSaves">
           <property name="minimumSize">
            <size>
             <width>620</width>
@@ -297,10 +297,14 @@
            </widget>
           </item>
           <item>
-           <widget class="QComboBox" name="comboBox_pc_date"/>
+           <widget class="QComboBox" name="comboBox_pcSelect"/>
           </item>
           <item>
-           <widget class="QPlainTextEdit" name="plainTextEdit"/>
+           <widget class="QPlainTextEdit" name="plainTextEdit_pcDesc">
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QGridLayout" name="gridLayout_3">
@@ -313,6 +317,9 @@
             </item>
             <item row="0" column="1">
              <widget class="QPushButton" name="pushButton_pc_saveDesc">
+              <property name="enabled">
+               <bool>false</bool>
+              </property>
               <property name="text">
                <string>Save Desc.</string>
               </property>
@@ -349,6 +356,8 @@
      <string>Tools</string>
     </property>
     <addaction name="actionSet_Sneek_Path"/>
+    <addaction name="actionSet_Local_Path"/>
+    <addaction name="actionSet_NG_Keys"/>
    </widget>
    <addaction name="menuTools"/>
   </widget>
@@ -367,6 +376,22 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionSet_Local_Path">
+   <property name="text">
+    <string>Set Local Path...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+R</string>
+   </property>
+  </action>
+  <action name="actionSet_NG_Keys">
+   <property name="text">
+    <string>Set NG Keys...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+G</string>
    </property>
   </action>
  </widget>

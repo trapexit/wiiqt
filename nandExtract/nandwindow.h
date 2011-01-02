@@ -2,8 +2,6 @@
 #define NANDWINDOW_H
 
 #include "../WiiQt/includes.h"
-//#include "../WiiQt/nandbin.h"
-
 #include "nandthread.h"
 
 namespace Ui {
@@ -33,10 +31,6 @@ private:
 
     QGraphicsTextItem *nandSize;		//pointers to the items to show info under the blockmap
     QGraphicsTextItem *fileSize;
-    /*QGraphicsTextItem *badText;
-    QGraphicsTextItem *freeText;
-    QGraphicsTextItem *usedText;
-    QGraphicsTextItem *resText;*/
 
     QList<quint16> blocks;			//hold a list of what the blocks in the nand are used for
     void GetBlocksfromNand();
@@ -59,7 +53,7 @@ private slots:
     //void ScaleBlockMap();
 
 protected:
-  //void resizeEvent( QResizeEvent* event );
+    //void resizeEvent( QResizeEvent* event );
 };
 
 #endif // NANDWINDOW_H

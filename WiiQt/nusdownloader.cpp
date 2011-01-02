@@ -25,8 +25,8 @@ void NusDownloader::GetTitle( const NusJob &job )
 
     if( !running )
     {
-	//qDebug() << "no job is running, starting this one";
-	QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );
+        //qDebug() << "no job is running, starting this one";
+        QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );
     }
     running = true;
 }
@@ -39,7 +39,7 @@ void NusDownloader::GetTitles( const QList<NusJob> &jobs )
     totalJobs += jobs.size();
 
     if( !running )
-	QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );
+        QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );
 
     running = true;
 }
@@ -60,7 +60,7 @@ quint32 NusDownloader::TitleSizeDownloaded()
 {
     quint32 ret = 0;
     for( int i = 0; i < currentJob.data.size(); i++ )
-	ret += currentJob.data.at( i ).size();
+        ret += currentJob.data.at( i ).size();
     return ret;
 }
 
@@ -70,14 +70,14 @@ void NusDownloader::StartNextJob()
     //qDebug() << "NusDownloader::StartNextJob";
     if( jobList.isEmpty() )//nothing else to do
     {
-	currentJob.tid = 0;
-	totalJobs = 0;
-	emit SendTitleProgress( 100 );
-	emit SendTotalProgress( 100 );
-	running = false;
-	//qDebug() << "done";
-	emit SendDone();
-	return;
+        currentJob.tid = 0;
+        totalJobs = 0;
+        emit SendTitleProgress( 100 );
+        emit SendTotalProgress( 100 );
+        running = false;
+        //qDebug() << "done";
+        emit SendDone();
+        return;
     }
     //pull the first title from the list
     currentJob = jobList.takeFirst();
@@ -87,26 +87,26 @@ void NusDownloader::StartNextJob()
     tmdJob.index = IDX_TMD;
     if( currentJob.version != TITLE_LATEST_VERSION )
     {
-	tmdJob.name = QString( "tmd.%1" ).arg( currentJob.version );
-	QByteArray stuff = GetDataFromCache( tmdJob );
-	//DbgJoB( currentJob );
-	if( !stuff.isEmpty() )
-	{
-	    //qDebug() << "tmdJob.data size:" << hex << stuff.size();
-	    //DbgJoB( currentJob );
-	    ReadTmdAndGetTicket( stuff );
-	}
-	else
-	{
-	    dlJob = tmdJob;
-	    QTimer::singleShot( 500, this, SLOT( StartDownload() ) );
-	}
+        tmdJob.name = QString( "tmd.%1" ).arg( currentJob.version );
+        QByteArray stuff = GetDataFromCache( tmdJob );
+        //DbgJoB( currentJob );
+        if( !stuff.isEmpty() )
+        {
+            //qDebug() << "tmdJob.data size:" << hex << stuff.size();
+            //DbgJoB( currentJob );
+            ReadTmdAndGetTicket( stuff );
+        }
+        else
+        {
+            dlJob = tmdJob;
+            QTimer::singleShot( 500, this, SLOT( StartDownload() ) );
+        }
     }
     else//download the latest tmd to get the version
     {
-	tmdJob.name = "tmd";
-	dlJob = tmdJob;
-	QTimer::singleShot( 500, this, SLOT( StartDownload() ) );
+        tmdJob.name = "tmd";
+        dlJob = tmdJob;
+        QTimer::singleShot( 500, this, SLOT( StartDownload() ) );
     }
 
 }
@@ -116,20 +116,20 @@ QByteArray NusDownloader::GetDataFromCache( downloadJob job )
 {
     //qDebug() << "NusDownloader::GetDataFromCache";
     if( cachePath.isEmpty() || currentJob.version == TITLE_LATEST_VERSION )
-	return QByteArray();
+        return QByteArray();
 
     QFileInfo fi( cachePath );
     if( !fi.exists() || !fi.isDir() )
     {
-	//qWarning() << "NusDownloader::GetDataFromCache -> cachePath is not a directory";
-	return QByteArray();
+        //qWarning() << "NusDownloader::GetDataFromCache -> cachePath is not a directory";
+        return QByteArray();
     }
 
     QFile f( GetCachePath( job.index ) );
     if( !f.exists() || !f.open( QIODevice::ReadOnly ) )
     {
-	//qWarning() << "NusDownloader::GetDataFromCache -> file cant be opened for reading" << QFileInfo( f ).absoluteFilePath();
-	return QByteArray();
+        //qWarning() << "NusDownloader::GetDataFromCache -> file cant be opened for reading" << QFileInfo( f ).absoluteFilePath();
+        return QByteArray();
     }
 
     //qDebug() << "reading data from PC";
@@ -146,18 +146,18 @@ void NusDownloader::ReadTmdAndGetTicket( const QByteArray &ba )
     curTmd = Tmd( ba );
     if( curTmd.Tid() != currentJob.tid )
     {
-	qDebug() << curTmd.Tid() << currentJob.tid;
-	CurrentJobErrored( tr( "TID in TMD doesn't match expected." ) );
-	return;
+        qDebug() << curTmd.Tid() << currentJob.tid;
+        CurrentJobErrored( tr( "TID in TMD doesn't match expected." ) );
+        return;
     }
     if( currentJob.version == TITLE_LATEST_VERSION )
     {
-	currentJob.version = qFromBigEndian( curTmd.payload()->title_version );
+        currentJob.version = qFromBigEndian( curTmd.payload()->title_version );
     }
     else if( currentJob.version != qFromBigEndian( curTmd.payload()->title_version ) )
     {
-	CurrentJobErrored( tr( "Version in TMD doesn't match expected." ) );
-	return;
+        CurrentJobErrored( tr( "Version in TMD doesn't match expected." ) );
+        return;
     }
     //add the tmd data to the current job return
     currentJob.data << ba;
@@ -166,7 +166,7 @@ void NusDownloader::ReadTmdAndGetTicket( const QByteArray &ba )
     totalTitleSize = 0;
     for( quint32 i = 0; i < qFromBigEndian( curTmd.payload()->num_contents ); i++ )
     {
-	totalTitleSize += curTmd.Size( i );
+        totalTitleSize += curTmd.Size( i );
     }
 
     totalTitleSize += ba.size() + 0x9a4;//ticket size for ios 9.  should be good enough for everything else
@@ -177,18 +177,18 @@ void NusDownloader::ReadTmdAndGetTicket( const QByteArray &ba )
     QByteArray stuff = GetDataFromCache( tikJob );
     if( stuff.isEmpty() )
     {
-	dlJob = tikJob;
-	QTimer::singleShot( 0, this, SLOT( StartDownload() ) );
+        dlJob = tikJob;
+        QTimer::singleShot( 0, this, SLOT( StartDownload() ) );
     }
     else
     {
-	Ticket t( stuff );
-	//set this key to decrypt contents
-	decKey = t.DecryptedKey();
-	//AesSetKey( t.DecryptedKey() );
-	//add the ticket data to the return
-	currentJob.data << stuff;
-	QTimer::singleShot( 0, this, SLOT( GetNextItemForCurrentTitle() ) );
+        Ticket t( stuff );
+        //set this key to decrypt contents
+        decKey = t.DecryptedKey();
+        //AesSetKey( t.DecryptedKey() );
+        //add the ticket data to the return
+        currentJob.data << stuff;
+        QTimer::singleShot( 0, this, SLOT( GetNextItemForCurrentTitle() ) );
     }
 }
 
@@ -198,8 +198,8 @@ bool NusDownloader::SaveDataToCache( const QString &path, const QByteArray &stuf
     //make sure there is all the parent folders needed to hold this folder
     if( path.count( "/" ) < 4  || !path.startsWith( cachePath + "/" ))
     {
-	qWarning() << "NusDownloader::SaveDataToCache -> bad path" << path << cachePath;
-	return false;
+        qWarning() << "NusDownloader::SaveDataToCache -> bad path" << path << cachePath;
+        return false;
     }
     QString parent = path;//really ugly, but somehow still prettier than a recursing  mkdir function
     parent.resize( parent.lastIndexOf( "/" ) );
@@ -207,19 +207,19 @@ bool NusDownloader::SaveDataToCache( const QString &path, const QByteArray &stuf
     QDir d( cachePath );
     if( !d.exists() || !d.mkpath( parent ) )
     {
-	qWarning() << "NusDownloader::SaveDataToCache -> cant create directory" << QString( d.absolutePath() + "/" + path );
-	return false;
+        qWarning() << "NusDownloader::SaveDataToCache -> cant create directory" << QString( d.absolutePath() + "/" + path );
+        return false;
     }
     QFile f( path );
     if( f.exists() )
     {
-	qWarning() << "NusDownloader::SaveDataToCache -> file already exists" << path;
-	return false;
+        qWarning() << "NusDownloader::SaveDataToCache -> file already exists" << path;
+        return false;
     }
     if( !f.open( QIODevice::WriteOnly ) )
     {
-	qWarning() << "NusDownloader::SaveDataToCache -> can't create file" << path;
-	return false;
+        qWarning() << "NusDownloader::SaveDataToCache -> can't create file" << path;
+        return false;
     }
     f.write( stuff );//probably should check the return values on these.  but if they dont go right, then the person has bigger things to worry about
     f.close();
@@ -252,18 +252,18 @@ void NusDownloader::GetNextItemForCurrentTitle()
     //DbgJoB( currentJob );
     if( currentJob.data.size() < 2 )
     {
-	qDebug() << "currentJob.data.size() < 2 )" << currentJob.data.size();
-	CurrentJobErrored( tr( "Tried to download contents without having the TMD & Ticket") );
-	return;
+        qDebug() << "currentJob.data.size() < 2 )" << currentJob.data.size();
+        CurrentJobErrored( tr( "Tried to download contents without having the TMD & Ticket") );
+        return;
     }
 
     quint32 alreadyHave = currentJob.data.size() - 2;//number of contest from this title already gotten
 
     if( alreadyHave >= qFromBigEndian( curTmd.payload()->num_contents ) )//WTF
     {
-	qDebug() << "alreadyHave >= qFromBigEndian( curTmd.payload()->num_contents )" << alreadyHave << qFromBigEndian( curTmd.payload()->num_contents );
-	CurrentJobErrored( tr( "Tried to download more contents then this title has." ) );
-	return;
+        qDebug() << "alreadyHave >= qFromBigEndian( curTmd.payload()->num_contents )" << alreadyHave << qFromBigEndian( curTmd.payload()->num_contents );
+        CurrentJobErrored( tr( "Tried to download more contents then this title has." ) );
+        return;
     }
     //send progress about how much of this title we already have
     int prog = (int)( (float)( (float)TitleSizeDownloaded() / (float)totalTitleSize ) * 100.0f );
@@ -274,30 +274,30 @@ void NusDownloader::GetNextItemForCurrentTitle()
     QByteArray stuff = GetDataFromCache( appJob );
     if( stuff.isEmpty() )
     {
-	dlJob = appJob;
-	QTimer::singleShot( 0, this, SLOT( StartDownload() ) );
-	//StartDownload( appJob );
+        dlJob = appJob;
+        QTimer::singleShot( 0, this, SLOT( StartDownload() ) );
+        //StartDownload( appJob );
     }
     else
     {
-	//hexdump( stuff );
-	if( !DecryptCheckHashAndAppendData( stuff, appJob.index ) )
-	{
-	    CurrentJobErrored( tr( "Cached data has a different hash than expected." ) );
-	    return;
-	}
-	//qDebug() << "hash matched for index" << alreadyHave;
-	if( alreadyHave + 1 < qFromBigEndian( curTmd.payload()->num_contents ) )
-	    QTimer::singleShot( 0, this, SLOT( GetNextItemForCurrentTitle() ) );//next content
+        //hexdump( stuff );
+        if( !DecryptCheckHashAndAppendData( stuff, appJob.index ) )
+        {
+            CurrentJobErrored( tr( "Cached data has a different hash than expected." ) );
+            return;
+        }
+        //qDebug() << "hash matched for index" << alreadyHave;
+        if( alreadyHave + 1 < qFromBigEndian( curTmd.payload()->num_contents ) )
+            QTimer::singleShot( 0, this, SLOT( GetNextItemForCurrentTitle() ) );//next content
 
-	else
-	{
-	    int progress = (int)( ( (float)( totalJobs - jobList.size() ) / (float)totalJobs ) * 100.0f );
-	    emit SendTotalProgress( progress );
-	    emit SendTitleProgress( 100 );
-	    emit SendData( currentJob );
-	    QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );//start next job
-	}
+        else
+        {
+            int progress = (int)( ( (float)( totalJobs - jobList.size() ) / (float)totalJobs ) * 100.0f );
+            emit SendTotalProgress( progress );
+            emit SendTitleProgress( 100 );
+            emit SendData( currentJob );
+            QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );//start next job
+        }
     }
 }
 
@@ -306,11 +306,11 @@ QString NusDownloader::GetCachePath( quint32 idx )
 {
     //qDebug() << "NusDownloader::GetCachePath" << currentJob.version << currentJob.tid;
     if( currentJob.version == TITLE_LATEST_VERSION || !currentJob.tid )//c'mon guy
-	return QString();
+        return QString();
 
     QString path = cachePath;
     if( path.endsWith( "/" ) )
-	path.resize( path.size() - 1 );
+        path.resize( path.size() - 1 );
     QString idPath = QString( "/%1" ).arg( currentJob.tid, 16, 16, QChar( '0' ) );
     idPath.insert( 9, "/" );
     QString verPath = QString( "/v%1/" ).arg( currentJob.version );
@@ -318,14 +318,14 @@ QString NusDownloader::GetCachePath( quint32 idx )
     switch( idx )
     {
     case IDX_CETK:
-	path += "cetk";
-	break;
+        path += "cetk";
+        break;
     case IDX_TMD:
-	path += QString( "tmd.%1" ).arg( currentJob.version );
-	break;
+        path += QString( "tmd.%1" ).arg( currentJob.version );
+        break;
     default:
-	path += curTmd.Cid( idx );
-	break;
+        path += curTmd.Cid( idx );
+        break;
     }
     return path;
 }
@@ -335,12 +335,12 @@ void NusDownloader::DbgJoB( NusJob job )
 {
     QString dataStuff = QString( "%1 items:" ).arg( job.data.size() );
     for( int i = 0; i < job.data.size(); i++ )
-	dataStuff += QString( " %1" ).arg( job.data.at( i ).size(), 0, 16, QChar( ' ' ) );
+        dataStuff += QString( " %1" ).arg( job.data.at( i ).size(), 0, 16, QChar( ' ' ) );
 
     qDebug() << QString( "NusJob( %1, %2, %3, %4 )" )
-	    .arg( job.tid, 16, 16, QChar( '0' ) )
-	    .arg( job.version ).arg( job.decrypt ? "decrypted" : "encrypted" )
-	    .arg( dataStuff );
+            .arg( job.tid, 16, 16, QChar( '0' ) )
+            .arg( job.version ).arg( job.decrypt ? "decrypted" : "encrypted" )
+            .arg( dataStuff );
 }
 
 //check a hash and add the data to the return item
@@ -357,17 +357,17 @@ bool NusDownloader::DecryptCheckHashAndAppendData( const QByteArray &encData, qu
     QByteArray realHash = GetSha1( decData );
     if( realHash != curTmd.Hash( idx ) )
     {
-	qWarning() << "NusDownloader::DecryptCheckHashAndAppendData -> hash doesnt match for content" << hex << idx;
-	//CurrentJobErrored( tr( "Downloaded data has a different hash than expected." ) );
-	hexdump( realHash );
-	hexdump( curTmd.Hash( idx ) );
-	return false;
+        qWarning() << "NusDownloader::DecryptCheckHashAndAppendData -> hash doesnt match for content" << hex << idx;
+        //CurrentJobErrored( tr( "Downloaded data has a different hash than expected." ) );
+        hexdump( realHash );
+        hexdump( curTmd.Hash( idx ) );
+        return false;
     }
     //add whatever data is requested to the return
     if( currentJob.decrypt )
-	currentJob.data << decData;
+        currentJob.data << decData;
     else
-	currentJob.data << encData;
+        currentJob.data << encData;
 
     return true;
 }
@@ -378,9 +378,9 @@ void NusDownloader::FileIsFinishedDownloading( downloadJob job )
     //qDebug() << "NusDownloader::FileIsFinishedDownloading" << job.index;
     if( job.data.isEmpty() )
     {
-	qWarning() << "NusDownloader::FileIsFinishedDownloading -> got empty data in return";
-	CurrentJobErrored( tr( "Error downloading, returned empty data" ) );
-	return;
+        qWarning() << "NusDownloader::FileIsFinishedDownloading -> got empty data in return";
+        CurrentJobErrored( tr( "Error downloading, returned empty data" ) );
+        return;
     }
 
     //this is kinda ugly, but we need to get the path to save the data in the cache
@@ -389,66 +389,66 @@ void NusDownloader::FileIsFinishedDownloading( downloadJob job )
     switch( job.index )
     {
     case IDX_TMD:
-	{
-	    ReadTmdAndGetTicket( job.data );
-	    cPath = GetCachePath( job.index );
-	}
-	break;
+        {
+            ReadTmdAndGetTicket( job.data );
+            cPath = GetCachePath( job.index );
+        }
+        break;
     case IDX_CETK:
-	{
-	    Ticket t( job.data );
-	    decKey = t.DecryptedKey();
-	    //set this key to decrypt contents
-	    //AesSetKey( t.DecryptedKey() );
-	    //add the ticket data to the return
-	    currentJob.data << job.data;
-	    //start downloading the contents
-	    GetNextItemForCurrentTitle();
+        {
+            Ticket t( job.data );
+            decKey = t.DecryptedKey();
+            //set this key to decrypt contents
+            //AesSetKey( t.DecryptedKey() );
+            //add the ticket data to the return
+            currentJob.data << job.data;
+            //start downloading the contents
+            GetNextItemForCurrentTitle();
 
-	    cPath = GetCachePath( job.index );
-	}
-	break;
+            cPath = GetCachePath( job.index );
+        }
+        break;
     default:
-	{
-	    if( job.index > qFromBigEndian( curTmd.payload()->num_contents ) )
-	    {
-		qWarning() << "NusDownloader::FileIsFinishedDownloading -> received data that doesnt fit anywhere";
-		CurrentJobErrored( tr( "I have confused myself and cannot find where some downloaded data goes." ) );
-		return;
-	    }
-	    if( job.index != currentJob.data.size() - 2 )
-	    {
-		qWarning() << "NusDownloader::FileIsFinishedDownloading -> index doesnt match what it should";
-		CurrentJobErrored( tr( "I have confused myself and cannot find where some downloaded data goes." ) );
-		return;
-	    }
-	    if( !DecryptCheckHashAndAppendData( job.data, job.index ) )
-	    {
-		CurrentJobErrored( tr( "Downloaded data has a different hash than expected." ) );
-		return;
-	    }
+        {
+            if( job.index > qFromBigEndian( curTmd.payload()->num_contents ) )
+            {
+                qWarning() << "NusDownloader::FileIsFinishedDownloading -> received data that doesnt fit anywhere";
+                CurrentJobErrored( tr( "I have confused myself and cannot find where some downloaded data goes." ) );
+                return;
+            }
+            if( job.index != currentJob.data.size() - 2 )
+            {
+                qWarning() << "NusDownloader::FileIsFinishedDownloading -> index doesnt match what it should";
+                CurrentJobErrored( tr( "I have confused myself and cannot find where some downloaded data goes." ) );
+                return;
+            }
+            if( !DecryptCheckHashAndAppendData( job.data, job.index ) )
+            {
+                CurrentJobErrored( tr( "Downloaded data has a different hash than expected." ) );
+                return;
+            }
 
 
-	    if( job.index == qFromBigEndian( curTmd.payload()->num_contents ) - 1 )//this is the last content for this title
-	    {
-		int progress = (int)( ( (float)( totalJobs - jobList.size() ) / (float)totalJobs ) * 100.0f );
-		emit SendTotalProgress( progress );
-		emit SendTitleProgress( 100 );
-		emit SendData( currentJob );
-		QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );//move on to next job
-	    }
+            if( job.index == qFromBigEndian( curTmd.payload()->num_contents ) - 1 )//this is the last content for this title
+            {
+                int progress = (int)( ( (float)( totalJobs - jobList.size() ) / (float)totalJobs ) * 100.0f );
+                emit SendTotalProgress( progress );
+                emit SendTitleProgress( 100 );
+                emit SendData( currentJob );
+                QTimer::singleShot( 0, this, SLOT( StartNextJob() ) );//move on to next job
+            }
 
-	    else
-		QTimer::singleShot( 0, this, SLOT( GetNextItemForCurrentTitle() ) );//next content
+            else
+                QTimer::singleShot( 0, this, SLOT( GetNextItemForCurrentTitle() ) );//next content
 
-	    cPath = GetCachePath( job.index );
-	}
-	break;
+            cPath = GetCachePath( job.index );
+        }
+        break;
     }
 
     //try to save this data to the cache
     if( cPath.isEmpty() )
-	return;
+        return;
 
     SaveDataToCache( cPath, job.data );
 }
@@ -485,17 +485,17 @@ void NusDownloader::downloadProgress( qint64 bytesReceived, qint64 bytesTotal )
     QString unit;
     if( speed < 1024 )
     {
-	unit = "bytes/sec";
+        unit = "bytes/sec";
     }
     else if( speed < 1024 * 1024 )
     {
-	speed /= 1024;
-	unit = "kB/s";
+        speed /= 1024;
+        unit = "kB/s";
     }
     else
     {
-	speed /= 1024*1024;
-	unit = "MB/s";
+        speed /= 1024*1024;
+        unit = "MB/s";
     }
     emit SendText( currentJobText + "   " + QString::fromLatin1( "%1 %2" ).arg( speed, 3, 'f', 1 ).arg( unit ) );
     int progress = (int)( ( (float)bytesReceived / (float)bytesTotal ) * 100.0f );
@@ -508,13 +508,13 @@ void NusDownloader::downloadFinished()
     //qDebug() << "NusDownloader::downloadFinished";
     if( currentDownload->error() )
     {
-	qDebug() << "currentDownload->error()";
-	CurrentJobErrored( tr( "Error downloading part of the title." ) );
+        qDebug() << "currentDownload->error()";
+        CurrentJobErrored( tr( "Error downloading part of the title." ) );
     }
     else
     {
-	emit SendDownloadProgress( 100 );
-	FileIsFinishedDownloading( dlJob );
+        emit SendDownloadProgress( 100 );
+        FileIsFinishedDownloading( dlJob );
 
     }
     currentDownload->deleteLater();
@@ -576,8 +576,8 @@ bool NusDownloader::GetUpdate( const QString & upd, bool decrypt )
     QMap< quint64, quint16 >::ConstIterator i = titles.begin();
     while( i != titles.end() )
     {
-       Get( i.key(), decrypt, i.value() );
-       i++;
+        Get( i.key(), decrypt, i.value() );
+        i++;
     }
     return true;
 }
@@ -1101,7 +1101,7 @@ QMap< quint64, quint16 > NusDownloader::List30u()
     titles.insert( 0x1000248414341ull, 0x4 );//nigaoeNRv4 - MII
     titles.insert( 0x1000248414241ull, 0x7 );//shoppingv7
     return titles;
- }
+}
 
 QMap< quint64, quint16 > NusDownloader::List31u()
 {

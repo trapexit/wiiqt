@@ -45,14 +45,14 @@ void NandWindow::SetUpBlockMap()
     quint16 i = 0;
     for( quint16 y = 0; y < 288; y += 9 )		//create all the blocks and make them grey
     {
-	for( quint16 x = 0; x < 1152; x += 9 )
-	{
-	    pmi[ i ] = new QGraphicsPixmapItem( grey );
-	    pmi[ i ]->setPos( x, y );
-	    gv.addItem( pmi[ i ] );//items belong to this now.  no need to delete them
+        for( quint16 x = 0; x < 1152; x += 9 )
+        {
+            pmi[ i ] = new QGraphicsPixmapItem( grey );
+            pmi[ i ]->setPos( x, y );
+            gv.addItem( pmi[ i ] );//items belong to this now.  no need to delete them
 
-	    i++;
-	}
+            i++;
+        }
     }
     QFontMetrics fm( fontMetrics() );
 
@@ -147,8 +147,8 @@ void NandWindow::on_treeWidget_customContextMenuRequested( QPoint pos )
     QTreeWidgetItem* item = ui->treeWidget->itemAt( pos );
     if( !item )//right-clicked in the partition window, but not on an item
     {
-	qDebug() << "no item selected";
-	return;
+        qDebug() << "no item selected";
+        return;
     }
 
     QMenu myMenu( this );
@@ -159,16 +159,16 @@ void NandWindow::on_treeWidget_customContextMenuRequested( QPoint pos )
     //respond to what was selected
     if( s )
     {
-	// something was chosen, do stuff
-	if( s == &extractA )//extract a file
-	{
-	    QString path = QFileDialog::getExistingDirectory( this, tr("Select a destination") );
-	    if( path.isEmpty() )
-		return;
+        // something was chosen, do stuff
+        if( s == &extractA )//extract a file
+        {
+            QString path = QFileDialog::getExistingDirectory( this, tr("Select a destination") );
+            if( path.isEmpty() )
+                return;
 
-	    ui->progressBar->setVisible( true );
-	    nThread.Extract( item, path );
-	}
+            ui->progressBar->setVisible( true );
+            nThread.Extract( item, path );
+        }
     }
 }
 
@@ -177,14 +177,14 @@ void NandWindow::on_actionOpen_Nand_triggered()
 {
     QString path = QFileDialog::getOpenFileName( this, tr( "Select a Nand to open" ) );
     if( path.isEmpty() )
-	return;
+        return;
 
     blocks.clear();
     if( !nThread.SetPath( path ) )
     {
-	qDebug() << " error in nandBin.SetPath";
-	ui->statusBar->showMessage( "Error setting path to " + path );
-	return;
+        qDebug() << " error in nandBin.SetPath";
+        ui->statusBar->showMessage( "Error setting path to " + path );
+        return;
     }
     ui->statusBar->showMessage( "Loading " + path );
     QIcon groupIcon;
@@ -195,9 +195,9 @@ void NandWindow::on_actionOpen_Nand_triggered()
 
     if( !nThread.InitNand( groupIcon, keyIcon ) )
     {
-	qDebug() << " error in nandBin.InitNand()";
-	ui->statusBar->showMessage( "Error reading " + path );
-	return;
+        qDebug() << " error in nandBin.InitNand()";
+        ui->statusBar->showMessage( "Error reading " + path );
+        return;
     }
 
     ui->treeWidget->clear();
@@ -216,7 +216,7 @@ void NandWindow::on_actionOpen_Nand_triggered()
 
     //expand the root item
     if( ui->treeWidget->topLevelItemCount() )
-	ui->treeWidget->topLevelItem( 0 )->setExpanded( true );
+        ui->treeWidget->topLevelItem( 0 )->setExpanded( true );
 
     ui->statusBar->showMessage( "Loaded " + path, 5000 );
 }
@@ -229,29 +229,29 @@ void NandWindow::GetBlocksfromNand()
     QList<quint16> clusters = nThread.GetFats();
     if( !clusters.size() == 0x8000 )
     {
-	QMessageBox::warning( this, tr( "Error" ), tr( "Expected 0x8000 clusters from the nand, but got %1 instead!" ).arg( clusters.size(), 0, 16 ), QMessageBox::Ok );
-	return;
+        QMessageBox::warning( this, tr( "Error" ), tr( "Expected 0x8000 clusters from the nand, but got %1 instead!" ).arg( clusters.size(), 0, 16 ), QMessageBox::Ok );
+        return;
     }
 
     for( quint16 i = 0; i < 0x8000; i += 8 )//first cluster of each block.
     {
-	quint16 thisBlock = clusters.at( i );
+        quint16 thisBlock = clusters.at( i );
 
-	if( thisBlock == 0xFFFC
-	    || thisBlock == 0xFFFD )
-	{
-	    blocks << thisBlock;
-	    continue;
-	}
-	bool used = false;
-	for( quint16 j = i; j < i + 8; j++ )//each individual cluster
-	{
-	    if( clusters.at( j ) == 0xFFFE )
-		freeSpace += 0x4000;
+        if( thisBlock == 0xFFFC
+            || thisBlock == 0xFFFD )
+        {
+            blocks << thisBlock;
+            continue;
+        }
+        bool used = false;
+        for( quint16 j = i; j < i + 8; j++ )//each individual cluster
+        {
+            if( clusters.at( j ) == 0xFFFE )
+                freeSpace += 0x4000;
 
-	    else used = true;
-	}
-	blocks << ( used ? 1 : 0xfffe ); // just put 1 for used blocks
+            else used = true;
+        }
+        blocks << ( used ? 1 : 0xfffe ); // just put 1 for used blocks
     }
     quint32 used = 0x20000000 - freeSpace;
     float per = (float)((float)used/(float)0x20000000) * 100.0f;
@@ -269,9 +269,9 @@ QList<quint16> NandWindow::ToBlocks( QList<quint16> clusters )
     quint16 size = clusters.size();
     for( quint16 i = 0; i < size; i++ )
     {
-	quint16 block = ( clusters.at( i ) / 8 );
-	if( !ret.contains( block ) )
-	    ret << block;
+        quint16 block = ( clusters.at( i ) / 8 );
+        if( !ret.contains( block ) )
+            ret << block;
     }
     return ret;
 }
@@ -281,8 +281,8 @@ void NandWindow::DrawBlockMap( QList<quint16> newFile )
 {
     if( blocks.size() != 0x1000 )
     {
-	qWarning() << "NandWindow::DrawBlockMap -> current blocks are fucked up, son" << hex << blocks.size();
-	return;
+        qWarning() << "NandWindow::DrawBlockMap -> current blocks are fucked up, son" << hex << blocks.size();
+        return;
     }
     QPixmap blue( ":/blue.png" );
     QPixmap green( ":/green.png" );
@@ -292,34 +292,34 @@ void NandWindow::DrawBlockMap( QList<quint16> newFile )
 
     for( quint16 i = 0; i < 0x1000; i++ )
     {
-	quint16 thisBlock;
-	if( !newFile.contains( i ) )
-	{
-	    thisBlock = blocks.at( i );
-	}
-	else
-	{
-	    thisBlock = 2;
-	}
-	switch( thisBlock )
-	{
-	default:
-	case 1://used, but not in this file
-	    pmi[ i ]->setPixmap( green );
-	    break;
-	case 2://used in this file
-	    pmi[ i ]->setPixmap( pink );
-	    break;
-	case 0xFFFE://free block
-	    pmi[ i ]->setPixmap( grey );
-	    break;
-	case 0xFFFC://reserved
-	    pmi[ i ]->setPixmap( blue );
-	    break;
-	case 0xFFFD: // bad block
-	    pmi[ i ]->setPixmap( black );
-	    break;
-	}
+        quint16 thisBlock;
+        if( !newFile.contains( i ) )
+        {
+            thisBlock = blocks.at( i );
+        }
+        else
+        {
+            thisBlock = 2;
+        }
+        switch( thisBlock )
+        {
+        default:
+        case 1://used, but not in this file
+            pmi[ i ]->setPixmap( green );
+            break;
+        case 2://used in this file
+            pmi[ i ]->setPixmap( pink );
+            break;
+        case 0xFFFE://free block
+            pmi[ i ]->setPixmap( grey );
+            break;
+        case 0xFFFC://reserved
+            pmi[ i ]->setPixmap( blue );
+            break;
+        case 0xFFFD: // bad block
+            pmi[ i ]->setPixmap( black );
+            break;
+        }
     }
 
 
@@ -366,13 +366,13 @@ void NandWindow::on_treeWidget_currentItemChanged( QTreeWidgetItem* current, QTr
     Q_UNUSED( previous );
 
     if( !current || current->text( 7 ).startsWith( "02" ) )
-	return;
+        return;
     bool ok = false;
     quint16 entry = current->text( 1 ).toInt( &ok );
     if( !ok )
     {
-	qDebug() << "NandWindow::on_treeWidget_currentItemChanged ->" << current->text( 1 ) << "isnt a decimal number";
-	return;
+        qDebug() << "NandWindow::on_treeWidget_currentItemChanged ->" << current->text( 1 ) << "isnt a decimal number";
+        return;
     }
 
     QList<quint16> clusters = nThread.GetFatsForFile( entry );
@@ -382,19 +382,19 @@ void NandWindow::on_treeWidget_currentItemChanged( QTreeWidgetItem* current, QTr
     float size = current->text( 2 ).toInt( &ok, 16 );
     if( !ok )
     {
-	qDebug() << "error converting" << current->text( 2 ) << "to int";
-	return;
+        qDebug() << "error converting" << current->text( 2 ) << "to int";
+        return;
     }
     QString unit = "bytes";
     if( size > 1024 )
     {
-	unit = "KiB";
-	size /= 1024.0f;
+        unit = "KiB";
+        size /= 1024.0f;
     }
     if( size > 1024 )
     {
-	unit = "MiB";
-	size /= 1024.0f;
+        unit = "MiB";
+        size /= 1024.0f;
     }
     QString clusterStr = clusters.size() == 1 ? tr( "%1 cluster" ).arg( 1 ) : tr( "%1 clusters" ).arg( clusters.size() );
     QString blockStr = blocks.size() == 1 ? tr( "%1 block" ).arg( 1 ) : tr( "%1 blocks" ).arg( blocks.size() );
@@ -412,8 +412,8 @@ void NandWindow::on_actionBoot2_triggered()
     QList<Boot2Info> b = nThread.Boot2Infos();
     if( b.isEmpty() )
     {
-	qDebug() << "!ok";
-	return;
+        qDebug() << "!ok";
+        return;
     }
     quint8 boot1 = nThread.Boot1Version();
 

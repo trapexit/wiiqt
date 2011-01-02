@@ -6,6 +6,7 @@
 
 #include "includes.h"
 #include "tiktmd.h"
+#include "tools.h"
 
 #define SHOPPING_USER_AGENT		"Opera/9.00 (Nintendo Wii; U; ; 1038-58; Wii Shop Channel/1.0; en)"
 #define UPDATING_USER_AGENT		"wii libnup/1.0"
@@ -13,22 +14,12 @@
 #define WIICONNECT24_USER_AGENT		"WiiConnect24/1.0FC4plus1 (build 061114161108)"
 #define NUS_BASE_URL			"http://ccs.shop.wii.com/ccs/download/"
 
-#define TITLE_LATEST_VERSION 0xffff
+
 
 enum
 {
     IDX_CETK = 0x9000,
     IDX_TMD
-};
-
-//struct used to keep all the data about a NUS request together
-//when a finished job is returned, the data list will be the TMD, then the ticket, then all the contents
-struct NusJob
-{
-    quint64 tid;
-    quint16 version;
-    bool decrypt;
-    QList<QByteArray> data;
 };
 
 struct downloadJob
@@ -63,7 +54,7 @@ public:
 
     //get a list of titles for a given update
     //if a title is not available on NUS, a substitute is given instead ( a later version of the same title )
-    //to keep people from bulk DLing and installing and messing something up, any boot2 upudate will NOT be included
+    //to keep people from bulk DLing and installing and messing something up, any boot2 update will NOT be included
     //in the list, ask for it specifically.  IOS35 is added in all updates for use in sneek
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
 

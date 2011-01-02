@@ -25,7 +25,7 @@ NandThread::~NandThread()
     wait();
 
     if( itemToExtract )
-	delete itemToExtract;
+        delete itemToExtract;
 }
 
 bool NandThread::IsRunning()
@@ -37,8 +37,8 @@ bool NandThread::SetPath( const QString &path )
 {
     if( isRunning() )
     {
-	emit SendError( tr( "Wait till the current job is done" ) );
-	return false;
+        emit SendError( tr( "Wait till the current job is done" ) );
+        return false;
     }
     return nandBin.SetPath( path );
 }
@@ -47,8 +47,8 @@ const Blocks0to7 NandThread::BootBlocks()
 {
     if( isRunning() )
     {
-	emit SendError( tr( "Wait till the current job is done" ) );
-	return Blocks0to7();
+        emit SendError( tr( "Wait till the current job is done" ) );
+        return Blocks0to7();
     }
     return nandBin.BootBlocks();
 }
@@ -57,8 +57,8 @@ const QList<Boot2Info> NandThread::Boot2Infos()
 {
     if( isRunning() )
     {
-	emit SendError( tr( "Wait till the current job is done" ) );
-	return QList<Boot2Info>();
+        emit SendError( tr( "Wait till the current job is done" ) );
+        return QList<Boot2Info>();
     }
     return nandBin.Boot2Infos();
 }
@@ -67,8 +67,8 @@ quint8 NandThread::Boot1Version()
 {
     if( isRunning() )
     {
-	emit SendError( tr( "Wait till the current job is done" ) );
-	return 0;
+        emit SendError( tr( "Wait till the current job is done" ) );
+        return 0;
     }
     return nandBin.Boot1Version();
 }
@@ -77,8 +77,8 @@ QTreeWidgetItem *NandThread::GetTree()
 {
     if( isRunning() )
     {
-	emit SendError( tr( "Wait till the current job is done" ) );
-	return NULL;
+        emit SendError( tr( "Wait till the current job is done" ) );
+        return NULL;
     }
     return nandBin.GetTree();
 }
@@ -87,8 +87,8 @@ bool NandThread::InitNand( QIcon dirs, QIcon files )
 {
     if( isRunning() )
     {
-	emit SendError( tr( "Wait till the current job is done" ) );
-	return false;
+        emit SendError( tr( "Wait till the current job is done" ) );
+        return false;
     }
     return nandBin.InitNand( dirs, files );
 }
@@ -107,13 +107,13 @@ void NandThread::Extract( QTreeWidgetItem *item, const QString &path )
 {
     if( isRunning() )
     {
-	emit SendError( tr( "This thread is already doing something.  Please wait." ) );
-	return;
+        emit SendError( tr( "This thread is already doing something.  Please wait." ) );
+        return;
     }
     if( !item )
     {
-	emit SendError( tr( "Oh Noez!! I was told to extract with a pointer to NULL :( ." ) );
-	return;
+        emit SendError( tr( "Oh Noez!! I was told to extract with a pointer to NULL :( ." ) );
+        return;
     }
     abort = false;
     extractPath = path;
@@ -128,14 +128,14 @@ void NandThread::run()
 {
     if( abort )
     {
-	qDebug( "NandThread::run -> Thread abort" );
-	return;
+        qDebug( "NandThread::run -> Thread abort" );
+        return;
     }
     mutex.lock();
     if( extractPath.isEmpty() )
     {
-	qDebug() << "NandThread::run -> its empty";
-	return;
+        qDebug() << "NandThread::run -> its empty";
+        return;
     }
     fileCnt = FileCount( itemToExtract );
     idx = 0;
@@ -154,13 +154,13 @@ quint32 NandThread::FileCount( QTreeWidgetItem *item )
 {
     if( item->text( 7 ).startsWith( "02" ) )//its a folder, recurse through it and count all the files
     {
-	quint32 ret = 0;
-	quint16 cnt = item->childCount();
-	for( quint16 i = 0; i < cnt; i++ )
-	{
-	    ret += FileCount( item->child( i ) ) ;
-	}
-	return ret;
+        quint32 ret = 0;
+        quint16 cnt = item->childCount();
+        for( quint16 i = 0; i < cnt; i++ )
+        {
+            ret += FileCount( item->child( i ) ) ;
+        }
+        return ret;
     }
     //not a folder, must be a file.  just return 1
     return 1;

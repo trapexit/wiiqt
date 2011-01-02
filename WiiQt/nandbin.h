@@ -5,12 +5,6 @@
 #include "blocks0to7.h"
 #include "nandspare.h"
 
-#define NAND_FILE   1
-#define NAND_DIR    2
-#define NAND_READ   1
-#define NAND_WRITE  2
-#define NAND_RW	    ( NAND_READ | NAND_WRITE )
-
 struct fst_t
 {
     quint8 filename[ 0xc ];

@@ -87,13 +87,13 @@ typedef struct _tmd {
 	// C99 flexible array
 	tmd_content contents[];
 } __attribute__((packed)) tmd;
-
+/*
 typedef struct _tmd_view_content
 {
-  quint32 cid;
-  quint16 index;
-  quint16 type;
-  quint64 size;
+    quint32 cid;
+    quint16 index;
+    quint16 type;
+    quint64 size;
 } __attribute__((packed)) tmd_view_content;
 
 typedef struct _cert_header {
@@ -132,9 +132,7 @@ typedef struct _cert_ecdsa {
 	quint8 s[30];
 	quint8 pad[0x3c];
 } __attribute__((packed)) cert_ecdsa;
-
-#define COMMON_KEY		{0xeb, 0xe4, 0x2a, 0x22, 0x5e, 0x85, 0x93, 0xe4, 0x48, 0xd9, 0xc5, 0x45, 0x73, 0x81, 0xaa, 0xf7}
-
+*/
 //just a quick class to try to keep the rest of the code from getting full of the same shit over and over
 class Ticket
 {
@@ -236,15 +234,15 @@ private:
 
 enum
 {
-  ERROR_SUCCESS = 0,
-  ERROR_SIG_TYPE,
-  ERROR_SUB_TYPE,
-  ERROR_RSA_FAKESIGNED,
-  ERROR_RSA_HASH,
-  ERROR_RSA_TYPE_UNKNOWN,
-  ERROR_RSA_TYPE_MISMATCH,
-  ERROR_CERT_NOT_FOUND,
-  ERROR_COUNT
+    ERROR_SUCCESS = 0,
+    ERROR_SIG_TYPE,
+    ERROR_SUB_TYPE,
+    ERROR_RSA_FAKESIGNED,
+    ERROR_RSA_HASH,
+    ERROR_RSA_TYPE_UNKNOWN,
+    ERROR_RSA_TYPE_MISMATCH,
+    ERROR_CERT_NOT_FOUND,
+    ERROR_COUNT
 };
 
 //checks the signatures in a tmd/ticket

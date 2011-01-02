@@ -1,9 +1,13 @@
 #include "saveloadthread.h"
+#include "quazip.h"
+#include "quazipfile.h"
+#include "../WiiQt/savedatabin.h"
 
+Q_DECLARE_METATYPE( PcSaveInfo )
 SaveLoadThread::SaveLoadThread( QObject *parent ) : QThread( parent )
 {
     abort = false;
-    //qRegisterMetaType< SaveListItem* >();
+	qRegisterMetaType< PcSaveInfo >();
 }
 
 void SaveLoadThread::ForceQuit()
@@ -22,124 +26,74 @@ SaveLoadThread::~SaveLoadThread()
     wait();
 }
 
-
-void SaveLoadThread::GetBanners( const QString &bPath, int mode )
+void SaveLoadThread::GetBanners( const QString &bPath )
 {
+    if( isRunning() )
+    {
+        qWarning() << "SaveLoadThread::GetBanners -> already running";
+        return;
+    }
     basePath = bPath;
-    type = mode;
+    if( basePath.isEmpty() )
+        type = LOAD_SNEEK;
+    else
+        type = LOAD_PC;
     start( NormalPriority );
 }
+
+bool SaveLoadThread::SetNandPath( const QString &bPath )
+{
+    if( isRunning() )
+        return false;
+
+    if( nand.BasePath() == bPath )
+        return true;
+
+    return nand.SetPath( bPath );
+}
+
+SaveGame SaveLoadThread::GetSave( quint64 tid )
+{
+    SaveGame ret;
+    ret.tid = 0;
+
+    if( isRunning() )
+        return ret;
+
+    return nand.GetSaveData( tid );
+}
+
 
 void SaveLoadThread::run()
 {
     if ( abort )
     {
-	qDebug( "SaveLoadThread::run -> Thread abort" );
-	return;
+        qDebug( "SaveLoadThread::run -> Thread abort" );
+        return;
     }
     mutex.lock();
-    if( basePath.isEmpty() )
+    /*if( basePath.isEmpty() )
     {
-	qDebug() << "SaveLoadThread::run -> its empty";
-	return;
-    }
+        qDebug() << "SaveLoadThread::run -> its empty";
+        return;
+    }*/
     mutex.unlock();
 
-    QFileInfo fi( basePath );
-    if( !fi.exists() || !fi.isDir() )
+    switch( type )
     {
-	qWarning() << "SaveLoadThread::run ->" << basePath << "is not a directory";
-	return;
+    case LOAD_SNEEK:
+        GetSavesFromNandDump();
+        break;
+    case LOAD_PC:
+        if( basePath.isEmpty() )
+            return;
+		GetPCSaves();
+        break;
+    default:
+        break;
+
     }
 
-    fi.setFile(basePath + "/title/00010000" );
-    if( !fi.exists() || !fi.isDir() )
-    {
-	qWarning() << "SaveLoadThread::run ->" << QString( basePath + "/title/00010000" ) << "is not a directory";
-	return;
-    }
-
-
-    QDir subDir( basePath + "/title/00010000" );
-    subDir.setFilter( QDir::Dirs | QDir::NoDotAndDotDot );
-    QFileInfoList fiL = subDir.entryInfoList();
-    quint32 cnt = fiL.size();
-
-    int i = 0;
-    subDir.setPath( basePath + "/title/00010001" );
-    QFileInfoList fiL2 = subDir.entryInfoList();
-    cnt += fiL2.size();
-
-    subDir.setPath( basePath + "/title/00010002" );
-    QFileInfoList fiL3 = subDir.entryInfoList();
-    cnt += fiL3.size();
-
-    subDir.setPath( basePath + "/title/00010004" );
-    QFileInfoList fiL4 = subDir.entryInfoList();
-    cnt += fiL4.size();
-
-    foreach( QFileInfo f, fiL )
-    {
-	i++;
-	emit SendProgress( (int)( ( (float)( i ) / (float)cnt ) * (float)100 ) );
-
-	QFile ff( f.absoluteFilePath() + "/data/banner.bin" );
-	if( !ff.exists() || !ff.open( QIODevice::ReadOnly ) )
-	    continue;
-
-	QByteArray stuff = ff.readAll();
-	ff.close();
-
-	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
-	emit SendItem( stuff, QString( "00010000" + f.fileName() ), type, size );
-    }
-    foreach( QFileInfo f, fiL2 )
-    {
-	i++;
-	emit SendProgress( (int)( ( (float)( i ) / (float)cnt ) * (float)100 ) );
-
-	QFile ff( f.absoluteFilePath() + "/data/banner.bin" );
-	if( !ff.exists() || !ff.open( QIODevice::ReadOnly ) )
-	    continue;
-
-	QByteArray stuff = ff.readAll();
-	ff.close();
-
-	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
-	emit SendItem( stuff, QString( "00010001" + f.fileName() ), type, size );
-    }
-    foreach( QFileInfo f, fiL3 )
-    {
-	i++;
-	emit SendProgress( (int)( ( (float)( i ) / (float)cnt ) * (float)100 ) );
-
-	QFile ff( f.absoluteFilePath() + "/data/banner.bin" );
-	if( !ff.exists() || !ff.open( QIODevice::ReadOnly ) )
-	    continue;
-
-	QByteArray stuff = ff.readAll();
-	ff.close();
-
-	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
-	emit SendItem( stuff, QString( "00010002" + f.fileName() ), type, size );
-    }
-    foreach( QFileInfo f, fiL4 )
-    {
-	i++;
-	emit SendProgress( (int)( ( (float)( i ) / (float)cnt ) * (float)100 ) );
-
-	QFile ff( f.absoluteFilePath() + "/data/banner.bin" );
-	if( !ff.exists() || !ff.open( QIODevice::ReadOnly ) )
-	    continue;
-
-	QByteArray stuff = ff.readAll();
-	ff.close();
-
-	quint32 size = GetFolderSize( f.absoluteFilePath() + "/data" );
-	emit SendItem( stuff, QString( "00010004" + f.fileName() ), type, size );
-    }
-
-    emit SendProgress( 100 );
     emit SendDone( type );
 }
 
@@ -148,15 +102,203 @@ int SaveLoadThread::GetFolderSize( const QString& path )
     //qDebug() << "SaveLoadThread::GetFolderSize" << path;
     quint32 ret = 0;
     QDir dir( path );
-     dir.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
+    dir.setFilter( QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot );
     QFileInfoList fiL = dir.entryInfoList();
     foreach( QFileInfo fi, fiL )
     {
-	if( fi.isDir() )
-	    ret += GetFolderSize( fi.absoluteFilePath() );
+        if( fi.isDir() )
+            ret += GetFolderSize( fi.absoluteFilePath() );
 
-	else
-	    ret += fi.size();
+        else
+            ret += fi.size();
     }
     return ret;
+}
+
+void SaveLoadThread::GetSavesFromPC()
+{
+    emit SendProgress( 0 );
+
+    emit SendProgress( 100 );
+}
+
+void SaveLoadThread::GetPCSaves()
+{
+	emit SendProgress( 0 );
+    if( basePath.isEmpty() )
+		return;
+	int total = 0;
+	int done = 0;
+	//first count all the saves
+    //list all subdirs of the base ( TID upper )
+    QDir base( basePath );
+    QFileInfoList fi1 = base.entryInfoList( QDir::Dirs | QDir::NoDotAndDotDot );
+	foreach( QFileInfo upper, fi1 )
+	{
+		//qDebug() << "looking in" << upper.absoluteFilePath();
+		//get all subdirectories of the subfolder ( TID lower )
+		QDir uDir( upper.absoluteFilePath() );
+		QFileInfoList fi2 = uDir.entryInfoList( QDir::Dirs | QDir::NoDotAndDotDot );
+		foreach( QFileInfo lower, fi2 )
+		{
+			//qDebug() << "looking in" << lower.absoluteFilePath();
+			//list all .zip files in the game's folder
+			QDir lDir( lower.absoluteFilePath() );
+			QFileInfoList fi3 = lDir.entryInfoList( QStringList() << "*.zip", QDir::Files );
+			//qDebug() << "found" << fi3.size() << "zip files in here";
+			total += fi3.size();
+		}
+	}
+
+	//qDebug() << "SaveLoadThread::GetPCSaves(): will open" << total << "zip archives";
+	//now actually read/send the saves
+	foreach( QFileInfo upper, fi1 )
+	{
+		//get all subdirectories of the subfolder ( TID lower )
+		QDir uDir( upper.absoluteFilePath() );
+		QFileInfoList fi2 = uDir.entryInfoList( QDir::Dirs | QDir::NoDotAndDotDot );
+		foreach( QFileInfo lower, fi2 )
+		{
+			//list all .zip files in the game's folder
+			QDir lDir( lower.absoluteFilePath() );
+			QFileInfoList fi3 = lDir.entryInfoList( QStringList() << "*.zip", QDir::Files );
+			quint32 cnt = fi3.size();
+			//QStringList descriptions;
+			//QByteArray banner;
+			//quint32 size = 0;
+			PcSaveInfo info;
+			info.tid = upper.fileName() + lower.fileName();
+			for( quint32 i = 0; i < cnt; i++ )
+			{
+				//qDebug() << "opening archive" << fi3.at( i ).absoluteFilePath();
+				bool bnrOk = false;
+				bool txtOk = false;
+				quint32 sSize = 0;
+				QString desc;
+				QuaZip zip( fi3.at( i ).absoluteFilePath() );
+				if( !zip.open( QuaZip::mdUnzip ) )
+				{
+					qWarning("SaveLoadThread::GetPCSaves(): zip.open(): %d", zip.getZipError() );
+					continue;
+				}
+				zip.setFileNameCodec("IBM866");
+				if( zip.getEntriesCount() != 2 )
+				{
+					qWarning() << "SaveLoadThread::GetPCSaves() -> save contains more than 2 entries" << fi3.at( i ).absoluteFilePath();
+					zip.close();
+					continue;
+				}
+				QuaZipFile file(&zip);
+				QString name;
+				for( bool more = zip.goToFirstFile(); more; more = zip.goToNextFile() )
+				{
+					if( !file.open( QIODevice::ReadOnly ) )
+					{
+						qWarning("SaveLoadThread::GetPCSaves(): file.open(): %d", file.getZipError() );
+						zip.close();
+						continue;
+					}
+					name = file.getActualFileName();
+					//qDebug() << "extracting" << name << "from the archive";
+					if( file.getZipError() != UNZ_OK )
+					{
+						qWarning("SaveLoadThread::GetPCSaves(): file.getFileName(): %d", file.getZipError());
+						file.close();
+						zip.close();
+						continue;
+					}
+					if( name != "data.bin" && name != "info.txt" )
+					{
+						qWarning() << "SaveLoadThread::GetPCSaves() -> zip contians bad filename" << fi3.at( i ).absoluteFilePath() << name;
+						file.close();
+						zip.close();
+						continue;
+					}
+					/*if( name == "data.bin" && banner.size() )//theres already a banner been extracted, no need to get another one
+					{
+						file.close();
+						continue;
+					}*/
+					QByteArray unc = file.readAll();
+					//qDebug() << "read" << hex << unc.size();
+					if( file.getZipError() != UNZ_OK )
+					{
+						qWarning("SaveLoadThread::GetPCSaves(): file.getFileName(): %d", file.getZipError());
+						file.close();
+						zip.close();
+						continue;
+					}
+					file.close();
+					//read the data.bin to get the banner
+					if( name == "data.bin" )
+					{
+						if( info.banner.isEmpty() )
+							info.banner = SaveDataBin::GetBanner( unc );
+
+						sSize = SaveDataBin::GetSize( unc );
+						bnrOk = true;
+					}
+					else if( name == "info.txt" )
+					{
+						desc = QString( unc );
+						txtOk = true;
+					}
+				}
+				if( txtOk && bnrOk )
+				{
+					info.descriptions << desc;
+					info.sizes << sSize;
+					info.paths << fi3.at( i ).absoluteFilePath();
+				}
+				zip.close();
+				emit SendProgress( (int)( ( (float)( ++done) / (float)total ) * (float)100 ) );
+			}
+			//QString tidStr = upper.fileName() + lower.fileName();
+			//emit SendPcItem( banner, tidStr, descriptions, size );
+			if( info.sizes.size() )
+				emit SendPcItem( info );
+		}
+	}
+	emit SendProgress( 100 );
+}
+
+void SaveLoadThread::GetSavesFromNandDump()
+{
+    emit SendProgress( 0 );
+    QString base = nand.BasePath();
+    if( base.isEmpty() )
+        return;
+
+    QMap< quint64, quint32 > list = nand.GetSaveList();
+    QMap< quint64, quint32 >::Iterator it = list.begin();
+    int i = 0;
+    int s = list.size();
+    while( it != list.end() && !abort )
+    {
+        quint64 tid = it.key();
+        quint32 size = it.value();
+        it++;
+
+        QString tidStr = QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) );
+        QString bnrPath = tidStr;
+        bnrPath.insert( 8, "/" );
+        bnrPath.prepend( "/title/" );
+        bnrPath.append( "/data/banner.bin" );
+
+        QByteArray bnr = nand.GetFile( bnrPath );
+        emit SendProgress( (int)( ( (float)( ++i ) / (float)s ) * (float)100 ) );
+        if( bnr.isEmpty() )
+            continue;
+
+		emit SendSneekItem( bnr, tidStr, size );
+    }
+
+    emit SendProgress( 100 );
+}
+
+bool SaveLoadThread::DeleteSaveFromSneekNand( quint64 tid )
+{
+    if( isRunning() )
+        return false;
+    return nand.DeleteSave( tid );
 }
