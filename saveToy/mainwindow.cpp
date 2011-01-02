@@ -11,12 +11,13 @@
 #include "quazipfile.h"
 
 //TODO...  get these from settings and dont use global variables
-//static QString sneekPath = "/media/SDHC_4GB";
-static QString sneekPath = "/home/j/c/QtWii/test";
+static QString sneekPath = "/media/SDHC_4GB";
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), bannerthread( this )
 {
     ui->setupUi(this);
+	ClearSneekGuiInfo();
+	ClearPcGuiInfo();
     progressBar.setVisible( false );
     ui->statusBar->addPermanentWidget( &progressBar, 0 );
     ngID = 0;
@@ -32,21 +33,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	connect( &sneekIconTimer, SIGNAL( timeout() ), this, SLOT( ShowNextSneekIcon() ) );
 	connect( &pcIconTimer, SIGNAL( timeout() ), this, SLOT( ShowNextPcIcon() ) );
 
-    pcPath = "./saveBackups";
-    //GetSavesFromSneek( "/media/WiiFat500" );
+	//GetSavesFromSneek( "/media/WiiFat500" );
 	GetSavesFromSneek( sneekPath );
-	GetSavesFromPC( pcPath );
-
-    ngID = 0x4324c84;
-    ngKeyID = 0x6aedb6ed;
-    ngMac = QByteArray::fromHex( "0017abd2f253" );
-    ngPriv = QByteArray::fromHex( "00633682060dc10f5e8ec41907745f6380b67f8ad11019caf21a3ea242d2" );
-    ngSig = QByteArray::fromHex( "0015097c4e17ad791aa971221e07a0a2d9c97c6e2885fc7bf624e564c34100dd18568f683aa6f4f5a984842ddb002ef87724594975d0d43a0ecff81d" );
-
-	//QMessageBox::aboutQt( this, "bla" );
-
-    //QString bla = GetSaveName( 0x1000112345678ull );
-    //qDebug() << "bla" << bla;
+	//GetSavesFromPC( "./saveBackups" );
 
 }
 
@@ -96,6 +85,7 @@ void MainWindow::GetSavesFromPC( const QString &path )
     progressBar.setVisible( true );
     bannerthread.GetBanners( pcPath );
 }
+
 void MainWindow::ReceivePcItem( PcSaveInfo info )
 {
 	//qDebug() << "received a pc save";
@@ -103,40 +93,20 @@ void MainWindow::ReceivePcItem( PcSaveInfo info )
 		return;
 	SaveBanner sb( info.banner );
 	new SaveListItem( sb, info.tid, 0, ui->listWidget_pcSaves );
-	//ui->listWidget_sneekSaves->addItem( item );
-	//descMap.insert( tid, descriptions );
 	pcInfos << info;
 }
 
-/*
-//sneek save clicked
-void MainWindow::on_listWidget_sneekSaves_itemClicked(QListWidgetItem* item)
-{
-    if( !item )
-	return;
-
-    SaveListItem *i = static_cast< SaveListItem * >( item );
-    qDebug() << "item clicked" << i->Tid();
-}
-
-//sneek save double clicked
-void MainWindow::on_listWidget_sneekSaves_itemActivated( QListWidgetItem* item )
-{
-    if( !item )
-	return;
-
-    SaveListItem *i = static_cast< SaveListItem * >( item );
-    qDebug() << "item activated" << i->Tid();
-}*/
 //sneek save item changed
-void MainWindow::on_listWidget_sneekSaves_currentItemChanged(QListWidgetItem* current, QListWidgetItem* previous)
+void MainWindow::on_listWidget_sneekSaves_currentItemChanged( QListWidgetItem* current, QListWidgetItem* previous )
 {
     Q_UNUSED( previous );
     if( !current )
+	{
+		ClearSneekGuiInfo();
         return;
+	}
 
     SaveListItem *i = static_cast< SaveListItem * >( current );
-
     ShowSneekSaveDetails( i );
 }
 
@@ -146,7 +116,6 @@ void MainWindow::ReceiveSneekBanner( QByteArray stuff, const QString& tid, int s
 	QByteArray copy = stuff;
 	SaveBanner sb( copy );
 	new SaveListItem( sb, tid, size, ui->listWidget_sneekSaves );
-	//ui->listWidget_sneekSaves->addItem( item );
 }
 
 //get a pregress update from something that is doing work
@@ -232,6 +201,7 @@ void MainWindow::ShowSneekSaveDetails( SaveListItem *item )
     }
 }
 
+//slots for cycling animated icons
 void MainWindow::ShowNextSneekIcon()
 {
 	if( ++currentSneekIcon >= sneekIcon.size() )
@@ -333,7 +303,11 @@ bool MainWindow::NG_Ok()
 //button to extract a save from sneek clicked
 void MainWindow::on_pushButton_sneekExtract_clicked()
 {
-
+	if( pcPath.isEmpty() )
+	{
+		ui->statusBar->showMessage( tr( "Set a path to extract saves first" ) );
+		return;
+	}
     QList<QListWidgetItem*>selected = ui->listWidget_sneekSaves->selectedItems();
     quint16 cnt = selected.size();
     if( !cnt )
@@ -448,6 +422,12 @@ void MainWindow::AddNewPCSave( const QString &desc, const QString &tid, quint32 
 			info.paths << path;
 
 			pcInfos.replace( i, info );
+			if( currentPcSave == i )
+			{
+				QString version = path;
+				version.remove( 0, version.lastIndexOf( "/" ) + 1 );
+				ui->comboBox_pcSelect->addItem( version );
+			}
 			return;
 		}
 	}
@@ -545,12 +525,12 @@ void MainWindow::on_actionSet_NG_Keys_triggered()
     ngMac = d.ngMac;
     ngPriv = d.ngPriv;
     ngSig = d.ngSig;
-    /*qDebug() << "accepted";
+	qDebug() << "accepted";
     qDebug() << hex << d.ngID
             << "\n" << d.ngKeyID
             << "\n" << d.ngMac.toHex()
             << "\n" << d.ngPriv.toHex()
-            << "\n" << d.ngSig.toHex();*/
+			<< "\n" << d.ngSig.toHex();
 }
 
 //PC list item changed
@@ -558,17 +538,19 @@ void MainWindow::on_listWidget_pcSaves_currentItemChanged( QListWidgetItem* curr
 {
 	Q_UNUSED( previous );
 	if( !current )
+	{
+		ClearPcGuiInfo();
 		return;
+	}
 
 	SaveListItem *i = static_cast< SaveListItem * >( current );
-
 	ShowPCSaveDetails( i );
 }
 
 //show detials for a save backed up on the PC
 void MainWindow::ShowPCSaveDetails( SaveListItem *item )
 {
-	qDebug() << "MainWindow::ShowPCSaveDetails";
+	//qDebug() << "MainWindow::ShowPCSaveDetails";
 	pcIconTimer.stop();
 	currentPcIcon = 0;
 	pcIcon.clear();
@@ -636,7 +618,7 @@ void MainWindow::ShowPCSaveDetails( SaveListItem *item )
 //pc combobox index changed
 void MainWindow::on_comboBox_pcSelect_currentIndexChanged( int index )
 {
-	qDebug() << "MainWindow::on_comboBox_pcSelect_currentIndexChanged" << index;
+	//qDebug() << "MainWindow::on_comboBox_pcSelect_currentIndexChanged" << index;
 	if( index < 0 )
 		return;
 	ui->plainTextEdit_pcDesc->clear();
@@ -673,4 +655,92 @@ void MainWindow::on_comboBox_pcSelect_currentIndexChanged( int index )
 	ui->label_pc_path->setText( path );
 	ui->plainTextEdit_pcDesc->clear();
 	ui->plainTextEdit_pcDesc->insertPlainText( pcInfos.at( currentPcSave ).descriptions.at( index ) );
+}
+
+//delete PC save button clicked
+void MainWindow::on_pushButton_pcDelete_clicked()
+{
+	QList<QListWidgetItem*>selected = ui->listWidget_pcSaves->selectedItems();
+	quint32 cnt = selected.size();
+	if( cnt != 1 )
+		return;
+
+	SaveListItem *si = static_cast< SaveListItem * >( selected.at( 0 ) );
+
+	int i = ui->comboBox_pcSelect->currentIndex();
+
+	//find the item in the list of infos that matches this item
+	currentPcSave = 0xffffffff;
+	cnt = pcInfos.size();
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		if( si->Tid() == pcInfos.at( i ).tid )
+		{
+			currentPcSave = i;
+			break;
+		}
+	}
+	if( currentPcSave == 0xffffffff )
+	{
+		qWarning() << "MainWindow::on_pushButton_pcDelete_clicked() -> tid not found";
+		return;
+	}
+
+	if( QMessageBox::question( this, tr( "Are you sure?" ), \
+		tr( "You are about to delete the backed up save<br>\"%1\"?" ).arg( pcInfos.at( currentPcSave ).paths.at( i ) ),
+		QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Cancel ) != QMessageBox::Ok )
+		return;
+
+	//delete the file
+	if( !QFile::remove( pcInfos.at( currentPcSave ).paths.at( ui->comboBox_pcSelect->currentIndex() ) ) )
+	{
+		ui->statusBar->showMessage( tr( "Error deleting file" ), 5000 );
+		return;
+	}
+	if( pcInfos.at( currentPcSave ).sizes.size() == 1 )//there are no more saves for this game
+	{
+		pcInfos.takeAt( currentPcSave );							//remove it entirely from the list of knowns
+		si = static_cast< SaveListItem * >( selected.takeFirst() );//delete its banner from the list
+		delete si;
+	}
+	else															//theres more saves for this game on the PC, just remove the selected one
+	{
+		//remove entries for this save from the list
+		pcInfos[ currentPcSave ].descriptions.takeAt( i );
+		pcInfos[ currentPcSave ].paths.takeAt( i );
+		pcInfos[ currentPcSave ].sizes.takeAt( i );
+		ui->comboBox_pcSelect->removeItem( i );						//remove it from the combobox last
+	}
+	ui->statusBar->showMessage( tr( "Deleted 1 save from the PC" ), 5000 );
+
+}
+
+void MainWindow::on_actionSet_Local_Path_triggered()
+{
+	QString p = QFileDialog::getExistingDirectory( this, tr( "Select Save Backup path" ), pcPath );
+	if( p.isEmpty() )
+		return;
+	GetSavesFromPC( p );
+}
+
+void MainWindow::ClearSneekGuiInfo()
+{
+	ui->label_sneek_icon->clear();
+	ui->label_sneek_id->clear();
+	ui->label_sneek_path->clear();
+	ui->label_sneek_size->clear();
+	ui->label_sneek_title->clear();
+	ui->label_sneek_title2->clear();
+}
+
+void MainWindow::ClearPcGuiInfo()
+{
+	ui->label_PC_icon->clear();
+	ui->label_pc_id->clear();
+	ui->label_pc_path->clear();
+	ui->label_pc_size->clear();
+	ui->label_pc_title->clear();
+	ui->label_pc_title2->clear();
+	ui->plainTextEdit_pcDesc->clear();
+	ui->comboBox_pcSelect->clear();
 }

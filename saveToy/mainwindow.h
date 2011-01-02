@@ -56,8 +56,14 @@ private:
     bool WriteZipFile( const QByteArray &dataBin, const QByteArray &desc, const QString &path );
 	void AddNewPCSave( const QString &desc, const QString &tid, quint32 size, const QString &path, SaveBanner banner );
 
+	//clear the data on teh right of the screen
+	void ClearSneekGuiInfo();
+	void ClearPcGuiInfo();
+
 
 private slots:
+	void on_actionSet_Local_Path_triggered();
+	void on_pushButton_pcDelete_clicked();
 	void on_comboBox_pcSelect_currentIndexChanged(int index);
 	void on_listWidget_pcSaves_currentItemChanged(QListWidgetItem* current, QListWidgetItem* previous);
 	void on_actionSet_NG_Keys_triggered();
