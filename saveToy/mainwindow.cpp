@@ -10,12 +10,21 @@
 #include "quazip.h"
 #include "quazipfile.h"
 
+
 //TODO...  get these from settings and dont use global variables
+#ifdef Q_WS_MAC
+static QString sneekPath = "/Volumes/VMware Shared Folders/host-c/QtWii/test";
+#else
 static QString sneekPath = "/media/SDHC_4GB";
+#endif
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), bannerthread( this )
 {
     ui->setupUi(this);
+#ifdef Q_WS_MAC
+    ui->listWidget_sneekSaves->setFixedWidth( 630 );
+    ui->listWidget_pcSaves->setFixedWidth( 630 );
+#endif
 	ClearSneekGuiInfo();
 	ClearPcGuiInfo();
     progressBar.setVisible( false );
@@ -47,6 +56,7 @@ MainWindow::~MainWindow()
 //get the saves from a nand directory
 void MainWindow::GetSavesFromSneek( const QString &path )
 {
+    qDebug() << "MainWindow::GetSavesFromSneek" << path;
     if( !QFileInfo( path ).exists() )
         return;
 

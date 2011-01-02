@@ -72,7 +72,11 @@ win32 {
 	message("win32 build")
     LIBS += -L./quazip/lib/win32 -lquazip
 }
-unix {
+macx{
+        message("mac build")
+    LIBS += -L./quazip/lib/mac -lquazip
+}
+else unix {
     !contains(QMAKE_HOST.arch, x86_64) {
         message("x86 build")
     LIBS += -L./quazip/lib/linux_x86 -lquazip
@@ -81,6 +85,4 @@ unix {
     LIBS += -L./quazip/lib/linux_x64 -lquazip
     }
 }
-macx{
-    message("still need to build quazlib for mac")
-}
+
