@@ -69,7 +69,8 @@ RESOURCES += \
 INCLUDEPATH += . ./quazip/include
 #different paths for different zip libraries
 win32 {
-	message("still need to build quazlib for windows")
+	message("win32 build")
+    LIBS += -L./quazip/lib/win32 -lquazip
 }
 unix {
     !contains(QMAKE_HOST.arch, x86_64) {
