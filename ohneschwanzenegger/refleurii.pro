@@ -47,3 +47,6 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui \
     ../WiiQt/settingtxtdialog.ui \
     newnandbin.ui
+
+RESOURCES += \
+    rc.qrc

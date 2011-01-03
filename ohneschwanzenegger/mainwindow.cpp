@@ -7,6 +7,14 @@
 #include "../WiiQt/tools.h"
 #include "../WiiQt/wad.h"
 
+//on 1 of my wiis, disc 123J owns the test directory & testlog.  this wii came from the factory as 3.2u
+//#define NAND_TEST_OWNER 0x100003132334aull
+
+//on my later wiis, disc 121J owns the test directory & testlog.  all came with 4.2u or later
+#define NAND_TEST_OWNER 0x100003132314aull
+
+//the group of the test dir/files seems to always be 4
+#define NAND_TEST_GROUP 4
 
 MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::MainWindow ), nus ( this ), nand ( this )
 {
@@ -243,7 +251,7 @@ void MainWindow::on_actionSetting_txt_triggered()
 //nand-dump -> flush
 void MainWindow::on_actionFlush_triggered()
 {
-    if( !nandInited )
+	if( nandInited )
 		FlushNand();
 }
 
@@ -298,6 +306,29 @@ void MainWindow::on_actionNew_nand_from_keys_triggered()
 		return;
     InitNand( path );
     ui->lineEdit_nandPath->setText( path );
+
+	//add some factory test logs and whatnot
+	quint32 _uid = uid.GetUid( NAND_TEST_OWNER, true );
+	if( !nand.CreateEntry( "/shared2/test", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
+		|| !nand.CreateEntry( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+	{
+		ShowMessage( "<b>Error creating folder for testlog<\b>" );
+		return;
+	}
+	quint16 handle = nand.CreateEntry( "/shared2/test/testlog.txt", _uid, NAND_TEST_GROUP, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
+	if( !handle )
+	{
+		ShowMessage( "<b>Error creating testlog<\b>" );
+		return;
+	}
+	QByteArray tLog = ReadFile( ":/testlog.txt" );
+	if( !nand.SetData( handle, tLog ) )
+	{
+		ShowMessage( "<b>Error writing to testlog.txt<\b>" );
+		return;
+	}
+	UpdateTree();
+	ShowMessage( "Created /shared2/test/testlog.txt" );
 }
 
 void MainWindow::on_pushButton_initNand_clicked()
@@ -307,7 +338,7 @@ void MainWindow::on_pushButton_initNand_clicked()
 		ShowMessage( "<b>Please enter a path for nand.bin<\b>" );
 		return;
     }
-    InitNand( ui->lineEdit_nandPath->text() );
+	InitNand( ui->lineEdit_nandPath->text() );
 }
 
 bool MainWindow::InitNand( const QString &path )
