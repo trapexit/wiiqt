@@ -1,4 +1,11 @@
-this is a tool to list saves in an extracted nand dump
+this is a tool to list/extract/delete saves to/from an extracted nand dump.  saves are extracted, packed into a data.bin, zipped up with a txt file 
+ that says a bit about the save, and then stored in a folder.  you must designate a folder and provide the necessary keys before extracting saves
+will work.  i chose to go with data.bin as it is a way to store the entire save in 1 file and also allow the save to be installed using the 
+system menu.  and i went with the zip format 1) to save space, and 2) to keep a save and the description all in 1 compact file.
+
+saves are extracted to "<the folder you specify>/<TID upper>/<TID lower>/#.zip".  the # is chosen by the lowest available number starting with 1.  
+there is no need for the saves to be in numerical order, if you have 10 zips for the same game and you decide to delete "3.zip", it will cause 
+no issues, and next time you extract a save for this game, it will use the filename "3.zip".
 
 TODO:
-add some sort of extract/delete/install functionality
+installing saves back to sneek nand still isnt done

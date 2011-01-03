@@ -90,6 +90,9 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
     fats.clear();
     memset( &fsts, 0, sizeof( fst_t ) * 0x17ff );
 
+	for( quint16 i = 0; i < 0x17ff; i++ )
+		fsts[ i ].fst_pos = i;
+
     //reserve blocks 0 - 7
     for( quint16 i = 0; i < 0x40; i++ )
     {
@@ -1193,7 +1196,12 @@ quint16 NandBin::CreateEntry( const QString &path, quint32 uid, quint16 gid, qui
         if( !ret )
             return 0;
 
-        fsts[ entryNo ].sib = ret;
+		//method 1: this works, and the nand is bootable. but doesnt mimic the IOS FS driver. ( my entries appear in reversed order when walking the FS )
+		//fsts[ entryNo ].sib = ret;
+
+		//method 2: trying to mimic the IOS FS driver ( insert new entries at the start of the chain, instead of the end )
+		fsts[ ret ].sib = fsts[ parIdx ].sub;
+		fsts[ parIdx ].sub = ret;
     }
     QTreeWidgetItem *child = CreateItem( par, name, 0, ret, uid, gid, 0, fsts[ ret ].attr, 0 );
     if( attr == NAND_FILE )
