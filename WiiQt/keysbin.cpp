@@ -50,3 +50,38 @@ const QByteArray KeysBin::HMac()
         return QByteArray();
     return data.mid( 0x144, 0x14 );
 }
+
+const QByteArray KeysBin::Boot1Hash()
+{
+	if( data.size() != 0x400 )
+		return QByteArray();
+	return data.mid( 0x100, 0x14 );
+}
+
+const QByteArray KeysBin::CommonKey()
+{
+	if( data.size() != 0x400 )
+		return QByteArray();
+	return data.mid( 0x114, 0x10 );
+}
+
+const QByteArray KeysBin::RngKey()
+{
+	if( data.size() != 0x400 )
+		return QByteArray();
+	return data.mid( 0x168, 0x10 );
+}
+
+const QByteArray KeysBin::Otp()
+{
+	if( data.size() != 0x400 )
+		return QByteArray();
+	return data.mid( 0x100, 0x80 );
+}
+
+const QByteArray KeysBin::Seeprom()
+{
+	if( data.size() != 0x400 )
+		return QByteArray();
+	return data.mid( 0x200, 0x100 );
+}

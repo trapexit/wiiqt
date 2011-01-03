@@ -76,13 +76,15 @@ macx{
         message("mac build")
     LIBS += -L./quazip/lib/mac -lquazip
 }
-else unix {
-    !contains(QMAKE_HOST.arch, x86_64) {
+else {
+	unix {
+	!contains(QMAKE_HOST.arch, x86_64) {
         message("x86 build")
     LIBS += -L./quazip/lib/linux_x86 -lquazip
     } else {
         message("x86_64 build")
     LIBS += -L./quazip/lib/linux_x64 -lquazip
     }
+	}
 }
 

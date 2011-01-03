@@ -16,7 +16,9 @@ NandBin::~NandBin()
 {
     if( f.isOpen() )
     {
+#ifdef NAND_BIN_CAN_WRITE
         f.flush();
+#endif
         f.close();
     }
 
@@ -381,18 +383,7 @@ bool NandBin::InitNand( const QIcon &dirs, const QIcon &files )
     keyIcon = files;
 
     root = new QTreeWidgetItem( QStringList() << nandPath );
-    AddChildren( root, 0 );
-    /*#ifdef NAND_BIN_CAN_WRITE
-    CreateEntry( "/testDir", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW );
-    quint16 pp = CreateEntry( "/testDir/testFile", 0, 0, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
-    qDebug() << "created entry" << pp;
-    Delete( "/testDir/testFile" );
-    pp = CreateEntry( "/testDir/testFile", 0, 0, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
-    qDebug() << "created entry" << pp;
-    SetData( pp, QByteArray( 0x10000, '\x0' ) );
-
-    WriteMetaData();
-#endif*/
+	AddChildren( root, 0 );
 
     //checkout the blocks for boot1&2
     QList<QByteArray>blocks;
@@ -1069,13 +1060,11 @@ bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray &data, fst
 
 bool NandBin::WritePage( quint32 pageNo, const QByteArray &data )
 {
-    //return true;
 #ifndef NAND_BIN_CAN_WRITE
     qWarning() << __FILE__ << "was built without write support";
     return false;
 #endif
-    //qDebug() << "NandBin::WritePage(" << hex << pageNo << ")";
-    //return true;
+	//qDebug() << "NandBin::WritePage(" << hex << pageNo << ")";
     quint32 n_pagelen[] = { 0x800, 0x840, 0x840 };
     if( (quint32)data.size() != n_pagelen[ type ] )
     {
@@ -1091,7 +1080,7 @@ bool NandBin::WritePage( quint32 pageNo, const QByteArray &data )
     f.seek( (quint64)pageNo * (quint64)n_pagelen[ type ] );	//seek to the beginning of the page to write
     //qDebug() << "writing page at:" << f.pos() << hex << (quint32)f.pos();
     //hexdump(  data, 0, 0x20 );
-    return f.write( data );
+	return ( f.write( data ) == data.size() );
 }
 
 quint16 NandBin::CreateNode( const QString &name, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm )
@@ -1411,12 +1400,8 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
 
             //grab a random cluster from the list
             quint16 idx = qrand() % freeClusters.size();
-            quint16 cl = freeClusters.takeAt( idx );	//remove this number from the list
-            /*if( freeClusters.contains( cl ) )
-	    {
-		qDebug() << "wtf4";
-		return false;
-	    }*/
+			quint16 cl = freeClusters.takeAt( idx );	//remove this number from the list
+
             fts << cl;					//add this one to the clusters that will be used to hold the data
             quint16 block = cl / 8;			//try to find other clusters in the same block
             for( quint16 i = block * 8; i < ( ( block + 1 ) * 8 ) && fts.size() < clCnt; i++ )
@@ -1427,12 +1412,7 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
                 if( fats.at( i ) == 0xfffe )		//theres more free clusters in this same block, grab them
                 {
                     fts << i;
-                    freeClusters.removeAt( freeClusters.indexOf( i, 0 ) );
-                    /*if( freeClusters.contains( i ) )
-		    {
-			qDebug() << "wtf5";
-			return false;
-		    }*/
+					freeClusters.removeAt( freeClusters.indexOf( i, 0 ) );
                 }
             }
             //read the spare data to see that the cluster is good - removed for now.  but its probably not a bad idea to do this
@@ -1462,76 +1442,24 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
     }
     //qDebug() << "done writing shit, fix the fats now" << clCnt << fts.size();
     //all the data has been written, now make sure the fats are correct
-    fsts[ idx ].sub = fts.at( 0 );
-
-    /*QList<quint16>bugFix = fts;
-    for( quint16 i = 0; i < fts.size(); i++ )
-    {
-	if( bugFix.at( i ) != fts.at( i ) )
-	{
-	    qDebug() << "wwwwtttf?" << i << hex << bugFix.at( i ) << fts.at( i );
-	    return false;
-	}
-    }
-    quint16 te = fsts[ idx ].sub;*/
+	fsts[ idx ].sub = fts.at( 0 );
 
     for( quint16 i = 0; i < clCnt - 1; i++ )
     {
-        fats.replace( fts.at( 0 ), fts.at( 1 ) );
-        /*qDebug() << "replacing fat" << hex << fts.at( 0 ) << "to point to" << fts.at( 1 ) << "actual:" << fats.at( fts.at( 0 ) );
-	if( te != fts.at( 0 ) || te != bugFix.at( i ) )
-	{
-	    qDebug() << "failed" << i << hex << te << fts.at( 0 ) << bugFix.at( i );
-	    return false;
-	}*/
-        fts.takeFirst();
-        //te = GetFAT( te );
-    }
-    //follow the fat chain and make sure it is as expected
-    /*quint16 num = 0;
-    te = fsts[ idx ].sub;
-    while( te < 0xfff0 )
-    {
-	if( te != bugFix.at( num ) )
-	{
-	    qDebug() << "mismatch" << num << hex << te << bugFix.at( num );
-	    break;
+		fats.replace( fts.at( 0 ), fts.at( 1 ) );
+		fts.takeFirst();
 	}
-	te = GetFAT( te );
-	num++;
-    }*/
 
-    //qDebug() << "1 followed the chain to" << num << "items.  expected" << clCnt;
-    //qDebug() << "loop is done";
+	//qDebug() << "1 followed the chain to" << num << "items.  expected" << clCnt;
     fats.replace( fts.at( 0 ), 0xfffb );//last cluster in chain
     fts.takeFirst();
     //qDebug() << "fixed the last one" << hex << fts;
-    // if the new data uses less clusters than the previous data, mark the extra ones as free
-    //if( !fts.isEmpty() )
-    //qDebug() << "need to mark" << fts.size() << "clusters free";
-
+	// if the new data uses less clusters than the previous data, mark the extra ones as free
     while( !fts.isEmpty() )
     {
         fats.replace( fts.at( 0 ), 0xfffe );
         fts.takeFirst();
-    }
-    //qDebug() << "2nd loop is done";
-
-    //follow the fat chain and make sure it is as expected
-    /*num = 0;
-    te = fsts[ idx ].sub;
-    while( te < 0xfff0 )
-    {
-	if( te != bugFix.at( num ) )
-	{
-	    qDebug() << "mismatch" << num << hex << te << bugFix.at( num );
-	    break;
 	}
-	te = GetFAT( te );
-	num++;
-    }
-
-    qDebug() << "2 followed the chain to" << num << "items.  expected" << clCnt;*/
 
     fsts[ idx ].size = data.size();
 
@@ -1542,8 +1470,7 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
         return false;
     }
 
-    i->setText( 2, QString( "%1" ).arg( data.size(), 0, 16 ) );
-    //f.flush();
+	i->setText( 2, QString( "%1" ).arg( data.size(), 0, 16 ) );
     return true;
 }
 

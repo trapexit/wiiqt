@@ -4,12 +4,17 @@
 #include "includes.h"
 
 //quick class for grabbing some stuff from a keys.bin from bootmii ( should be 0x400 bytes )
-// TODO - this isnt complete at all
 class KeysBin
 {
 public:
     KeysBin( QByteArray stuff = QByteArray() );
 
+	const QByteArray Otp();
+	const QByteArray Seeprom();
+
+	const QByteArray Boot1Hash();
+	const QByteArray CommonKey();
+	const QByteArray RngKey();
     const QByteArray NG_ID();
     const QByteArray NG_key_ID();
     const QByteArray NG_Sig();

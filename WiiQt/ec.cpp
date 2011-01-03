@@ -428,24 +428,15 @@ int check_ec(quint8 *ng, quint8 *ap, quint8 *sig, quint8 *sig_hash)
 void make_ec_cert( quint8 *cert, quint8 *sig, char *signer, char *name, quint8 *priv, quint32 key_id )
 {
     //qDebug() << "make_ec_cert";
-    memset( cert, 0, 0x180 );
-    //qDebug() << "1";
+	memset( cert, 0, 0x180 );
     quint32 tmp = qFromBigEndian( (quint32)0x10002 );
-    memcpy( (char*)cert, (const void*)&tmp, 4 );
-    //qDebug() << "2";
-    memcpy( cert + 4, sig, 60 );
-    //qDebug() << "3";
-    strcpy( (char*)cert + 0x80, signer );
-    //qDebug() << "4";
+	memcpy( (char*)cert, (const void*)&tmp, 4 );
+	memcpy( cert + 4, sig, 60 );
+	strcpy( (char*)cert + 0x80, signer );
     tmp = qFromBigEndian( (quint32)2 );
-    memcpy( (char*)cert + 0xc0, (const void*)&tmp, 4 );
-    //qDebug() << "5";
-    //wbe32( cert + 0xc0, 2 );
-    strcpy( (char*)cert + 0xc4, name );
-    //qDebug() << "6";
+	memcpy( (char*)cert + 0xc0, (const void*)&tmp, 4 );
+	strcpy( (char*)cert + 0xc4, name );
     tmp = qFromBigEndian( key_id );
-    memcpy( (char*)cert + 0x104, (const void*)&tmp, 4 );
-    //qDebug() << "7";
-    //wbe32( cert + 0x104, key_id );
+	memcpy( (char*)cert + 0x104, (const void*)&tmp, 4 );
     ec_priv_to_pub( priv, cert + 0x108 );
 }
