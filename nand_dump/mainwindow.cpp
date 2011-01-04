@@ -8,7 +8,27 @@
 
 MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::MainWindow ), nus ( this )
 {
-    ui->setupUi(this);
+	ui->setupUi(this);
+	ui->mainToolBar->setVisible( false );//hide toolbar for now
+
+	//resize buttons to be same size
+	QFontMetrics fm( fontMetrics() );
+	int max = fm.width( ui->pushButton_CachePathBrowse->text() );
+	max = MAX( max, fm.width( ui->pushButton_decFolder->text() ) );
+	max = MAX( max, fm.width( ui->pushButton_GetTitle->text() ) );
+	max = MAX( max, fm.width( ui->pushButton_nandPath->text() ) );
+	max = MAX( max, fm.width( ui->pushButton_wad->text() ) );
+
+	max += 15;
+	ui->pushButton_CachePathBrowse->setMinimumWidth( max );
+	ui->pushButton_decFolder->setMinimumWidth( max );
+	ui->pushButton_GetTitle->setMinimumWidth( max );
+	ui->pushButton_nandPath->setMinimumWidth( max );
+	ui->pushButton_wad->setMinimumWidth( max );
+
+
+
+
     Wad::SetGlobalCert( QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) );
 
     //connect to the nus object so we can respond to what it is saying with pretty stuff in the gui

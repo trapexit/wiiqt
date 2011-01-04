@@ -37,3 +37,6 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui \
     ../WiiQt/settingtxtdialog.ui
+
+RESOURCES += \
+    rc.qrc

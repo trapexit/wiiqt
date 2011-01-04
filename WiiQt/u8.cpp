@@ -155,11 +155,11 @@ bool U8::RenameEntry( const QString &path, const QString &newName )
 
     quint32 nFstSize = fstSize + difference;
     int dataAdjustment = 0;
-    if( RU( U8_HEADER_ALIGNMENT, nFstSize ) < RU( U8_HEADER_ALIGNMENT, fstSize ) )
-	dataAdjustment = - RU( U8_HEADER_ALIGNMENT, fstSize - nFstSize );
+	if( RU( nFstSize, U8_HEADER_ALIGNMENT ) < RU( fstSize, U8_HEADER_ALIGNMENT ) )
+	dataAdjustment = - RU( ( fstSize - nFstSize ), U8_HEADER_ALIGNMENT );
 
-    else if( RU( U8_HEADER_ALIGNMENT, nFstSize ) > RU( U8_HEADER_ALIGNMENT, fstSize ) )
-	dataAdjustment = RU( U8_HEADER_ALIGNMENT, nFstSize - fstSize );
+	else if( RU( nFstSize, U8_HEADER_ALIGNMENT ) > RU( fstSize, U8_HEADER_ALIGNMENT ) )
+	dataAdjustment = RU( ( nFstSize - fstSize ), U8_HEADER_ALIGNMENT );
 
     qDebug() << "old size:" << hex << oldNameLen\
 	    << "new size:" << hex << newNameLen\
@@ -235,7 +235,7 @@ bool U8::RenameEntry( const QString &path, const QString &newName )
     t = qFromBigEndian( fstSize );
     buf.write( (const char*)&t, 4 );
 
-    data_offset = RU( U8_HEADER_ALIGNMENT, 0x20 + fstSize );
+	data_offset = RU( ( 0x20 + fstSize ), U8_HEADER_ALIGNMENT );
     t = qFromBigEndian( data_offset );
     buf.write( (const char*)&t, 4 );
     buf.close();
@@ -248,7 +248,7 @@ bool U8::RenameEntry( const QString &path, const QString &newName )
     }
     data.append( nPayload );//add the actual file data
 
-    padding = RU( 0x20, data.size() ) - data.size();//pad the entire thing to 0x20 bytes TOTO: should probably already be done, and this step is not really necessary
+	padding = RU( data.size(), 0x20 ) - data.size();//pad the entire thing to 0x20 bytes TOTO: should probably already be done, and this step is not really necessary
     if( padding )
     {
 	data.append( QByteArray( padding, '\0' ) );
@@ -325,8 +325,8 @@ bool U8::ReplaceEntry( const QString &path, const QByteArray &nba, bool autoComp
 	}
     }
 
-    quint32 newSizePadded = RU( 0x20, newData.size() );
-    quint32 oldSizePadded = RU( 0x20, qFromBigEndian( fst[ entryToReplace ].FileLength ) );
+	quint32 newSizePadded = RU( newData.size(), 0x20 );
+	quint32 oldSizePadded = RU( qFromBigEndian( fst[ entryToReplace ].FileLength ), 0x20 );
     int difference = newSizePadded - oldSizePadded;
 
     data.remove( qFromBigEndian( fst[ entryToReplace ].FileOffset ), oldSizePadded );
@@ -514,10 +514,10 @@ bool U8::RemoveEntry( const QString &path )
 	{
 	    ne->Type = 0;
 	    ne->FileOffset = \
-		    qFromBigEndian( (quint32)( 0x20 + RU( U8_HEADER_ALIGNMENT, nFstSize ) + nPayload.size() ) );
+			qFromBigEndian( (quint32)( 0x20 + RU( nFstSize, U8_HEADER_ALIGNMENT ) + nPayload.size() ) );
 	    ne->FileLength = e->FileLength;
 	    nPayload.append( data.mid( qFromBigEndian( e->FileOffset ), qFromBigEndian( e->FileLength ) ) );
-	    int padding = RU( 0x20, nPayload.size() ) - nPayload.size();//pad to 0x20 bytes between files
+		int padding = RU( nPayload.size(), 0x20 ) - nPayload.size();//pad to 0x20 bytes between files
 	    if( padding )
 	    {
 		nPayload.append( QByteArray( padding, '\0' ) );
@@ -552,7 +552,7 @@ bool U8::RemoveEntry( const QString &path )
     t = qFromBigEndian( fstSize );
     buf.write( (const char*)&t, 4 );
 
-    data_offset = RU( U8_HEADER_ALIGNMENT, 0x20 + fstSize );
+	data_offset = RU( ( 0x20 + fstSize ), U8_HEADER_ALIGNMENT );
     t = qFromBigEndian( data_offset );
     buf.write( (const char*)&t, 4 );
     buf.close();
@@ -565,7 +565,7 @@ bool U8::RemoveEntry( const QString &path )
     }
     data.append( nPayload );//add the actual file data
 
-    padding = RU( 0x20, data.size() ) - data.size();//pad the entire thing to 0x20 bytes TOTO: should probably already be done, and this step is not really necessary
+	padding = RU( data.size(), 0x20 ) - data.size();//pad the entire thing to 0x20 bytes TOTO: should probably already be done, and this step is not really necessary
     if( padding )
     {
 	data.append( QByteArray( padding, '\0' ) );
@@ -714,9 +714,9 @@ int U8::AddEntry( const QString &path, int type, const QByteArray &newData )
 		ne->Type = 0;
 		ne->FileLength = qFromBigEndian( (quint32)newData.size() );
 		ne->FileOffset =\
-			qFromBigEndian( (quint32)( 0x20 + RU( U8_HEADER_ALIGNMENT, nFstSize ) + nPayload.size() ) );
+			qFromBigEndian( (quint32)( 0x20 + RU( nFstSize, U8_HEADER_ALIGNMENT ) + nPayload.size() ) );
 		nPayload.append( newData );
-		int padding = RU( 0x20, nPayload.size() ) - nPayload.size();//pad to 0x20 bytes between files
+		int padding = RU( nPayload.size(), 0x20 ) - nPayload.size();//pad to 0x20 bytes between files
 		if( padding )
 		{
 		    nPayload.append( QByteArray( padding, '\0' ) );
@@ -758,10 +758,10 @@ int U8::AddEntry( const QString &path, int type, const QByteArray &newData )
 	{
 	    ne->Type = 0;
 	    ne->FileOffset = \
-		    qFromBigEndian( (quint32)( 0x20 + RU( U8_HEADER_ALIGNMENT, nFstSize ) + nPayload.size() ) );
+			qFromBigEndian( (quint32)( 0x20 + RU( nFstSize, U8_HEADER_ALIGNMENT ) + nPayload.size() ) );
 	    ne->FileLength = e->FileLength;
 	    nPayload.append( data.mid( qFromBigEndian( e->FileOffset ), qFromBigEndian( e->FileLength ) ) );
-	    int padding = RU( 0x20, nPayload.size() ) - nPayload.size();//pad to 0x20 bytes between files
+		int padding = RU( nPayload.size(), 0x20 ) - nPayload.size();//pad to 0x20 bytes between files
 	    if( padding )
 	    {
 		nPayload.append( QByteArray( padding, '\0' ) );
@@ -792,7 +792,7 @@ int U8::AddEntry( const QString &path, int type, const QByteArray &newData )
     t = qFromBigEndian( fstSize );
     buf.write( (const char*)&t, 4 );
 
-    data_offset = RU( U8_HEADER_ALIGNMENT, 0x20 + fstSize );
+	data_offset = RU( ( 0x20 + fstSize ), U8_HEADER_ALIGNMENT );
     t = qFromBigEndian( data_offset );
     buf.write( (const char*)&t, 4 );
     buf.close();
@@ -805,7 +805,7 @@ int U8::AddEntry( const QString &path, int type, const QByteArray &newData )
     }
     data.append( nPayload );//add the actual file data
 
-    padding = RU( 0x20, data.size() ) - data.size();//pad the entire thing to 0x20 bytes TOTO: should probably already be done, and this step is not really necessary
+	padding = RU( data.size(), 0x20 ) - data.size();//pad the entire thing to 0x20 bytes TOTO: should probably already be done, and this step is not really necessary
     if( padding )
     {
 	data.append( QByteArray( padding, '\0' ) );

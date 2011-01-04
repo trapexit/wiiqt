@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>testlog.txt</file>
         <file>icon.png</file>
     </qresource>
 </RCC>

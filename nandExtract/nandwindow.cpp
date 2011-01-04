@@ -6,6 +6,7 @@
 NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::NandWindow ), nThread( this )
 {
     ui->setupUi( this );
+	ui->mainToolBar->setVisible( false );
 
     //setup the block map
     SetUpBlockMap();
