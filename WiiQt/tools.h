@@ -64,6 +64,7 @@ QByteArray GetMd5( const QByteArray &stuff );
 
 bool IsValidSave( const SaveGame &save );
 const QByteArray DataFromSave( const SaveGame &save, const QString &name );
+quint32 SaveItemSize( const SaveGame &save );
 quint8 AttrFromSave( const SaveGame &save, const QString &name );
 
 //get a padded version of the given buffer

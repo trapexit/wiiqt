@@ -38,7 +38,9 @@ public:
 
     //TODO: these arent done on the work thread, but instead in the calling thread
     bool DeleteSaveFromSneekNand( quint64 tid );
+	bool InstallSaveToSneekNand( SaveGame save );
     SaveGame GetSave( quint64 tid );
+	const QString NandBasePath();
 
 
     void ForceQuit();

@@ -62,7 +62,8 @@ private:
 
 
 private slots:
-	void on_actionSet_Local_Path_triggered();
+	void on_pushButton_pcInstall_clicked();
+ void on_actionSet_Local_Path_triggered();
 	void on_pushButton_pcDelete_clicked();
 	void on_comboBox_pcSelect_currentIndexChanged(int index);
 	void on_listWidget_pcSaves_currentItemChanged(QListWidgetItem* current, QListWidgetItem* previous);

@@ -883,7 +883,7 @@ bool NandDump::InstallSave( const SaveGame &save )
     QString path = basePath + p + "/data";
 
     //make sure the path exists
-    if( !QFileInfo( path ).exists() || !QDir().mkpath( path ) )
+	if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
     {
         qWarning() << "NandDump::InstallSave -> error creating" << path;
         return false;
@@ -892,11 +892,13 @@ bool NandDump::InstallSave( const SaveGame &save )
     if( !QFileInfo( basePath + p + "/content" ).exists() )
         QDir().mkpath( basePath + p + "/content" );
 
+	path = p + "/data";
+
     quint16 dataIdx = 0;
     quint16 entryIdx = 0;
     foreach( QString entry, save.entries )
-    {
-        QString cp = ToNandPath( entry );
+	{
+		QString cp = ToNandPath( entry );
         quint8 attr = save.attr.at( entryIdx );
         if( NAND_ATTR_TYPE( attr ) == NAND_FILE )//this is a file
         {

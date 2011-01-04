@@ -122,28 +122,10 @@ void AesSetKey( const QByteArray &key )
 QByteArray GetSha1( const QByteArray &stuff )
 {
 	return QCryptographicHash::hash( stuff, QCryptographicHash::Sha1 );
-	/*SHA1Context sha;
-    SHA1Reset( &sha );
-    SHA1Input( &sha, (const unsigned char*)stuff.data(), stuff.size() );
-    if( !SHA1Result( &sha ) )
-    {
-        qWarning() << "GetSha1 -> sha error";
-        return QByteArray();
-    }
-    QByteArray ret( 20, '\0' );
-    quint8 *p = (quint8 *)ret.data();
-    for( int i = 0; i < 5 ; i++ )
-    {
-        quint32 part = qFromBigEndian( sha.Message_Digest[ i ] );
-        memcpy( p + ( i * 4 ), &part, 4 );
-	}
-	return ret;*/
 }
-
 
 QByteArray GetMd5( const QByteArray &stuff )
 {
-	//qDebug() << "GetMd5" << hex << stuff.size();
 	return QCryptographicHash::hash( stuff, QCryptographicHash::Md5 );
 }
 
@@ -243,6 +225,14 @@ const QByteArray DataFromSave( const SaveGame &save, const QString &name )
         }
     }
     return QByteArray();
+}
+
+quint32 SaveItemSize( const SaveGame &save )
+{
+	quint32 ret = 0;
+	foreach( QByteArray ba, save.data )
+		ret += ba.size();
+	return ret;
 }
 
 quint8 AttrFromSave( const SaveGame &save, const QString &name )

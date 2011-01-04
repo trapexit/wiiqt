@@ -15,7 +15,8 @@
 #ifdef Q_WS_MAC
 static QString sneekPath = "/Volumes/VMware Shared Folders/host-c/QtWii/test";
 #else
-static QString sneekPath = "/media/SDHC_4GB";
+//static QString sneekPath = "/media/SDHC_4GB";
+static QString sneekPath = "../../test";
 #endif
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), bannerthread( this )
@@ -43,7 +44,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	connect( &pcIconTimer, SIGNAL( timeout() ), this, SLOT( ShowNextPcIcon() ) );
 
 	//GetSavesFromSneek( "/media/WiiFat500" );
-	GetSavesFromSneek( sneekPath );
+	//GetSavesFromSneek( sneekPath );
 	//GetSavesFromPC( "./saveBackups" );
 
 }
@@ -753,4 +754,139 @@ void MainWindow::ClearPcGuiInfo()
 	ui->label_pc_title2->clear();
 	ui->plainTextEdit_pcDesc->clear();
 	ui->comboBox_pcSelect->clear();
+}
+
+//button to install PC save clicked
+void MainWindow::on_pushButton_pcInstall_clicked()
+{
+	QString nPath = bannerthread.NandBasePath();
+	if( nPath.isEmpty() )
+	{
+		return;
+	}
+	QList<QListWidgetItem*>selected = ui->listWidget_pcSaves->selectedItems();
+	quint32 cnt = selected.size();
+	if( cnt != 1 )
+		return;
+
+	SaveListItem *si = static_cast< SaveListItem * >( selected.at( 0 ) );
+
+	int i = ui->comboBox_pcSelect->currentIndex();
+
+	//find the item in the list of infos that matches this item
+	currentPcSave = 0xffffffff;
+	cnt = pcInfos.size();
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		if( si->Tid() == pcInfos.at( i ).tid )
+		{
+			currentPcSave = i;
+			break;
+		}
+	}
+	if( currentPcSave == 0xffffffff )
+	{
+		qWarning() << "MainWindow::on_pushButton_pcInstall_clicked() -> tid not found";
+		return;
+	}
+	if( i < 0 || i >= pcInfos.at( currentPcSave ).sizes.size() )
+	{
+		qWarning() << "MainWindow::on_pushButton_pcInstall_clicked() -> index is out of range";
+		return;
+	}
+
+	//read datad.bin from the zip file
+	QString zipPath = pcInfos.at( currentPcSave ).paths.at( i );
+	QByteArray dataBin;
+	QuaZip zip( zipPath );
+	if( !zip.open( QuaZip::mdUnzip ) )
+	{
+		qWarning("on_pushButton_pcInstall_clicked(): zip.open(): %d", zip.getZipError() );
+		return;
+	}
+	zip.setFileNameCodec("IBM866");
+	QuaZipFile file(&zip);
+	QString name;
+	for( bool more = zip.goToFirstFile(); more; more = zip.goToNextFile() )
+	{
+		if( !file.open( QIODevice::ReadOnly ) )
+		{
+			qWarning("on_pushButton_pcInstall_clicked(): file.open(): %d", file.getZipError() );
+			zip.close();
+			return;
+		}
+		name = file.getActualFileName();
+		if( file.getZipError() != UNZ_OK )
+		{
+			qWarning("on_pushButton_pcInstall_clicked(): file.getFileName(): %d", file.getZipError());
+			file.close();
+			zip.close();
+			return;
+		}
+		if( name != "data.bin" )
+		{
+			file.close();
+			continue;
+		}
+		dataBin = file.readAll();
+		if( file.getZipError() != UNZ_OK )
+		{
+			qWarning("on_pushButton_pcInstall_clicked(): file.getFileName(): %d", file.getZipError());
+			file.close();
+			zip.close();
+			return;
+		}
+		file.close();
+		break;
+	}
+	zip.close();
+	if( dataBin.isEmpty() )
+	{
+		qWarning() << "no data.bin found in the archive" << zipPath;
+		return;
+	}
+	SaveGame save = SaveDataBin::StructFromDataBin( dataBin );
+	if( !IsValidSave( save ) )
+	{
+		qWarning() << "got an invalid save from the data.bin in" << zipPath;
+		return;
+	}
+
+	//see if the sneek nand and already has a save for this game
+	cnt = ui->listWidget_sneekSaves->count();
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		QListWidgetItem* item = ui->listWidget_sneekSaves->item( i );
+		si = static_cast< SaveListItem * >( item );
+		bool ok = false;
+		quint64 t = si->Tid().toLongLong( &ok, 16 );
+		if( !ok || t != save.tid )
+			continue;
+
+		//delete old save from sneek nand
+		if( !bannerthread.DeleteSaveFromSneekNand( save.tid ) )
+		{
+			qWarning() << "error deleting the old save";
+			return;
+		}
+
+		//delete old save from sneek browser
+		si = static_cast< SaveListItem * >( ui->listWidget_sneekSaves->takeItem( i ) );
+		delete si;
+		si = NULL;
+
+		break;
+	}
+	bool success = bannerthread.InstallSaveToSneekNand( save );
+	if( !success )
+	{
+		qWarning() << "error installing the save";
+		return;
+	}
+	//add this new item to the sneek list view
+	quint32 size = SaveItemSize( save );
+	QByteArray bnr = DataFromSave( save, "/banner.bin" );
+	SaveBanner sb( bnr );
+	new SaveListItem( sb, QString( "%1" ).arg( save.tid, 16, 16, QChar( '0' ) ) , size, ui->listWidget_sneekSaves );
+	ui->statusBar->showMessage( tr( "Installed save to extracted nand" ), 5000 );
 }

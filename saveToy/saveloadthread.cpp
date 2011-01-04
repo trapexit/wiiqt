@@ -63,7 +63,6 @@ SaveGame SaveLoadThread::GetSave( quint64 tid )
     return nand.GetSaveData( tid );
 }
 
-
 void SaveLoadThread::run()
 {
     if ( abort )
@@ -260,6 +259,20 @@ void SaveLoadThread::GetPCSaves()
 		}
 	}
 	emit SendProgress( 100 );
+}
+
+const QString SaveLoadThread::NandBasePath()
+{
+	if( isRunning() )
+		return QString();
+	return nand.BasePath();
+}
+
+bool SaveLoadThread::InstallSaveToSneekNand( SaveGame save )
+{
+	if( isRunning() )
+		return false;
+	return nand.InstallSave( save );
 }
 
 void SaveLoadThread::GetSavesFromNandDump()
