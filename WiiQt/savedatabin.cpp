@@ -1,6 +1,5 @@
 #include "savedatabin.h"
 #include "aes.h"
-#include "md5.h"
 #include "ec.h"
 
 SaveDataBin::SaveDataBin( QByteArray stuff )
@@ -26,13 +25,8 @@ SaveDataBin::SaveDataBin( QByteArray stuff )
     //check MD5
     quint8 md5blanker[ 16 ] = MD5_BLANKER;
     QByteArray expected = header.mid( 0xe, 16 );
-    QByteArray headerWithBlanker = header.left( 0xe ) + QByteArray( (const char*)&md5blanker, 16 ) + header.right( 0xf0a2 );
-    //hexdump( headerWithBlanker.left( 0x50 ) );
-    MD5 hash;
-    hash.update( headerWithBlanker.data(), size );
-    hash.finalize();
-
-    QByteArray actual = QByteArray( (const char*)hash.hexdigestChar(), 16 );
+	QByteArray headerWithBlanker = header.left( 0xe ) + QByteArray( (const char*)&md5blanker, 16 ) + header.right( 0xf0a2 );
+	QByteArray actual = GetMd5( headerWithBlanker );
     if( actual != expected )
     {
         qWarning() << "SaveDataBin::SaveDataBin -> md5 mismatch";
@@ -260,19 +254,15 @@ const QByteArray SaveDataBin::Data( const QByteArray &ngPriv, const QByteArray &
     b.write( (const char*)&tmp8, 1 );
     tmp8 = 0;                                                                               //nocopy or some shit like that?
     b.write( (const char*)&tmp8, 1 );
-    b.close();
+	b.close();
     QByteArray header2 = header +
                          QByteArray( (const char*)&md5blanker, 16 ) +
                          QByteArray( 2, '\0' );                                             //md5 blanker + padding to 0x20
-    header2 += bnr;                                                                          //add the banner.bin
-    header2 = PaddedByteArray( header2, 0xf0c0 );                                            //pad to 0xf0c0
+	header2 += bnr;                                                                          //add the banner.bin
+	header2 = PaddedByteArray( header2, 0xf0c0 );                                            //pad to 0xf0c0
 
-    MD5 hash;
-    hash.update( header2.data(), 0xf0c0 );
-    hash.finalize();
-
-    QByteArray actual = QByteArray( (const char*)hash.hexdigestChar(), 16 );
-    header += actual + QByteArray( 2, '\0' ) + bnr;
+	QByteArray actual = GetMd5( header2 );
+	header += actual + QByteArray( 2, '\0' ) + bnr;
     header = PaddedByteArray( header, 0xf0c0 );
 
     quint8 iv[ 16 ] = SD_IV;
@@ -510,11 +500,7 @@ quint32 SaveDataBin::GetSize( QByteArray dataBin )
 	quint8 md5blanker[ 16 ] = MD5_BLANKER;
 	QByteArray expected = header.mid( 0xe, 16 );
 	QByteArray headerWithBlanker = header.left( 0xe ) + QByteArray( (const char*)&md5blanker, 16 ) + header.right( 0xf0a2 );
-	MD5 hash;
-	hash.update( headerWithBlanker.data(), size );
-	hash.finalize();
-
-	QByteArray actual = QByteArray( (const char*)hash.hexdigestChar(), 16 );
+	QByteArray actual = GetMd5( headerWithBlanker );
 	if( actual != expected )
 	{
 		qWarning() << "SaveDataBin::GetSize -> md5 mismatch";

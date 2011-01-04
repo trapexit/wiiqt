@@ -377,8 +377,9 @@ bool NandDump::InstallNusItem( const NusJob &job )
     }
 
     quint32 cnt = qFromBigEndian( t.payload()->num_contents );
-    if( cnt != (quint32)job.data.size() )
+	if( cnt != (quint32)job.data.size() - 2 )
     {
+		qWarning() << "cnt != (quint32)job.data.size()";
         AbortInstalling( job.tid );
         return false;
     }

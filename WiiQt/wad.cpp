@@ -66,7 +66,7 @@ Wad::Wad( const QByteArray &stuff )
 
 	//sanity check this thing
 	quint32 s = stuff.size();
-	if( s < ( RU( 0x40, certSize ) + RU( 0x40, tikSize ) + RU( 0x40, tmdSize ) + RU( 0x40, appSize ) + RU( 0x40, footerSize ) ) )
+	if( s < ( RU( certSize, 0x40 ) + RU( tikSize, 0x40 ) + RU( tmdSize, 0x40 ) + RU( appSize, 0x40 ) + RU( footerSize, 0x40 ) ) )
 	{
 		Err( "Total size is less than the combined sizes of all the parts that it is supposed to contain" );
 		return;
@@ -74,11 +74,11 @@ Wad::Wad( const QByteArray &stuff )
 
 	quint32 pos = 0x40;
 	certData = stuff.mid( pos, certSize );
-	pos += RU( 0x40, certSize );
+	pos += RU( certSize, 0x4 );
 	tikData = stuff.mid( pos, tikSize );
-	pos += RU( 0x40, tikSize );
+	pos += RU( tikSize, 0x40 );
 	tmdData = stuff.mid( pos, tmdSize );
-	pos += RU( 0x40, tmdSize );
+	pos += RU( tmdSize, 0x40 );
 
 	Ticket ticket( tikData );
 	Tmd t( tmdData );
@@ -106,7 +106,7 @@ Wad::Wad( const QByteArray &stuff )
 	for( quint32 i = 0; i < cnt; i++ )
 	{
 
-		quint32 s = RU( 0x40, t.Size( i ) );
+		quint32 s = RU( t.Size( i ), 0x40 );
 		qDebug() << "content" << i << "is at" << hex << pos
                 << "with size" << s;
 		QByteArray encData = stuff.mid( pos, s );
@@ -280,13 +280,13 @@ const QByteArray Wad::Data( quint32 magicWord, const QByteArray &footer )
 	quint16 cnt = t.Count();
 	for( quint16 i = 0; i < cnt; i++ )
 	{
-		quint32 s = RU( 0x40, partsEnc.at( i ).size() );
-		if( RU( 0x40, t.Size( i ) ) != s )
+		quint32 s = RU( partsEnc.at( i ).size(), 0x40 );
+		if( RU( t.Size( i ), 0x40 ) != s )
 		{
 			Err( QString( "Size of content %1 is bad ( %2, %3, %4 )" )
                  .arg( i )
                  .arg( t.Size( i ), 0, 16 )
-                 .arg( RU( 0x40, t.Size( i ) ), 0, 16 )
+				 .arg( RU( t.Size( i ), 0x40 ), 0, 16 )
                  .arg( s, 0, 16 ) );
 			return QByteArray();
 		}

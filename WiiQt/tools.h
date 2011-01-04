@@ -3,7 +3,8 @@
 #include "includes.h"
 //#include "
 
-#define RU(x,n)	(-(-(x) & -(n)))    //round up
+//#define RU(x,n)	(-(-(x) & -(n)))    //round up
+#define RU(N, S) ((((N) + (S) - 1) / (S)) * (S))
 
 #define MIN( x, y ) ( ( x ) < ( y ) ? ( x ) : ( y ) )
 #define MAX( x, y ) ( ( x ) > ( y ) ? ( x ) : ( y ) )
@@ -59,6 +60,7 @@ QByteArray AesDecrypt( quint16 index, const QByteArray &source );
 QByteArray AesEncrypt( quint16 index, const QByteArray &source );
 
 QByteArray GetSha1( const QByteArray &stuff );
+QByteArray GetMd5( const QByteArray &stuff );
 
 bool IsValidSave( const SaveGame &save );
 const QByteArray DataFromSave( const SaveGame &save, const QString &name );

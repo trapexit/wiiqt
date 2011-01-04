@@ -1602,7 +1602,7 @@ bool NandBin::CheckHmacData( quint16 entry )
     if( !fst.size )
         return true;
 
-    quint16 clCnt = ( RU( 0x4000, fst.size ) / 0x4000 );
+	quint16 clCnt = ( RU( fst.size, 0x4000 ) / 0x4000 );
     //qDebug() << FstName( fst ) << "is" << hex << fst.size << "bytes (" << clCnt << ") clusters";
 
     quint16 fat = fst.sub;

@@ -83,8 +83,8 @@ void hexdump12( const QByteArray &d, int from, int len )
 
 QByteArray PaddedByteArray( const QByteArray &orig, quint32 padTo )
 {
-    QByteArray padding( RU( orig.size(), padTo ) - orig.size(), '\0' );
-    //qDebug() << "padding with" << hex << RU( padTo, orig.size() ) << "bytes" <<
+	//qDebug() << "need to pad from" << hex << orig.size() << "to nearest" << padTo;
+	QByteArray padding( RU( orig.size(), padTo ) - orig.size(), '\0' );
     return orig + padding;
 }
 
@@ -121,7 +121,8 @@ void AesSetKey( const QByteArray &key )
 
 QByteArray GetSha1( const QByteArray &stuff )
 {
-    SHA1Context sha;
+	return QCryptographicHash::hash( stuff, QCryptographicHash::Sha1 );
+	/*SHA1Context sha;
     SHA1Reset( &sha );
     SHA1Input( &sha, (const unsigned char*)stuff.data(), stuff.size() );
     if( !SHA1Result( &sha ) )
@@ -135,9 +136,15 @@ QByteArray GetSha1( const QByteArray &stuff )
     {
         quint32 part = qFromBigEndian( sha.Message_Digest[ i ] );
         memcpy( p + ( i * 4 ), &part, 4 );
-    }
-    //hexdump( ret );
-    return ret;
+	}
+	return ret;*/
+}
+
+
+QByteArray GetMd5( const QByteArray &stuff )
+{
+	//qDebug() << "GetMd5" << hex << stuff.size();
+	return QCryptographicHash::hash( stuff, QCryptographicHash::Md5 );
 }
 
 QByteArray ReadFile( const QString &path )

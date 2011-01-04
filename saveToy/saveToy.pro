@@ -17,8 +17,7 @@ SOURCES += main.cpp\
     ../WiiQt/tools.cpp \
     ../WiiQt/savebanner.cpp \
     ../WiiQt/aes.c \
-    ../WiiQt/sha1.c \
-    ../WiiQt/md5.cpp \
+	../WiiQt/sha1.c \
     ../WiiQt/sharedcontentmap.cpp \
     ../WiiQt/tiktmd.cpp \
     ../WiiQt/uidmap.cpp \

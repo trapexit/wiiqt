@@ -194,7 +194,7 @@ void MainWindow::ShowSneekSaveDetails( SaveListItem *item )
         float mib = (float)size / 1048576.00f;
         sizeStr = tr( "%1 MiB" ).arg( mib, 3, 'f', 2 );
     }
-    int blocks = RU( 0x20000, size) / 0x20000;
+	int blocks = RU( size, 0x20000 ) / 0x20000;
     QString si = QString( "%1 %2 (%3)").arg( blocks ).arg( blocks == 1 ? tr( "Block" ) : tr( "Blocks" ) ).arg( sizeStr );
 
     ui->label_sneek_size->setText( si );
@@ -652,7 +652,7 @@ void MainWindow::on_comboBox_pcSelect_currentIndexChanged( int index )
 		float mib = (float)size / 1048576.00f;
 		sizeStr = tr( "%1 MiB" ).arg( mib, 3, 'f', 2 );
 	}
-	int blocks = RU( 0x20000, size) / 0x20000;
+	int blocks = RU( size, 0x20000 ) / 0x20000;
 	QString si = QString( "%1 %2 (%3)").arg( blocks ).arg( blocks == 1 ? tr( "Block" ) : tr( "Blocks" ) ).arg( sizeStr );
 
 	ui->label_pc_size->setText( si );

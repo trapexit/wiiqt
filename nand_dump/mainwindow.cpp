@@ -140,7 +140,7 @@ void MainWindow::ReceiveTitleFromNus( NusJob job )
         if( ok )
             ShowMessage( tr( "Installed %1 title to nand" ).arg( title ) );
         else
-            ShowMessage( tr( "<b>Error %1 title to nand</b>" ).arg( title ) );
+			ShowMessage( tr( "<b>Error installing %1 title to nand</b>" ).arg( title ) );
     }
     else if( ui->radioButton_wad->isChecked() )
     {

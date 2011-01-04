@@ -307,7 +307,7 @@ Boot2Info Blocks0to7::CheckHashes( Boot2Info info )
     stuff += blocks.at( ret.secondBlock );
 
     AesSetKey( ticket.DecryptedKey() );
-    QByteArray decD = AesDecrypt( 0, stuff.mid( dataOff, RU( 0x40, t.Size( 0 ) ) ) );
+	QByteArray decD = AesDecrypt( 0, stuff.mid( dataOff, RU( t.Size( 0 ), 0x40 ) ) );
     decD.resize( t.Size( 0 ) );
     QByteArray realHash = GetSha1( decD );
     if( realHash != t.Hash( 0 ) )
