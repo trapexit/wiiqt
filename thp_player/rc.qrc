@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ffw.png</file>
+        <file>next.png</file>
+        <file>pause.png</file>
+        <file>play.png</file>
+        <file>prev.png</file>
+        <file>repeat.png</file>
+        <file>rev.png</file>
+        <file>star.png</file>
+        <file>stop.png</file>
+        <file>vol_high.png</file>
+        <file>vol_low.png</file>
+        <file>vol_med.png</file>
+    </qresource>
+</RCC>
