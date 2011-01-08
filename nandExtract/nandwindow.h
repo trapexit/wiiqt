@@ -37,6 +37,9 @@ private:
 
     QList<quint16> ToBlocks( QList<quint16> clusters );
 
+	void SaveSettings();
+	void LoadSettings();
+
 
 
 public slots:

@@ -15,6 +15,8 @@ NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::N
     ui->progressBar->setVisible( false );
     ui->statusBar->addPermanentWidget( ui->progressBar, 0 );
 
+	LoadSettings();
+
     QFontMetrics fm( fontMetrics() );
     ui->treeWidget->header()->resizeSection( 0, fm.width( QString( 22, 'W' ) ) );//name
     ui->treeWidget->header()->resizeSection( 1, fm.width( "WWWWW" ) );//entry #
@@ -34,7 +36,40 @@ NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::N
 
 NandWindow::~NandWindow()
 {
+	SaveSettings();
     delete ui;
+}
+
+void NandWindow::SaveSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+	s.beginGroup( "nandExtract" );
+	//window geometry
+	s.setValue( "size", size() );
+	s.setValue( "pos", pos() );
+	s.setValue( "usage", ui->actionShow_Usage->isChecked() );
+
+	//if the usage is visible, remember its size
+	int uSize = ui->splitter->sizes().at( 0 ) + 23;//WTF?  why do i need to add 20ish here
+	if( ui->actionShow_Usage->isChecked() )
+		s.setValue( "usage_size", uSize );
+
+	s.endGroup();
+}
+
+void NandWindow::LoadSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "nandExtract" );
+	resize( s.value("size", QSize( 1180, 654 ) ).toSize() );
+	move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
+
+	int top = s.value( "usage_size", 200 ).toInt();
+	ui->splitter->setSizes( QList< int >() << top << ( height() - top ) );
+	ui->actionShow_Usage->setChecked( s.value( "usage", true ).toBool() );
+	s.endGroup();
 }
 
 void NandWindow::SetUpBlockMap()

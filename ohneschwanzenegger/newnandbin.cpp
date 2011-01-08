@@ -115,7 +115,7 @@ void NewNandBin::on_buttonBox_accepted()
     }
 	//add cert.sys
 	quint16 handle = nand.CreateEntry( "/sys/cert.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, NAND_READ );
-	if( !handle || !nand.SetData( "/sys/cert.sys", QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) ) )
+	if( !handle || !nand.SetData( handle, QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) ) )
 	{
 		qWarning() << "NewNandBin::on_buttonBox_accepted -> error creating cert in the new nand";
 		return;

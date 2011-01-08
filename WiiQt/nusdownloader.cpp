@@ -13,6 +13,7 @@ NusDownloader::NusDownloader( QObject *parent, const QString &cPath ) : QObject(
 //change the cache path
 void NusDownloader::SetCachePath( const QString &cPath )
 {
+	qDebug() << "NusDownloader::SetCachePath" << cPath;
     cachePath = cPath;
 }
 
@@ -99,7 +100,7 @@ void NusDownloader::StartNextJob()
         else
         {
             dlJob = tmdJob;
-            QTimer::singleShot( 500, this, SLOT( StartDownload() ) );
+			QTimer::singleShot( 50, this, SLOT( StartDownload() ) );
         }
     }
     else//download the latest tmd to get the version
@@ -201,13 +202,11 @@ bool NusDownloader::SaveDataToCache( const QString &path, const QByteArray &stuf
         qWarning() << "NusDownloader::SaveDataToCache -> bad path" << path << cachePath;
         return false;
     }
-    QString parent = path;//really ugly, but somehow still prettier than a recursing  mkdir function
-    parent.resize( parent.lastIndexOf( "/" ) );
-    parent.remove( 0, cachePath.size() + 1 );
-    QDir d( cachePath );
-    if( !d.exists() || !d.mkpath( parent ) )
+	QFileInfo fi( path );
+	QString parent = fi.absolutePath();
+	if( !QDir( parent ).exists() && !QDir().mkpath( parent ) )
     {
-        qWarning() << "NusDownloader::SaveDataToCache -> cant create directory" << QString( d.absolutePath() + "/" + path );
+		qWarning() << "NusDownloader::SaveDataToCache -> cant create directory" << parent;
         return false;
     }
     QFile f( path );

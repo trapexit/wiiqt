@@ -26,9 +26,6 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 	ui->pushButton_nandPath->setMinimumWidth( max );
 	ui->pushButton_wad->setMinimumWidth( max );
 
-
-
-
     Wad::SetGlobalCert( QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) );
 
     //connect to the nus object so we can respond to what it is saying with pretty stuff in the gui
@@ -42,26 +39,100 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 
     //TODO, really get these paths from settings
 
-#ifdef Q_WS_WIN
+/*#ifdef Q_WS_WIN
     QString cachePath = "../../NUS_cache";
 #else
     QString cachePath = "../NUS_cache";
 #endif
     QString nandPath = "./dump";
 
-
     ui->lineEdit_cachePath->setText( cachePath );
     ui->lineEdit_nandPath->setText( nandPath );
-    ui->lineEdit_extractPath->setText( "./downloaded" );
+	ui->lineEdit_extractPath->setText( "./downloaded" );*/
+
+	LoadSettings();
 
 
     //nand.SetPath( nandPath );
-    nus.SetCachePath( cachePath );
+	//nus.SetCachePath( cachePath );
 }
 
 MainWindow::~MainWindow()
 {
+	SaveSettings();
     delete ui;
+}
+
+void MainWindow::SaveSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "nusDownloader" );
+	//window geometry
+	s.setValue( "size", size() );
+	s.setValue( "pos", pos() );
+
+	//which radio button is selected
+	quint8 val = 0;
+	if( ui->radioButton_folder->isChecked() )
+		val = 1;
+	else if( ui->radioButton_wad->isChecked() )
+		val = 2;
+	s.setValue( "radio", val );
+
+	s.setValue( "folder", ui->lineEdit_extractPath->text() );
+	s.setValue( "nuswads", ui->lineEdit_wad->text() );
+
+	s.endGroup();
+
+	//settings shared in multiple programs
+	//paths
+	s.beginGroup( "paths" );
+	s.setValue( "nusCache", ui->lineEdit_cachePath->text() );
+	s.endGroup();
+
+}
+#ifdef Q_WS_WIN
+#define PATH_PREFIX QString("../..")
+#else
+#define PATH_PREFIX QString("..")
+#endif
+
+void MainWindow::LoadSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "nusDownloader" );
+	resize( s.value("size", QSize( 585, 457 ) ).toSize() );
+	move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
+
+	quint8 radio = s.value( "radio", 0 ).toInt();
+	if( radio == 1 )
+		ui->radioButton_folder->setChecked( true );
+	else if( radio == 2 )
+		ui->radioButton_wad->setChecked( true );
+
+	ui->lineEdit_extractPath->setText( s.value( "folder", PATH_PREFIX + "/downloaded" ).toString() );
+	ui->lineEdit_wad->setText( s.value( "nuswads", PATH_PREFIX + "/wads" ).toString() );
+
+	s.endGroup();
+
+	//settings shared in multiple programs
+	s.beginGroup( "paths" );
+
+	QString cachePath = s.value( "nusCache", PATH_PREFIX + "/NUS_cache" ).toString();
+	QString nandPath = s.value( "sneek" ).toString();
+	ui->lineEdit_cachePath->setText( cachePath );
+	ui->lineEdit_nandPath->setText( nandPath );
+
+	if( !nandPath.isEmpty() )
+		nand.SetPath( QFileInfo( nandPath ).absoluteFilePath() );
+	if( !cachePath.isEmpty() )
+		nus.SetCachePath( QFileInfo( cachePath ).absoluteFilePath() );
+	s.endGroup();
+
 }
 
 //some slots to respond to the NUS downloader
@@ -251,7 +322,8 @@ void MainWindow::on_pushButton_GetTitle_clicked()
     //ui->progressBar_dl->setValue( 0 );
     //ui->progressBar_title->setValue( 0 );
     //ui->progressBar_whole->setValue( 0 );
-    nus.SetCachePath( ui->lineEdit_cachePath->text() );
+	nus.SetCachePath( QFileInfo( ui->lineEdit_cachePath->text() ).absoluteFilePath() );
+
     if( wholeUpdate )
     {
         if( !nus.GetUpdate( ui->lineEdit_tid->text(), decrypt ) )

@@ -29,6 +29,10 @@ private:
     void SaveJobToFolder( NusJob job );
     void SaveJobToWad( NusJob job );
 
+	//settings
+	void SaveSettings();
+	void LoadSettings();
+
 
 
 public slots:

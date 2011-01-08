@@ -10,15 +10,6 @@
 #include "quazip.h"
 #include "quazipfile.h"
 
-
-//TODO...  get these from settings and dont use global variables
-#ifdef Q_WS_MAC
-static QString sneekPath = "/Volumes/VMware Shared Folders/host-c/QtWii/test";
-#else
-//static QString sneekPath = "/media/SDHC_4GB";
-static QString sneekPath = "../../test";
-#endif
-
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWindow), bannerthread( this )
 {
     ui->setupUi(this);
@@ -30,10 +21,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	ClearPcGuiInfo();
     progressBar.setVisible( false );
     ui->statusBar->addPermanentWidget( &progressBar, 0 );
-    ngID = 0;
-    ngKeyID = 0;
-
-    //sneekIconTimer.setInterval( 150 );//delay of icon image animation
+	LoadSettings();
 
     connect( &bannerthread, SIGNAL( SendProgress( int ) ), this, SLOT( GetProgressUpdate( int ) ) );
 	connect( &bannerthread, SIGNAL( SendDone( int ) ), this, SLOT( LoadThreadIsDone( int ) ) );
@@ -43,21 +31,92 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	connect( &sneekIconTimer, SIGNAL( timeout() ), this, SLOT( ShowNextSneekIcon() ) );
 	connect( &pcIconTimer, SIGNAL( timeout() ), this, SLOT( ShowNextPcIcon() ) );
 
-	//GetSavesFromSneek( "/media/WiiFat500" );
-	//GetSavesFromSneek( sneekPath );
-	//GetSavesFromPC( "./saveBackups" );
+	//start loading saves if there is a path
+	if( !sneekPath.isEmpty() )
+	{
+		initialStartup = true;
+		GetSavesFromSneek( sneekPath );
+	}
+	else if( !pcPath.isEmpty() )
+		GetSavesFromPC( pcPath );
 
 }
 
 MainWindow::~MainWindow()
 {
+	SaveSettings();
     delete ui;
+}
+
+//save/load settings
+void MainWindow::SaveSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "savetoy" );
+	//window geometry
+	s.setValue( "size", size() );
+	s.setValue( "pos", pos() );
+
+	//save backup location
+	s.setValue( "pcPath", pcPath );
+
+	//current view
+	s.setValue( "tab", ui->tabWidget->currentIndex() );
+	s.endGroup();
+
+	//settings shared in multiple programs
+	//keys
+	s.beginGroup( "keys" );
+	s.setValue( "ngID", ngID );
+	s.setValue( "ngKeyID", ngKeyID );
+	s.setValue( "ngSig", ngSig.toHex() );
+	s.setValue( "ngMac", ngMac.toHex() );
+	s.setValue( "ngPriv", ngPriv.toHex() );
+	s.endGroup();
+
+	//paths
+	s.beginGroup( "paths" );
+	s.setValue( "sneek", sneekPath );
+	s.endGroup();
+}
+
+void MainWindow::LoadSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "savetoy" );
+	//window geometry
+	resize( s.value("size", QSize( 949, 535 ) ).toSize() );
+	move( s.value("pos", QPoint( 284, 295 ) ).toPoint() );
+
+	//save backup location
+	pcPath = s.value( "pcPath" ).toString();
+	ui->tabWidget->setCurrentIndex( s.value( "tab", 0 ).toInt() );
+	s.endGroup();
+
+	//settings shared in multiple programs
+	//keys
+	s.beginGroup( "keys" );
+	ngID = s.value( "ngID", 0 ).toInt();
+	ngKeyID = s.value( "ngKeyID", 0 ).toInt();
+	ngSig = QByteArray::fromHex( s.value( "ngSig", QByteArray() ).toString().toLatin1() );
+	ngMac = QByteArray::fromHex( s.value( "ngMac", QByteArray() ).toString().toLatin1() );
+	ngPriv = QByteArray::fromHex( s.value( "ngPriv", QByteArray() ).toString().toLatin1() );
+	s.endGroup();
+
+	//paths
+	s.beginGroup( "paths" );
+	sneekPath = s.value( "sneek" ).toString();
+	s.endGroup();
 }
 
 //get the saves from a nand directory
 void MainWindow::GetSavesFromSneek( const QString &path )
 {
-    qDebug() << "MainWindow::GetSavesFromSneek" << path;
+	//qDebug() << "MainWindow::GetSavesFromSneek" << path;
     if( !QFileInfo( path ).exists() )
         return;
 
@@ -138,7 +197,20 @@ void MainWindow::GetProgressUpdate( int i )
 //something is done working.  respond somehow
 void MainWindow::LoadThreadIsDone( int type )
 {
-    Q_UNUSED( type );
+	switch( type )
+	{
+	case LOAD_SNEEK:
+		if( initialStartup )
+		{
+			initialStartup = false;
+			if( !pcPath.isEmpty() )
+				GetSavesFromPC( pcPath );
+		}
+		break;
+	default:
+		break;
+	}
+
     progressBar.setVisible( false );
 }
 
@@ -537,11 +609,11 @@ void MainWindow::on_actionSet_NG_Keys_triggered()
     ngPriv = d.ngPriv;
     ngSig = d.ngSig;
 	qDebug() << "accepted";
-    qDebug() << hex << d.ngID
-            << "\n" << d.ngKeyID
-            << "\n" << d.ngMac.toHex()
-            << "\n" << d.ngPriv.toHex()
-			<< "\n" << d.ngSig.toHex();
+	//qDebug() << hex << d.ngID
+	//        << "\n" << d.ngKeyID
+	//        << "\n" << d.ngMac.toHex()
+	//        << "\n" << d.ngPriv.toHex()
+	//		<< "\n" << d.ngSig.toHex();
 }
 
 //PC list item changed

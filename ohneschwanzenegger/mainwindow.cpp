@@ -55,24 +55,56 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nand, SIGNAL( SendError( const QString & ) ), this, SLOT( GetError( const QString & ) ) );
     connect( &nand, SIGNAL( SendText( QString ) ), ui->statusBar, SLOT( showMessage( QString ) ) );
 
-    //TODO, really get these paths from settings
-#ifdef Q_WS_WIN
-    QString cachePath = "../../NUS_cache";
-#else
-    QString cachePath = "../NUS_cache";
-#endif
-    QString nandPath = "./testNand.bin";
-
-
-    ui->lineEdit_cachePath->setText( cachePath );
-    ui->lineEdit_nandPath->setText( nandPath );
-
-    nus.SetCachePath( cachePath );
+	LoadSettings();
+	ui->lineEdit_nandPath->setText( "./testNand.bin" );
 }
 
 MainWindow::~MainWindow()
 {
+	SaveSettings();
     delete ui;
+}
+
+void MainWindow::SaveSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "ohneschwanzenegger" );
+	s.setValue( "size", size() );
+	s.setValue( "pos", pos() );
+
+	s.endGroup();
+
+	//settings shared in multiple programs
+	//paths
+	s.beginGroup( "paths" );
+	s.setValue( "nusCache", ui->lineEdit_cachePath->text() );
+	s.endGroup();
+}
+
+#ifdef Q_WS_WIN
+#define PATH_PREFIX QString("../..")
+#else
+#define PATH_PREFIX QString("..")
+#endif
+void MainWindow::LoadSettings()
+{
+	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+
+	//settings specific to this program
+	s.beginGroup( "ohneschwanzenegger" );
+	resize( s.value("size", QSize( 654, 507 ) ).toSize() );
+	move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
+	s.endGroup();
+
+	s.beginGroup( "paths" );
+
+	QString cachePath = s.value( "nusCache", PATH_PREFIX + "/NUS_cache" ).toString();
+	ui->lineEdit_cachePath->setText( cachePath );
+	if( !cachePath.isEmpty() )
+		nus.SetCachePath( QFileInfo( cachePath ).absoluteFilePath() );
+	s.endGroup();
 }
 
 //some slots to respond to the NUS downloader

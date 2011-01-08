@@ -46,6 +46,9 @@ private:
     quint16 CreateIfNeeded( const QString &path, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm );
     bool InstallSharedContent( const QByteArray stuff, const QByteArray hash = QByteArray() );
 
+	void SaveSettings();
+	void LoadSettings();
+
 public slots:
     //slots for getting info from the NUS downloader
     void GetError( const QString &message, NusJob job );
