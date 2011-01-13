@@ -37,24 +37,7 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nus, SIGNAL( SendDone() ), this, SLOT( NusIsDone() ) );
     connect( &nus, SIGNAL( SendData( NusJob ) ), this, SLOT( ReceiveTitleFromNus( NusJob) ) );
 
-    //TODO, really get these paths from settings
-
-/*#ifdef Q_WS_WIN
-    QString cachePath = "../../NUS_cache";
-#else
-    QString cachePath = "../NUS_cache";
-#endif
-    QString nandPath = "./dump";
-
-    ui->lineEdit_cachePath->setText( cachePath );
-    ui->lineEdit_nandPath->setText( nandPath );
-	ui->lineEdit_extractPath->setText( "./downloaded" );*/
-
 	LoadSettings();
-
-
-    //nand.SetPath( nandPath );
-	//nus.SetCachePath( cachePath );
 }
 
 MainWindow::~MainWindow()

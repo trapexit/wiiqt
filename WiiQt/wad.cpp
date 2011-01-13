@@ -7,6 +7,8 @@ static QByteArray globalCert;
 Wad::Wad( const QByteArray &stuff )
 {
 	ok = false;
+	if( !stuff.size() )//prevent error text when it isnt required
+		return;
 	if( stuff.size() < 0x80 )//less than this and there is definitely nothing there
 	{
 		Err( "Size is < 0x80" );
@@ -83,6 +85,9 @@ Wad::Wad( const QByteArray &stuff )
 	Ticket ticket( tikData );
 	Tmd t( tmdData );
 
+	//the constructor for Ticket may have fixed a bad key index.  replace the data just incase it did
+	tikData = ticket.Data();
+
 	//hexdump( tikData );
 	//hexdump( tmdData );
 
@@ -107,8 +112,8 @@ Wad::Wad( const QByteArray &stuff )
 	{
 
 		quint32 s = RU( t.Size( i ), 0x40 );
-		qDebug() << "content" << i << "is at" << hex << pos
-                << "with size" << s;
+		//qDebug() << "content" << i << "is at" << hex << pos
+		//        << "with size" << s;
 		QByteArray encData = stuff.mid( pos, s );
 		pos += s;
 
@@ -134,6 +139,7 @@ Wad::Wad( const QByteArray &stuff )
 
 Wad::Wad( const QList< QByteArray > &stuff, bool encrypted )
 {
+	ok = false;
     if( stuff.size() < 3 )
     {
         Err( "Cant treate a wad with < 3 items" );
@@ -173,6 +179,84 @@ Wad::Wad( const QList< QByteArray > &stuff, bool encrypted )
 
 }
 
+Wad::Wad( QDir dir )
+{
+	ok = false;
+	QFileInfoList tmds = dir.entryInfoList( QStringList() << "*.tmd" << "tmd.*", QDir::Files );
+	if( tmds.isEmpty() )
+	{
+		Err( "TMD not found" );
+		return;
+	}
+	tmdData = ReadFile( tmds.at( 0 ).absoluteFilePath() );
+	if( tmdData.isEmpty() )
+		return;
+	QFileInfoList tiks = dir.entryInfoList( QStringList() << "*.tik" << "cetk", QDir::Files );
+	if( tiks.isEmpty() )
+	{
+		Err( "Ticket not found" );
+		return;
+	}
+	tikData = ReadFile( tiks.at( 0 ).absoluteFilePath() );
+	if( tikData.isEmpty() )
+		return;
+
+	Tmd t( tmdData );
+	Ticket ticket( tikData );
+
+	//make sure to only add the tmd & ticket without all the cert mumbo jumbo
+	tmdData = t.Data();
+	tikData = ticket.Data();
+
+	quint16 cnt = t.Count();
+
+	bool tmdChanged = false;
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+		QByteArray appD = ReadFile( dir.absoluteFilePath( t.Cid( i ) + ".app" ) );
+		if( appD.isEmpty() )
+		{
+			Err( t.Cid( i ) + ".app not found" );
+			return;
+		}
+
+		if( (quint32)appD.size() != t.Size( i ) )
+		{
+			t.SetSize( i, appD.size() );
+			tmdChanged = true;
+		}
+		QByteArray realHash = GetSha1( appD );
+		if( t.Hash( i ) != realHash )
+		{
+			t.SetHash( i, realHash );
+			tmdChanged = true;
+		}
+		AesSetKey( ticket.DecryptedKey() );
+		appD = PaddedByteArray( appD, 0x40 );
+		QByteArray encData = AesEncrypt( i, appD );
+		partsEnc << encData;
+	}
+	//if something in the tmd changed, fakesign it
+	if( tmdChanged )
+	{
+		if( !t.FakeSign() )
+		{
+			Err( "Error signing the wad" );
+			return;
+		}
+		else
+		{
+			tmdData = t.Data();
+		}
+	}
+	QFileInfoList certs = dir.entryInfoList( QStringList() << "*.cert", QDir::Files );
+	if( !certs.isEmpty() )
+	{
+		certData = ReadFile( certs.at( 0 ).absoluteFilePath() );
+	}
+	ok = true;
+}
+
 void Wad::SetCert( const QByteArray &stuff )
 {
     certData = stuff;
@@ -202,6 +286,11 @@ const QByteArray Wad::getTmd()
 const QByteArray Wad::getTik()
 {
 	return tikData;
+}
+
+const QByteArray Wad::GetCert()
+{
+	return certData.isEmpty() ? globalCert : certData;
 }
 
 const QByteArray Wad::Content( quint16 i )
@@ -547,7 +636,7 @@ QByteArray Wad::FromDirectory( QDir dir )
     return ret;
 }
 
-bool Wad::SetTid( quint64 tid )
+bool Wad::SetTid( quint64 tid, bool fakeSign )
 {
 	if( !tmdData.size() || !tikData.size() )
 	{
@@ -560,12 +649,12 @@ bool Wad::SetTid( quint64 tid )
 	t.SetTid( tid );
 	ti.SetTid( tid );
 
-	if( !t.FakeSign() )
+	if( fakeSign && !t.FakeSign() )
 	{
 		Err( "Error signing TMD" );
 		return false;
 	}
-	if( !ti.FakeSign() )
+	if( fakeSign && !ti.FakeSign() )
 	{
 		Err( "Error signing ticket" );
 		return false;
@@ -575,7 +664,7 @@ bool Wad::SetTid( quint64 tid )
 	return true;
 }
 
-bool Wad::SetIOS( quint32 ios )
+bool Wad::SetIOS( quint32 ios, bool fakeSign )
 {
 	if( !tmdData.size() || !tikData.size() )
 	{
@@ -586,7 +675,7 @@ bool Wad::SetIOS( quint32 ios )
 
 	t.SetIOS( ios );
 
-	if( !t.FakeSign() )
+	if( fakeSign && !t.FakeSign() )
 	{
 		Err( "Error signing TMD" );
 		return false;
@@ -595,7 +684,27 @@ bool Wad::SetIOS( quint32 ios )
 	return true;
 }
 
-bool Wad::SetAhb( bool remove )
+bool Wad::SetVersion( quint16 ver, bool fakeSign )
+{
+	if( !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+	Tmd t( tmdData );
+
+	t.SetVersion( ver );
+
+	if( fakeSign && !t.FakeSign() )
+	{
+		Err( "Error signing TMD" );
+		return false;
+	}
+	tmdData = t.Data();
+	return true;
+}
+
+bool Wad::SetAhb( bool remove, bool fakeSign )
 {
 	if( !tmdData.size() || !tikData.size() )
 	{
@@ -606,7 +715,7 @@ bool Wad::SetAhb( bool remove )
 
 	t.SetAhb( remove );
 
-	if( !t.FakeSign() )
+	if( fakeSign && !t.FakeSign() )
 	{
 		Err( "Error signing TMD" );
 		return false;
@@ -615,7 +724,7 @@ bool Wad::SetAhb( bool remove )
 	return true;
 }
 
-bool Wad::SetDiskAccess( bool allow )
+bool Wad::SetDiskAccess( bool allow, bool fakeSign )
 {
 	if( !tmdData.size() || !tikData.size() )
 	{
@@ -626,12 +735,43 @@ bool Wad::SetDiskAccess( bool allow )
 
 	t.SetDiskAccess( allow );
 
-	if( !t.FakeSign() )
+	if( fakeSign && !t.FakeSign() )
 	{
 		Err( "Error signing TMD" );
 		return false;
 	}
 	tmdData = t.Data();
+	return true;
+}
+
+bool Wad::FakeSign( bool signTmd, bool signTicket )
+{
+	if( !tmdData.size() || !tikData.size() )
+	{
+		Err( "Mising parts of the wad" );
+		return false;
+	}
+
+	if( signTicket )
+	{
+		Ticket ti( tikData );
+		if( !ti.FakeSign() )
+		{
+			Err( "Error signing ticket" );
+			return false;
+		}
+		tikData = ti.Data();
+	}
+	if( signTmd )
+	{
+		Tmd t( tmdData );
+		if( !t.FakeSign() )
+		{
+			Err( "Error signing TMD" );
+			return false;
+		}
+		tmdData = t.Data();
+	}
 	return true;
 }
 

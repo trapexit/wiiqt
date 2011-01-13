@@ -39,7 +39,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent), ui(new Ui::MainWi
 	}
 	else if( !pcPath.isEmpty() )
 		GetSavesFromPC( pcPath );
-
 }
 
 MainWindow::~MainWindow()

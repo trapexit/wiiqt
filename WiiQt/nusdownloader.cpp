@@ -13,7 +13,7 @@ NusDownloader::NusDownloader( QObject *parent, const QString &cPath ) : QObject(
 //change the cache path
 void NusDownloader::SetCachePath( const QString &cPath )
 {
-	qDebug() << "NusDownloader::SetCachePath" << cPath;
+	//qDebug() << "NusDownloader::SetCachePath" << cPath;
     cachePath = cPath;
 }
 

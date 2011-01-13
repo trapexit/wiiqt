@@ -80,6 +80,14 @@ bool Tmd::SetDiskAccess( bool allow )
     return true;
 }
 
+quint32 Tmd::AccessFlags()
+{
+	if( !p_tmd )
+		return 0;
+
+	return qFromBigEndian( p_tmd->access_rights );
+}
+
 quint16 Tmd::Gid()
 {
     if( !p_tmd )
@@ -152,6 +160,13 @@ bool Tmd::SetSize( quint16 cid, quint32 size )
 
     p_tmd->contents[ cid ].size = qFromBigEndian( (quint64)size );
     return true;
+}
+
+quint16 Tmd::BootIndex( quint16 i )
+{
+	if( !p_tmd || i > qFromBigEndian( p_tmd->num_contents ) )
+		return 0;
+	return qFromBigEndian( p_tmd->contents[ i ].index );
 }
 
 quint16 Tmd::Type( quint16 i )
@@ -234,7 +249,7 @@ bool Tmd::FakeSign()
     return ret;
 }
 
-Ticket::Ticket( const QByteArray &stuff )
+Ticket::Ticket( const QByteArray &stuff, bool fixKeyIndex )
 {
     data = stuff;
     p_tik = NULL;
@@ -264,6 +279,20 @@ Ticket::Ticket( const QByteArray &stuff )
         data.resize( SignedSize() );
         SetPointer();
     }
+	quint8 *keyindex = ((quint8*)p_tik) + 0xb1;
+	if( fixKeyIndex && ( *keyindex > 0 ) )
+	{
+		if( *keyindex == 1 )//for now, just bail out for korean key
+		{
+			qWarning() << "Ticket::Ticket -> ticket uses the korean key. Only titles encrypted with the common key are supported";
+			return;
+		}
+		qWarning() << "Ticket::Ticket -> key index is" << hex << *keyindex << ". Setting it to 0 and fakesigning";
+
+		*keyindex = 0;//anything other than 0 or 1 is probably an error.  fix it
+		FakeSign();
+		//hexdump( data );
+	}
 }
 
 quint64 Ticket::Tid()

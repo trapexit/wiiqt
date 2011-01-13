@@ -137,7 +137,7 @@ typedef struct _cert_ecdsa {
 class Ticket
 {
 public:
-    Ticket( const QByteArray &stuff = QByteArray() );
+	Ticket( const QByteArray &stuff = QByteArray(), bool fixKeyIndex = true );
 
     //expose the tik data to the rest of the code so it cas read directly from the p_tmd instead of having to add a function to access all the data
     //the pointer should be good until "data" is changed
@@ -184,11 +184,13 @@ public:
     QByteArray Hash( quint16 i );
 
     //returned in host endian
-    quint64 Size( quint16 i );
-    quint16 Type( quint16 i );
+	quint64 Size( quint16 i );
+	quint16 Type( quint16 i );
+	quint16 BootIndex( quint16 i );
     quint64 Tid();
     quint64 IOS();
     quint16 Gid();
+	quint32 AccessFlags();
 
 
     //gets the number of contents

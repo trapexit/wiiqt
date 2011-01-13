@@ -200,9 +200,9 @@ QList< quint64 > InstalledTitles()
     for( quint16 i = 0; i < subfc; i++ )//check all subfolders of "/ticket"
     {
         QTreeWidgetItem *subF = tikFolder->child( i );
-        //qDebug() << "checking folder" << subF->text( 0 );
+		//qDebug() << "checking folder" << subF->text( 0 );
         bool ok = false;
-        quint32 upper = subF->text( 0 ).toInt( &ok, 16 );//make sure it can be converted to int
+		quint32 upper = subF->text( 0 ).toUInt( &ok, 16 );//make sure it can be converted to int
         if ( !ok )
             continue;
 
@@ -211,18 +211,18 @@ QList< quint64 > InstalledTitles()
         {
             QTreeWidgetItem *tikI = subF->child( j );
             QString name = tikI->text( 0 );
-            //qDebug() << "checking item" << subF->text( 0 ) + "/" + name;
+			//qDebug() << "checking item" << subF->text( 0 ) + "/" + name;
             if( !name.endsWith( ".tik" ) )
             {
-                //qDebug() << "!tik";
+				//qDebug() << "!tik";
                 continue;
             }
 
             name.resize( 8 );
-            quint32 lower = name.toInt( &ok, 16 );
+			quint32 lower = name.toUInt( &ok, 16 );
             if( !ok )
             {
-                //qDebug() << "!ok";
+				//qDebug() << "!ok";
                 continue;
             }
 
@@ -230,15 +230,16 @@ QList< quint64 > InstalledTitles()
             QTreeWidgetItem *tmdI = ItemFromPath( "/title/" + subF->text( 0 ) + "/" + name + "/content/title.tmd" );
             if( !tmdI )
             {
-                //qDebug() << "no tmd";
+				//qDebug() << "no tmd";
                 continue;
             }
 
             quint64 tid = (( (quint64)upper << 32) | lower );
-            //qDebug() << "adding item to list" << TidTxt( tid );
+			//qDebug() << "adding item to list" << TidTxt( tid );
             ret << tid;
         }
     }
+	qSort( ret.begin(), ret.end() );
     return ret;
 }
 
@@ -301,6 +302,24 @@ void BuildGoodIosList()
     }
 }
 
+bool RecurseCheckGidUid( QTreeWidgetItem *item, const QString &uidS, const QString &gidS, const QString &path )
+{
+	bool ret = true;
+	quint16 cnt = item->childCount();
+	for( quint16 i = 0; i < cnt; i++ )
+	{
+		QTreeWidgetItem *child = item->child( i );
+		if( child->text( 3 ) != uidS || !child->text( 4 ).startsWith( gidS ) )
+		{
+			ret = false;
+			qDebug() << "\tincorrect uid/gid for" << QString( path + child->text( 0 ) );
+		}
+		if( !RecurseCheckGidUid( child, uidS, gidS, path + child->text( 0 ) + "/" ) )
+			ret = false;
+	}
+	return ret;
+}
+
 bool CheckTitleIntegrity( quint64 tid )
 {
     if( validIoses.contains( tid ) )//this one has already been checked
@@ -357,7 +376,7 @@ bool CheckTitleIntegrity( quint64 tid )
         }
         else
         {
-            Ticket ticket( ba );
+			Ticket ticket( ba, false );
             if( ticket.Tid() != tid )
             {
                 qDebug() << "the ticket contains the wrong TID";
@@ -378,7 +397,7 @@ bool CheckTitleIntegrity( quint64 tid )
         {
             if( sharedM.GetAppFromHash( t.Hash( i ) ).isEmpty() )
             {
-                qDebug() << "one of the shared contents is missing";
+				qDebug() << "\tone of the shared contents is missing";
                 return false;
             }
         }
@@ -391,7 +410,7 @@ bool CheckTitleIntegrity( quint64 tid )
             QByteArray ba = nand.GetData( pA );
             if( ba.isEmpty() )
             {
-                qDebug() << "one of the private contents is missing" << pA;
+				qDebug() << "\t error reading one of the private contents" << pA;
                 return false;
             }
             QByteArray realH = GetSha1( ba );
@@ -432,13 +451,15 @@ bool CheckTitleIntegrity( quint64 tid )
         QString gidS = QString( "%1" ).arg( gid, 4, 16, QChar( '0' ) );
         if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
             qDebug() << "\tincorrect uid/gid for data folder";
-        quint16 cnt = dataI->childCount();
+
+		RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
+		/*quint16 cnt = dataI->childCount();
         for( quint16 i = 0; i < cnt; i++ )
         {
             QTreeWidgetItem *item = dataI->child( i );
             if( item->text( 3 ) != uidS || !item->text( 4 ).startsWith( gidS ) )
                 qDebug() << "\tincorrect uid/gid for" << QString( "data/" + item->text( 0 ) );
-        }
+		}*/
     }
     dataP.resize( 25 );
     dataP += "content";
@@ -617,8 +638,8 @@ void CheckHmac()
 int main( int argc, char *argv[] )
 {
     QCoreApplication a( argc, argv );
-    QStringList args = QCoreApplication::arguments();
-    if( args.size() < 2 )
+	QStringList args = QCoreApplication::arguments();
+	if( args.size() < 2 )
         Usage();
 
     if( !QFile( args.at( 1 ) ).exists() )
@@ -678,8 +699,6 @@ int main( int argc, char *argv[] )
         qDebug() << "verifying hmac...";
         CheckHmac();
     }
-
-
     return 0;
 }
 

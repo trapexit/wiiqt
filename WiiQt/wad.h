@@ -13,6 +13,13 @@ public:
     //it will use the global cert unless one is given with SetCert
     Wad( const QList< QByteArray > &stuff, bool isEncrypted = true );
 
+	//create a wad from the given directory
+	//! dir should be a directory containing a tmd ( "*.tmd" or "tmd.*" ), a ticket ( "*.tik" or "cetk" ),
+	//! all the contents ( <cid>.app :where cid is the correct cid from the tmd, not the "0, 1, 2, 3..." bullshit some broken wad-unpackers create )
+	//! if any of the .apps do not match in size or hash what is in the TMD, then the TMD will be updated and fakesigned
+	//! a cert ( "*.cert" ) is also supported, but not required
+	Wad( QDir dir );
+
     //check if this wad is valid
     bool IsOk(){ return ok; }
 
@@ -23,16 +30,21 @@ public:
     quint64 Tid();
 
     //set the tid in the ticket&tmd and fakesign the wad
-    bool SetTid( quint64 tid );
+	bool SetTid( quint64 tid, bool fakeSign = true );
 
-    //set the ios in the ticket&tmd and fakesign the wad
-    bool SetIOS( quint32 ios );
+	//set the ios in the tmd and fakesign the wad
+	bool SetIOS( quint32 ios, bool fakeSign = true );
+
+	//set the version in the tmd and fakesign the wad
+	bool SetVersion( quint16 ver, bool fakeSign = true );
 
 	//set the tmd to allow AHBPROT removal
-	bool SetAhb( bool remove = true );
+	bool SetAhb( bool remove = true, bool fakeSign = true );
 
 	//set the tmd to allow direct disc access
-	bool SetDiskAccess( bool allow = true );
+	bool SetDiskAccess( bool allow = true, bool fakeSign = true );
+
+	bool FakeSign( bool signTmd, bool signTicket );
 
     //replace a content of this wad, update the size & hash in the tmd and sign it
     //ba should be decrypted
@@ -51,11 +63,7 @@ public:
 
     //pack a wad from the given directory
     //returns a bytearray containing a wad reading for writing to a file
-    //or an empty bytearray on error
-    //! dir should be a directory containing a tmd ( "*.tmd" or "tmd.*" ), a ticket ( "*.tik" or "cetk" ),
-    //! all the contents ( <cid>.app :where cid is the correct cid from the tmd, not the "0, 1, 2, 3..." bullshit some broken wad-unpackers create )
-    //! if any of the .apps do not match in size or hash what is in the TMD, then the TMD will be updated and fakesigned
-    //! a cert ( "*.cert" ) is also supported, but not required
+	//or an empty bytearray on error
     static QByteArray FromDirectory( QDir dir );
 
     //get a assembled wad from the list of parts
@@ -71,6 +79,8 @@ public:
 
     //get the tik for the wad
     const QByteArray getTik();
+
+	const QByteArray GetCert();
 
     //get the decrypted data from a content
     const QByteArray Content( quint16 i );
