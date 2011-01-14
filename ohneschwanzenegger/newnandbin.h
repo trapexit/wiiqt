@@ -27,8 +27,14 @@ private:
     QString ret;
     QString dir;
 
+	QByteArray boots;
+	QByteArray keys;
+
+	bool CreateDefaultEntries();
+
 private slots:
-    void on_pushButton_badBlockFile_clicked();
+	void on_pushButton_oldNand_clicked();
+	void on_pushButton_badBlockFile_clicked();
     void on_buttonBox_accepted();
     void on_pushButton_bb_rm_clicked();
     void on_pushButton_bb_add_clicked();
