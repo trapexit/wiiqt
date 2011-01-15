@@ -121,7 +121,7 @@ Wad::Wad( const QByteArray &stuff )
 		//is using the AES that would change the key on us
 		AesSetKey( ticket.DecryptedKey() );
 
-		QByteArray decData = AesDecrypt( i, encData );
+		QByteArray decData = AesDecrypt( t.BootIndex( i ), encData );
 		decData.resize( t.Size( i ) );
 		QByteArray realHash = GetSha1( decData );
 		if( realHash != t.Hash( i ) )
@@ -171,7 +171,7 @@ Wad::Wad( const QList< QByteArray > &stuff, bool encrypted )
             QByteArray decDataPadded = PaddedByteArray( stuff.at( i + 2 ), 0x40 );
             //doing this here in case there is some other object that is using the AES that would change the key on us
             AesSetKey( ticket.DecryptedKey() );
-            encData = AesEncrypt( i, decDataPadded );
+			encData = AesEncrypt( t.BootIndex( i ), decDataPadded );
         }
         partsEnc << encData;
     }
@@ -233,7 +233,7 @@ Wad::Wad( QDir dir )
 		}
 		AesSetKey( ticket.DecryptedKey() );
 		appD = PaddedByteArray( appD, 0x40 );
-		QByteArray encData = AesEncrypt( i, appD );
+		QByteArray encData = AesEncrypt( t.BootIndex( i ), appD );
 		partsEnc << encData;
 	}
 	//if something in the tmd changed, fakesign it
@@ -311,7 +311,7 @@ const QByteArray Wad::Content( quint16 i )
 
     AesSetKey( ticket.DecryptedKey() );
 
-    QByteArray decData = AesDecrypt( i, encData );
+	QByteArray decData = AesDecrypt( t.BootIndex( i ), encData );
     decData.resize( t.Size( i ) );
     QByteArray realHash = GetSha1( decData );
     if( realHash != t.Hash( i ) )
@@ -809,7 +809,7 @@ bool Wad::ReplaceContent( quint16 idx, const QByteArray &ba )
 	AesSetKey( ti.DecryptedKey() );
 	QByteArray decDataPadded = PaddedByteArray( ba, 0x40 );
 
-	QByteArray encData = AesEncrypt( idx, decDataPadded );
+	QByteArray encData = AesEncrypt( t.BootIndex( idx ), decDataPadded );
 	partsEnc.replace( idx, encData );
 
 	return true;
