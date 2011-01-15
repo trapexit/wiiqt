@@ -48,6 +48,9 @@ private:
 
 	void SaveSettings();
 	void LoadSettings();
+#if 0
+	void TryToAddDefaultSettings();
+#endif
 
 public slots:
     //slots for getting info from the NUS downloader

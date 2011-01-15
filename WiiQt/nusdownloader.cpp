@@ -531,11 +531,7 @@ bool NusDownloader::GetUpdate( const QString & upd, bool decrypt )
     QString s = upd.toLower();
     QMap< quint64, quint16 > titles;
 
-    //hell, give everybody these.
-    titles.insert( 0x1000248414741ull, 0x3 );//news channel HAGA
-    titles.insert( 0x1000248414641ull, 0x3 );//Weather Channel HAFA
-
-    if( s == "2.1e" ) titles = List21e();
+	if( s == "2.1e" ) titles = List21e();
     else if( s == "3.0e" ) titles = List30e();
     else if( s == "3.1e" ) titles = List31e();
     else if( s == "3.3e" ) titles = List33e();
@@ -571,6 +567,10 @@ bool NusDownloader::GetUpdate( const QString & upd, bool decrypt )
     else if( s == "4.3j" ) titles = List43j();
 
     else return false;//unknown update
+
+	//hell, give everybody these.
+	titles.insert( 0x1000248414741ull, 0x3 );//news channel HAGA
+	titles.insert( 0x1000248414641ull, 0x3 );//Weather Channel HAFA
 
     QMap< quint64, quint16 >::ConstIterator i = titles.begin();
     while( i != titles.end() )
@@ -855,8 +855,8 @@ QMap< quint64, quint16 > NusDownloader::List30e()
     titles.insert( 0x1000248414341ull, 4 );//nigaoeNRv4 - MII
     titles.insert( 0x1000248414141ull, 0x1 );//photov1
     titles.insert( 0x1000248414241ull, 7 );//shoppingv7
-    titles.insert( 0x1000248414741ull, 0x3 );//news channel HAGA
-    titles.insert( 0x1000248414641ull, 0x3 );//Weather Channel HAFA
+//    titles.insert( 0x1000248414741ull, 0x3 );//news channel HAGA
+//    titles.insert( 0x1000248414641ull, 0x3 );//Weather Channel HAFA
     return titles;
 }
 

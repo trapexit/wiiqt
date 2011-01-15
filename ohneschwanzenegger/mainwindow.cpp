@@ -146,7 +146,7 @@ void MainWindow::NusIsDone()
 
     //make sure there is a setting.txt
     QTreeWidgetItem *item = ItemFromPath( "/title/00000001/00000002/data/setting.txt" );
-    if( !item )
+	if( !item && ItemFromPath( "/title/00000001/00000002/data" ) )//only try to make setting.txt if it is missing and there is a folder to hold it
     {
 		quint8 reg = SETTING_TXT_UNK;
 		if( ui->lineEdit_tid->text().endsWith( "e", Qt::CaseInsensitive ) && ui->lineEdit_tid->text().size() == 4 )
@@ -165,7 +165,7 @@ void MainWindow::NusIsDone()
 			}
 			else
 			{
-				if( !nand.SetData( r, ba) )
+				if( !nand.SetData( r, ba ) )
 				{
 					ShowMessage( "<b>Error writing data for setting.txt.</b>" );
 				}
@@ -176,7 +176,7 @@ void MainWindow::NusIsDone()
 				}
 			}
 		}
-    }
+	}
 
     //nand.Delete( "/title/00000001/00000002/content/title.tmd" );
     if( nandDirty )
@@ -310,40 +310,43 @@ void MainWindow::on_actionImportWad_triggered()
     {
 		ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" ).arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
 		return;
-    }
-    QString fn = QFileDialog::getOpenFileName( this, tr("Wad files(*.wad)"), QCoreApplication::applicationDirPath(), tr("WadFiles (*.wad)") );
+	}
+	//QString fn = QFileDialog::getOpenFileName( this, tr("Wad files(*.wad)"), QCoreApplication::applicationDirPath(), tr("WadFiles (*.wad)") );
+	QStringList fns = QFileDialog::getOpenFileNames( this, tr("Wad files(*.wad)"), QCoreApplication::applicationDirPath(), tr("WadFiles (*.wad)") );
 
-    if( fn.isEmpty() )
+	if( fns.isEmpty() )
 		return;
+	foreach( QString fn, fns )
+	{
+		QByteArray data = ReadFile( fn );
+		if( data.isEmpty() )
+			return;
 
-    QByteArray data = ReadFile( fn );
-    if( data.isEmpty() )
-		return;
+		Wad wad( data );
+		if( !wad.IsOk() )
+		{
+			ShowMessage( tr( "Wad data not ok for \"%1\"" ).arg( fn ) );
+			return;
+		}
 
-    Wad wad( data );
-    if( !wad.IsOk() )
-    {
-		ShowMessage( tr( "Wad data not ok for \"%1\"" ).arg( fn ) );
-		return;
-    }
+		//work smart, not hard... just turn the wad into a NUSJob and reused the same code to install it
+		NusJob job;
+		job.tid = wad.Tid();
+		job.data << wad.getTmd();
+		job.data << wad.getTik();
 
-    //work smart, not hard... just turn the wad into a NUSJob and reused the same code to install it
-    NusJob job;
-    job.tid = wad.Tid();
-    job.data << wad.getTmd();
-    job.data << wad.getTik();
+		Tmd t( wad.getTmd() );
+		job.version = t.Version();
+		quint16 cnt  = t.Count();
+		for( quint16 i = 0; i < cnt; i++ )
+		{
+			job.data << wad.Content( i );
+		}
 
-    Tmd t( wad.getTmd() );
-    job.version = t.Version();
-    quint16 cnt  = t.Count();
-    for( quint16 i = 0; i < cnt; i++ )
-    {
-		job.data << wad.Content( i );
-    }
-
-    job.decrypt = true;
-    ShowMessage( tr( "Installing %1 to nand" ).arg( fn ) );
-    InstallNUSItem( job );
+		job.decrypt = true;
+		ShowMessage( tr( "Installing %1 to nand" ).arg( fn ) );
+		InstallNUSItem( job );
+	}
 
 }
 
@@ -438,7 +441,7 @@ bool MainWindow::InitNand( const QString &path )
     //nand.Delete( "/title/00000001/00000002/content/title.tmd" );
 
     nandInited = true;
-    ShowMessage( "Set path to nand as " + path );
+	ShowMessage( "Set path to nand as " + path );
     return true;
 }
 
@@ -756,3 +759,29 @@ void MainWindow::on_actionAbout_triggered()
 					  "<br>giantpune" );
     QMessageBox::critical( this, tr( "About" ), txt );
 }
+
+#if 0
+//add a default settings file if there is one laying around
+void MainWindow::TryToAddDefaultSettings()
+{
+	if( ItemFromPath( "/shared2/sys/SYSCONF" ) )
+		return;
+
+	QByteArray stuff = ReadFile( "./default_SYSCONF" );
+	if( stuff.isEmpty() )
+		return;
+
+	quint32 uiD = uid.GetUid( NAND_TEST_OWNER );
+	if( !CreateIfNeeded( "/shared2/sys", uiD, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+		return;
+
+	quint16 handle = nand.CreateEntry( "/shared2/sys/SYSCONF", uiD, NAND_TEST_GROUP, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
+	if( !handle || !nand.SetData( handle, stuff ) || !nand.WriteMetaData() )
+	{
+		ShowMessage( "<b>Error adding the default settings</b>" );
+		return;
+	}
+	UpdateTree();
+	ShowMessage( "Wrote /shared2/sys/SYSCONF" );
+}
+#endif

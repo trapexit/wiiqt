@@ -145,8 +145,28 @@ void NgDialog::on_pushButton_keys_clicked()
     if( fn.isEmpty() )
         return;
 
-    QByteArray ba = ReadFile( fn );
-    if( ba.size() != 0x400 )
+	QFile file( fn );
+	QByteArray ba;
+	switch( file.size() )
+	{
+	case 0x400:
+		if( !file.open( QIODevice::ReadOnly ) )
+			break;
+		ba = file.readAll();
+		file.close();
+		break;
+	case 0x21000400:
+		if( !file.open( QIODevice::ReadOnly ) )
+			break;
+		file.seek( 0x21000000 );
+		ba = file.read( 0x400 );
+		file.close();
+		break;
+	default:
+		break;
+	}
+
+	if( ba.size() != 0x400 )
     {
         ui->label_message->setText( tr( "keys.bin should be 0x400 bytes" ) );
         return;

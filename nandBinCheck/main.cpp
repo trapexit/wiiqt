@@ -14,6 +14,7 @@ QList< quint64 > tids;
 QList< quint64 > validIoses;//dont put stubs in this list.
 QTreeWidgetItem *root;
 QList<quint16> fats;
+quint32 verbose = 0;
 
 
 bool CheckTitleIntegrity( quint64 tid );
@@ -29,8 +30,9 @@ void Usage()
     qDebug() << "                  check installed titles for required IOS, proper uid & gid";
     qDebug() << "     -clInfo      shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
     qDebug() << "     -spare       calculate & compare ecc for all pages in the nand";
-    qDebug() << "                  calculate & compare hmac signatures for all files and superblocks";
-    qDebug() << "     -all         does all of the above";
+	qDebug() << "                  calculate & compare hmac signatures for all files and superblocks";
+	qDebug() << "     -all         does all of the above";
+	qDebug() << "     -v		   increase verbosity";
     exit( 1 );
 }
 
@@ -370,18 +372,23 @@ bool CheckTitleIntegrity( quint64 tid )
             t = Tmd( ba );
             if( t.Tid() != tid )
             {
-                qDebug() << "the TMD contains the wrong TID";
+				qDebug() << "\tthe TMD contains the wrong TID";
                 return false;
             }
+			if( verbose )
+			{
+				qDebug() << "\tversion:" << t.Version() << hex << t.Version();
+				qDebug() << "\taccess :" << hex << t.AccessFlags();
+			}
         }
         else
         {
 			Ticket ticket( ba, false );
             if( ticket.Tid() != tid )
             {
-                qDebug() << "the ticket contains the wrong TID";
+				qDebug() << "\tthe ticket contains the wrong TID";
                 return false;
-            }
+			}
         }
     }
 
@@ -649,6 +656,8 @@ int main( int argc, char *argv[] )
         Fail( "Error setting path to nand object" );
 
     root = NULL;
+
+	verbose = args.count( "-v" );
 
     //these only serve to show info.  no action is taken
     if( args.contains( "-boot", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
