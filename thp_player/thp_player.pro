@@ -23,6 +23,7 @@ CONFIG += static
 win32 {
 	message("win32 build")
     INCLUDEPATH += . ./libpng/include
+    LIBS += -L./libpng/lib -ljpeg
 }
 else {
     LIBS += -ljpeg

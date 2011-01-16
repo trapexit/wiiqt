@@ -163,7 +163,9 @@ void ThpWindow::LoadVideo( const QString &path )
 	ui->horizontalSlider_pos->setMaximum( frameCnt );
 
 	//set timer for animation
+	qDebug() << "fps" << QString( "%1" ).arg( videoFile->getFps(), 0, 'f', 3 );
 	qreal delay = 1000.0f/videoFile->getFps();
+	qDebug() << "delay" << QString( "%1" ).arg( delay, 0, 'f', 3 );
 	ui->label_timeFull->setText( TimeTxt( delay * videoFile->getFrameCount() ));
 	timer.setInterval( delay );
 
