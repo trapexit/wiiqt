@@ -20,7 +20,13 @@ HEADERS  += thpwindow.h \
 FORMS    += thpwindow.ui
 
 CONFIG += static
-LIBS += -ljpeg
+win32 {
+	message("win32 build")
+    INCLUDEPATH += . ./libpng/include
+}
+else {
+    LIBS += -ljpeg
+}
 
 RESOURCES += \
     rc.qrc
