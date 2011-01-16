@@ -228,6 +228,7 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 	}
 	//find 90 blocks to reserve.  they always appear to be close to the end of the nand
 	//TODO - this isnt always 90, all my nands have a different number, and 90 is right in the middle
+	//sometimes IOS adds more
 	quint16 bCnt = badBlocks.size();
 	quint16 offset = 0;
 	for( quint16 i = 0; i < bCnt; i++ )
@@ -1540,8 +1541,8 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
 
             fts << cl;					//add this one to the clusters that will be used to hold the data
 			quint16 block = cl / 8;			//try to find other clusters in the same block
-			//for( quint16 i = block * 8; i < ( ( block + 1 ) * 8 ) && fts.size() < clCnt; i++ )
-			quint16 max = freeClusters.at( freeClusters.size() - 1 );
+			//for( quint16 i = block * 8; i < ( ( block + 1 ) * 8 ) && fts.size() < clCnt; i++ )// <- this one scatters files all over the place
+			quint16 max = freeClusters.at( freeClusters.size() - 1 );							// <- this one keeps files together; appears to closer mimic IOS's behavior
 			for( quint16 i = block * 8; i < max && fts.size() < clCnt; i++ )
             {
                 if( cl == i )				//this one is already added to the list
@@ -1570,6 +1571,7 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
 
         }
     }
+	//sort clusters so file is written in order ( not like it matters on flash memory, though )
 	qSort( fts.begin(), fts.end() );
     //qDebug() << "about to writing shit" << clCnt << fts.size();
     //qDebug() << "file will be on clusters\n" << hex << fts;

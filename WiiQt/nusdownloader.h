@@ -72,7 +72,7 @@ public:
     static QMap< quint64, quint16 > List21e();
     static QMap< quint64, quint16 > List30e();
     static QMap< quint64, quint16 > List31e();
-    //static QMap< quint64, quint16 > List32e();
+	static QMap< quint64, quint16 > List32e(); //* there are no games ive seen that contain this update, i have only copied 3.1e and changed the system menu
     static QMap< quint64, quint16 > List33e();
     static QMap< quint64, quint16 > List34e();
     static QMap< quint64, quint16 > List40e();
@@ -86,9 +86,9 @@ public:
     static QMap< quint64, quint16 > List43k();
 
     static QMap< quint64, quint16 > List20j();
-    //static QMap< quint64, quint16 > List30j();
+	static QMap< quint64, quint16 > List30j();
     static QMap< quint64, quint16 > List31j();
-    //static QMap< quint64, quint16 > List32j();
+	static QMap< quint64, quint16 > List32j();//* there are no games ive seen that contain this update, i have only copied 3.1j and changed the system menu
     static QMap< quint64, quint16 > List33j();
     static QMap< quint64, quint16 > List34j();
     static QMap< quint64, quint16 > List40j();
