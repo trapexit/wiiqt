@@ -1,0 +1,56 @@
+*ohneschwanzenegger*
+
+This is a tool to build a nand.bin suitable for installing on a Nintendo Wii via bootmii.  It cannot build one from scratch - you must provide some data from the Wii.  It needs to have a copy of the first 8 blocks of nand, a list of bad blocks, and AES & hmac keys.  All of this data can be gotten from a bootmii nand dump, even if that nand is bricked.
+
+Creating a "blank" nand:
+Select File -> New Nand ( ctrl + N )
+select the destination for the new file in the "destination" field !make sure you have 528MiB of free space!
+If you have an existing nand.bin from the Wii, you can select it by clicking the big "Existing Nand" button.  This will fill in the rest of the necessary information.
+If you dont have an existing dump to read from, you can enter the path of "keys.bin", the first 8 blocks of nand (including spare data), and the bad blocks using the rest of the dialog window.  Bad blocks may be entered manually, or read from a plaintext file with 1 number on each line.
+When you click the "Ok" button, the Gui will hang a bit as it writes the full 528MiB file to your PC.
+
+
+
+Opening an existing nand: 
+Enter a path of an existing nand.bin in the "nand.bin" field, or press the "search" button to browse for it on your PC.  Once you have selected one, click "init nand" to tell the gui you are ready.  IT IS NOT RECCOMMENDED TO USE THIS PROGRAM ON YOUR ONLY COPY OF A NAND.  MAKE A COPY AND THAT.
+
+
+Downloading titles and installing them:
+Before you do anything, set a path for the NUS cache.  This is where the program will cache downloaded files for later use.  This should be a location that has decent reading & writing speeds (dont use an SD card).
+The upper fields accept a TID and/or version to download and install a specific title. Leave the version field empty to get the latest version.
+It also accepts a string such as "3.2u", 4.3e", or "3.5k".  This will attempt to get all of the titles that were in the given update.  I have used wiimpersonator logs when available, and game update partitions where the wiimpersonator logs were missing.  There are some discrepancies as to which titles should be in a given update based on update partitions, but I believe I've gotten it pretty close.
+Press the "get it" button.
+When all teh titles are done downloading, it will ceck for a setting.txt.  If there is a system menu, but no setting.txt, it will prompt to create one.
+
+
+Installing wads:
+After the gui knows which nand.bin you want to edit, you can go to File -> Import Wad, and select some wads to install.
+
+
+creating & editing setting.txt
+Select Content -> setting.txt.  If there is already one, it will be read from the current nand.  A dialog window will pop up and you can enter values such as region & serial number.
+Clicking "Ok" will have the program try to write the setting.txt to the nand. 
+
+Content -> Write meta entries
+This will write the garbage in "/meta" in the nand FS.  These serve no purpose other than to take up space.  The wii appears to run perfectly fine without them.  If I had to guess, I would say they are created during the initial installation of titles in the factory and simply never deleted.  There are discrepencies as to which entries are in the /meta folder based on which wii you look at.  This program will only write the bare minimum ones: the system menu, IOS4, and IOS9.  However, I have seen entries for bc, mios, all the 10002 channels, and the stock hidden channels.
+
+
+Error handling:
+There is a log window in the gui.  Any time there is an error, it should show up bold.  Due to the huge size for a nand, and my lack of wanting to create one, there is no "undo".  When a mistake/error/bug happens, there is no turning back.  If you see an error dealing with writing to a file, it is recommended that you delete that file and start over.  
+
+Do not install anything this program writes without first verifying its contents.  
+
+
+
+
+This tool is made possible by the open-source efforts from others - including, but not limited to:
+bushing
+segher
+comex
+marcan
+trap15
+grey
+parannoyed
+everybody behind the Qt framework
+
+

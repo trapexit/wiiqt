@@ -179,8 +179,6 @@
     <property name="title">
      <string>Nand Dump</string>
     </property>
-    <addaction name="actionSetting_txt"/>
-    <addaction name="actionFlush"/>
     <addaction name="actionImportWad"/>
     <addaction name="actionNew_nand_from_keys"/>
    </widget>
@@ -190,7 +188,19 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuContent">
+    <property name="enabled">
+     <bool>false</bool>
+    </property>
+    <property name="title">
+     <string>Content</string>
+    </property>
+    <addaction name="actionFlush"/>
+    <addaction name="actionSetting_txt"/>
+    <addaction name="actionWrite_meta_entries"/>
+   </widget>
    <addaction name="menuNand_Dump"/>
+   <addaction name="menuContent"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
@@ -208,13 +218,16 @@
    </property>
   </action>
   <action name="actionFlush">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Flush</string>
    </property>
   </action>
   <action name="actionImportWad">
    <property name="text">
-    <string>Import Wad</string>
+    <string>Import Wads...</string>
    </property>
   </action>
   <action name="actionNew_nand_from_keys">
@@ -228,6 +241,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionWrite_meta_entries">
+   <property name="text">
+    <string>Write meta entries</string>
    </property>
   </action>
  </widget>

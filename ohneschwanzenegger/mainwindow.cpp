@@ -57,6 +57,7 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 
 	LoadSettings();
 	ui->lineEdit_nandPath->setText( "./testNand.bin" );
+
 }
 
 MainWindow::~MainWindow()
@@ -397,6 +398,7 @@ bool MainWindow::InitNand( const QString &path )
     nandInited = false;
     sharedDirty = false;
     nandDirty = false;
+	ui->menuContent->setEnabled( false );
     if( !nand.SetPath( path ) || !nand.InitNand() )
 		return false;
 
@@ -441,6 +443,7 @@ bool MainWindow::InitNand( const QString &path )
     //nand.Delete( "/title/00000001/00000002/content/title.tmd" );
 
     nandInited = true;
+	ui->menuContent->setEnabled( true );
 	ShowMessage( "Set path to nand as " + path );
     return true;
 }
@@ -785,3 +788,102 @@ void MainWindow::TryToAddDefaultSettings()
 	ShowMessage( "Wrote /shared2/sys/SYSCONF" );
 }
 #endif
+
+//AFAIK, the stuff in the "/meta" folder is put there by the disc that installs the IOS & system menu at the factory.
+//i have not been able to get the wii to create this data on its own using any officially release system menu or other program
+void MainWindow::AddStuffToMetaFolder()
+{
+	if( !ItemFromPath( "/meta" ) )
+		return;
+
+	if( !CreateIfNeeded( "/meta/00000001", 0x1000, 1, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+	{
+		ShowMessage( "<b>Cannot create folder for metacrap</b>" );
+		return;
+	}
+	bool written = false;
+
+	//these are the bare minimum metadata files ive seen on a nand
+	//i have seen some where there are full banners for the 0x10002 titles, but this is not always the case
+	for( quint16 i = 0; i < 3; i++ )
+	{
+		quint64 tid;
+		quint16 ver;
+		QString desc;
+		switch( i )
+		{
+		case 0:
+			tid = 0x100000004ull;
+			ver = 3;
+			desc = "sd_os1_1.64";
+			break;
+		case 1:
+			tid = 0x100000009ull;
+			ver = 1;
+			desc = "sd_os1_1.64";
+			break;
+		case 2:
+			tid = 0x100000002ull;
+			ver = 0;
+			desc = "systemmenu.rvl.0.4";
+			break;
+		}
+		QString tidStr = QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) );
+		tidStr.insert( 8, "/" );
+		QString path = "/meta/" + tidStr + "/title.met";
+		if( ItemFromPath( path ) )//already have this metadata
+			continue;
+
+		//create subfolder
+		path = "/meta/" + tidStr;
+		if( !CreateIfNeeded( path, 0x1000, 1, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+		{
+			ShowMessage( "<b>Cannot create " + path + " for metacrap</b>" );
+			return;
+		}
+		path = "/meta/" + tidStr + "/title.met";
+
+		//generate metacrap
+		QByteArray stuff = GenMeta( desc, tid, ver );
+
+		quint16 handle = nand.CreateEntry( path, 0x1000, 1, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
+		if( !handle || !nand.SetData( handle, stuff ) || !UpdateTree() )
+		{
+			ShowMessage( "<b>Error writing data for " + path + " </b>" );
+			return;
+		}
+		written = true;
+	}
+	if( !written )
+	{
+		ShowMessage( "Nothing to write in \"/meta\"" );
+		return;
+	}
+	if( !nand.WriteMetaData() )
+	{
+		ShowMessage( "<b>Error writing nand matedata for \"/meta\"</b>" );
+		return;
+	}
+	ShowMessage( "Wrote entries for \"/meta\"" );
+}
+
+QByteArray MainWindow::GenMeta( const QString &desc, quint64 tid, quint16 version )
+{
+	QByteArray ret( 0x40, '\0' );
+	QBuffer buf( &ret );
+	buf.open( QIODevice::WriteOnly );
+	buf.write( desc.toLatin1().data() );
+	tid = qFromBigEndian( tid );
+	buf.seek( 0x20 );
+	buf.write( (const char*)&tid, 8 );
+	version = qFromBigEndian( version );
+	buf.write( (const char*)&version, 4 );
+	buf.close();
+	return ret;
+
+}
+
+void MainWindow::on_actionWrite_meta_entries_triggered()
+{
+	AddStuffToMetaFolder();
+}

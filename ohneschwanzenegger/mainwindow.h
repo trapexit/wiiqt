@@ -51,6 +51,8 @@ private:
 #if 0
 	void TryToAddDefaultSettings();
 #endif
+	void AddStuffToMetaFolder();
+	QByteArray GenMeta( const QString &desc, quint64 tid, quint16 version );
 
 public slots:
     //slots for getting info from the NUS downloader
@@ -60,7 +62,8 @@ public slots:
     void ReceiveTitleFromNus( NusJob job );
 
 private slots:
-    void on_pushButton_CachePathBrowse_clicked();
+	void on_actionWrite_meta_entries_triggered();
+	void on_pushButton_CachePathBrowse_clicked();
     void on_actionAbout_triggered();
     void on_pushButton_initNand_clicked();
     void on_actionNew_nand_from_keys_triggered();
