@@ -165,6 +165,7 @@ void NgDialog::on_pushButton_keys_clicked()
 	default:
 		break;
 	}
+	//WriteFile( QFileInfo( fn ).absoluteDir().absoluteFilePath( "keys.bin" ), ba );
 
 	if( ba.size() != 0x400 )
     {

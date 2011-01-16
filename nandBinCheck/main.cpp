@@ -378,7 +378,8 @@ bool CheckTitleIntegrity( quint64 tid )
 			if( verbose )
 			{
 				qDebug() << "\tversion:" << t.Version() << hex << t.Version();
-				qDebug() << "\taccess :" << hex << t.AccessFlags();
+				if( t.AccessFlags() )
+					qDebug() << "\taccess :" << hex << t.AccessFlags();
 			}
         }
         else

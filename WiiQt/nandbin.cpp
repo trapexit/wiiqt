@@ -1539,8 +1539,10 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
 			quint16 cl = freeClusters.takeAt( idx );	//remove this number from the list
 
             fts << cl;					//add this one to the clusters that will be used to hold the data
-            quint16 block = cl / 8;			//try to find other clusters in the same block
-            for( quint16 i = block * 8; i < ( ( block + 1 ) * 8 ) && fts.size() < clCnt; i++ )
+			quint16 block = cl / 8;			//try to find other clusters in the same block
+			//for( quint16 i = block * 8; i < ( ( block + 1 ) * 8 ) && fts.size() < clCnt; i++ )
+			quint16 max = freeClusters.at( freeClusters.size() - 1 );
+			for( quint16 i = block * 8; i < max && fts.size() < clCnt; i++ )
             {
                 if( cl == i )				//this one is already added to the list
                     continue;
@@ -1568,6 +1570,7 @@ bool NandBin::SetData( quint16 idx, const QByteArray &data )
 
         }
     }
+	qSort( fts.begin(), fts.end() );
     //qDebug() << "about to writing shit" << clCnt << fts.size();
     //qDebug() << "file will be on clusters\n" << hex << fts;
     for( quint32 i = 0; i < clCnt; i++ )
@@ -1674,6 +1677,7 @@ bool NandBin::WriteMetaData()
     //qDebug() << "done adding shit" << hex << (quint32)b.pos();
     b.close();
     QByteArray hmR = spare.Get_hmac_meta( scl, nextSuperCluster );
+
     qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
 
     for( quint8 i = 0; i < 0x10; i++ )
@@ -1826,7 +1830,7 @@ bool NandBin::CheckHmacMeta( quint16 clNo )
     }
 
     sp1 = sp1.right( 0x40 );					    //only keep the spare data and drop the data
-    sp2 = sp2.right( 0x40 );
+	sp2 = sp2.right( 0x40 );
 
     //this part is kinda ugly, but this is how it is layed out by big N
     //really it allows 1 copy of hmac to be bad, but im being strict about it

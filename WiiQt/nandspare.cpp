@@ -209,7 +209,7 @@ QByteArray NandSpare::Get_hmac_meta( const QByteArray cluster, quint16 super_blk
     fs_hmac_set_key( hmacKey.data(), 0x14 );
 
     QByteArray ret( 0x14, '\0' );
-    fs_hmac_meta( (const unsigned char *)cluster.data(), super_blk, (unsigned char *)ret.data() );
+	fs_hmac_meta( (const unsigned char *)cluster.data(), super_blk, (unsigned char *)ret.data() );
 
     return ret;
 }
