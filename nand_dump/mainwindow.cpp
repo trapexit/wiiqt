@@ -73,6 +73,7 @@ void MainWindow::SaveSettings()
 	//paths
 	s.beginGroup( "paths" );
 	s.setValue( "nusCache", ui->lineEdit_cachePath->text() );
+	s.setValue( "sneek", ui->lineEdit_nandPath->text() );
 	s.endGroup();
 
 }
@@ -154,6 +155,14 @@ void MainWindow::NusIsDone()
     }
     else if( ui->radioButton_nand->isChecked() )
     {
+		//check if IOS35 is present in nand dump - needed for sneek
+		QByteArray tmdBA = nand.GetFile( "/title/00000001/00000023/content/title.tmd" );
+		if( tmdBA.isEmpty() )
+		{
+			ui->plainTextEdit_log->appendHtml( tr( "IOS35 not found on nand.  Getting it now...") );
+			nus.Get( 0x100000023ull, true );
+			return;
+		}
         ui->lineEdit_nandPath->setEnabled( true );
         ui->pushButton_nandPath->setEnabled( true );
 
@@ -480,9 +489,14 @@ void MainWindow::SaveJobToFolder( NusJob job )
     for( quint16 i = 0; i < cnt; i++ )//write all the contents in the new folder. if the job is decrypted, append ".app" to the end of their names
     {
         QString appName = t.Cid( i );
+		QByteArray stuff = job.data.takeFirst();
         if( job.decrypt )
+		{
             appName += ".app";
-        if( !WriteFile( d.absoluteFilePath( appName ), job.data.takeFirst() ) )
+			//qDebug() << "resizing from" << hex << stuff.size() << "to" << (quint32)t.Size( i );
+			//stuff.resize( t.Size( i ) );
+		}
+		if( !WriteFile( d.absoluteFilePath( appName ), stuff ) )
         {
             ShowMessage( "<b>Error writing " + d.absoluteFilePath( appName ) + "!<\b>" );
             return;

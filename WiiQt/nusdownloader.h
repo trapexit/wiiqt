@@ -55,7 +55,7 @@ public:
     //get a list of titles for a given update
     //if a title is not available on NUS, a substitute is given instead ( a later version of the same title )
     //to keep people from bulk DLing and installing and messing something up, any boot2 update will NOT be included
-    //in the list, ask for it specifically.  IOS35 is added in all updates for use in sneek
+	//in the list, ask for it specifically.
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
 
     static QMap< quint64, quint16 > List20u();
