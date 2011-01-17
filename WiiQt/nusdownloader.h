@@ -58,7 +58,8 @@ public:
 	//in the list, ask for it specifically.
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
 
-    static QMap< quint64, quint16 > List20u();
+	static QMap< quint64, quint16 > List20u();
+	static QMap< quint64, quint16 > List22u();
     static QMap< quint64, quint16 > List30u();
     static QMap< quint64, quint16 > List31u();
     static QMap< quint64, quint16 > List32u();
@@ -69,7 +70,9 @@ public:
     static QMap< quint64, quint16 > List42u();
     static QMap< quint64, quint16 > List43u();
 
-    static QMap< quint64, quint16 > List21e();
+	static QMap< quint64, quint16 > List20e();
+	static QMap< quint64, quint16 > List21e();
+	static QMap< quint64, quint16 > List22e(); //* there are no games ive seen that contain this update.  this is just a guess
     static QMap< quint64, quint16 > List30e();
     static QMap< quint64, quint16 > List31e();
 	static QMap< quint64, quint16 > List32e(); //* there are no games ive seen that contain this update, i have only copied 3.1e and changed the system menu
@@ -85,7 +88,8 @@ public:
     static QMap< quint64, quint16 > List42k();
     static QMap< quint64, quint16 > List43k();
 
-    static QMap< quint64, quint16 > List20j();
+	static QMap< quint64, quint16 > List20j();
+	static QMap< quint64, quint16 > List22j();//* there are no games ive seen that contain this update, i have only copied 2.1e and changed the system menu
 	static QMap< quint64, quint16 > List30j();
     static QMap< quint64, quint16 > List31j();
 	static QMap< quint64, quint16 > List32j();//* there are no games ive seen that contain this update, i have only copied 3.1j and changed the system menu
