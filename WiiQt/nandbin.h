@@ -134,6 +134,14 @@ public:
     //expects 0x7f00 - 0x7ff0
     bool CheckHmacMeta( quint16 clNo );
 
+	//wipe out all data within the nand FS, leaving only the root entry
+	//preserve all bad/reserved clusters
+	//if secure is true, overwrite old file data with 0xff
+	bool Format( bool secure = true );
+
+	//get the path of this nand
+	const QString FilePath();
+
 
 private:
     QByteArray key;

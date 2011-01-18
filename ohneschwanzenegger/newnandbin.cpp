@@ -353,7 +353,7 @@ QByteArray NewNandBin::GetCleanUid( QByteArray old )
 		quint32 lower = ( tid & 0xffffffff );
 		//qDebug() << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << hex << upper << lower << ( ( lower >> 24 ) & 0xff ) << ( lower & 0xffff00 );
 		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||	//a channel, not starting with 'H'
-			( upper == 0x10000 && ( ( lower & 0xffff00 ) == 0x555000 ) ) )	//a disc update partition
+			( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
 			break;
 
 		titles++;

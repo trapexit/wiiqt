@@ -198,6 +198,7 @@
     <addaction name="actionFlush"/>
     <addaction name="actionSetting_txt"/>
     <addaction name="actionWrite_meta_entries"/>
+    <addaction name="actionFormat"/>
    </widget>
    <addaction name="menuNand_Dump"/>
    <addaction name="menuContent"/>
@@ -246,6 +247,11 @@
   <action name="actionWrite_meta_entries">
    <property name="text">
     <string>Write meta entries</string>
+   </property>
+  </action>
+  <action name="actionFormat">
+   <property name="text">
+    <string>Format</string>
    </property>
   </action>
  </widget>

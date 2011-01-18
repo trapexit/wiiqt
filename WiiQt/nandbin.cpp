@@ -48,7 +48,14 @@ bool NandBin::SetPath( const QString &path )
 
     return ret;
 }
-#if 0 // apparently you dont need any extra reserved blocks for the thing to boot?
+const QString NandBin::FilePath()
+{
+	if( !f.isOpen() )
+		return QString();
+	return QFileInfo( f ).absoluteFilePath();
+}
+
+//#if 0 // apparently you dont need any extra reserved blocks for the thing to boot?
 bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByteArray &first8, const QList<quint16> &badBlocks )
 {
 #ifndef NAND_BIN_CAN_WRITE
@@ -73,7 +80,7 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 	}
 
 	f.write( first8 );
-	QByteArray block( 0x4200, 0xff );//generic empty block
+	QByteArray block( 0x4200, 0xff );//generic empty cluster
 	for( quint16 i = 0; i < 0x7fc0; i++ )
 		f.write( block );
 
@@ -87,7 +94,7 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 	//setup variables
 	nandPath = path;
 	currentSuperCluster = 0x7f00;
-	superClusterVersion = 0xf0000000;
+	superClusterVersion = 1;
 	type = 2;
 	fats.clear();
 	memset( &fsts, 0, sizeof( fst_t ) * 0x17ff );
@@ -100,16 +107,6 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 	{
 		fats << 0xfffc;
 	}
-	//find 90 blocks to reserve.  they always appear to be close to the end of the nand
-	//TODO - this isnt always 90, all my nands have a different number, and 90 is right in the middle
-	//quint16 bCnt = badBlocks.size();
-	/*quint16 offset = 0;
-	for( quint16 i = 0; i < bCnt; i++ )
-	{
-		if( i >= 3998 )
-			offset++;
-	}*/
-
 	//mark all the "normal" blocks - free, or bad
 	for( quint16 i = 0x40; i < 0x7f00; i++ )
 	{
@@ -119,7 +116,7 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 			fats << 0xfffe;
 
 	}
-	//mark the 90 reserved ones from above and reserve the superclusters
+	//reserve the superclusters
 	for( quint16 i = 0x7f00; i < 0x8000; i++ )
 	{
 		fats << 0xfffc;
@@ -156,8 +153,67 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 
 	return true;
 }
+//#endif
+
+bool NandBin::Format( bool secure )
+{
+#ifndef NAND_BIN_CAN_WRITE
+	qWarning() << __FILE__ << "was built without write support";
+	return false;
 #endif
-//#if 0    // this boots ok on real HW
+	if( !f.isOpen() || fats.size() != 0x8000 )
+	{
+		qWarning() << "NandBin::Format -> error" << hex << fats.size() << f.isOpen();
+		return false;
+	}
+
+	//mark any currently used clusters free
+	QByteArray cluster( 0x4200, 0xff );//generic empty cluster
+	for( quint16 i = 0x40; i < 0x7f00; i++ )
+	{
+		if( fats.at( i ) >= 0xf000 && fats.at( i ) != 0xfffe )	//preserve special marked ones
+			continue;
+
+		fats[ i ] = 0xfffe;										//free the cluster
+		if( !secure )
+			continue;
+
+		f.seek( 0x4200 * i );									//overwrite anything there with the unused cluster
+		f.write( cluster );
+	}
+
+	//reset fsts
+	memset( &fsts, 0, sizeof( fst_t ) * 0x17ff );
+	for( quint16 i = 0; i < 0x17ff; i++ )
+		fsts[ i ].fst_pos = i;
+
+	//make the root item
+	fsts[ 0 ].filename[ 0 ] = '/';
+	fsts[ 0 ].attr = 0x16;
+	fsts[ 0 ].sib = 0xffff;
+	fsts[ 0 ].sub = 0xffff;
+
+	//write the metada to each of the superblocks
+	for( quint8 i = 0; i < 0x10; i++ )
+	{
+		if( !WriteMetaData() )
+		{
+			qWarning() << "NandBin::Format -> error writing superblock" << i;
+			return false;
+		}
+	}
+
+	//build the tree
+	if( root )
+		delete root;
+	root = new QTreeWidgetItem( QStringList() << nandPath );
+	AddChildren( root, 0 );
+
+	return true;
+
+}
+
+#if 0    // this boots ok on real HW.  trap15 thinks these reserved blocks are IOS's way of marking ones it thinks are bad
 bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByteArray &first8, const QList<quint16> &badBlocks )
 {
 #ifndef NAND_BIN_CAN_WRITE
@@ -283,7 +339,7 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 
 	return true;
 }
-//#endif
+#endif
 QTreeWidgetItem *NandBin::GetTree()
 {
     //qDebug() << "NandBin::GetTree()";

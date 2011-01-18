@@ -62,7 +62,8 @@ public slots:
     void ReceiveTitleFromNus( NusJob job );
 
 private slots:
-	void on_actionWrite_meta_entries_triggered();
+	void on_actionFormat_triggered();
+ void on_actionWrite_meta_entries_triggered();
 	void on_pushButton_CachePathBrowse_clicked();
     void on_actionAbout_triggered();
     void on_pushButton_initNand_clicked();

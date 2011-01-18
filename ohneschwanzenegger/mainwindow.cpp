@@ -266,6 +266,7 @@ void MainWindow::on_pushButton_nandPath_clicked()
 		return;
 
     ui->lineEdit_nandPath->setText( f );
+	InitNand( ui->lineEdit_nandPath->text() );
 }
 
 void MainWindow::on_pushButton_CachePathBrowse_clicked()
@@ -451,8 +452,7 @@ bool MainWindow::InitNand( const QString &path )
 		shared = SharedContentMap( ba );
 		if( !shared.Check() )//i really dont want to create a new one and rewrite all the contents to match it
 			ShowMessage( "<b>Something about the shared map isnt right, but im using it anyways</b>" );
-    }
-    //nand.Delete( "/title/00000001/00000002/content/title.tmd" );
+	}
 
     nandInited = true;
 	ui->menuContent->setEnabled( true );
@@ -898,4 +898,91 @@ QByteArray MainWindow::GenMeta( const QString &desc, quint64 tid, quint16 versio
 void MainWindow::on_actionWrite_meta_entries_triggered()
 {
 	AddStuffToMetaFolder();
+}
+
+//content -> format
+void MainWindow::on_actionFormat_triggered()
+{
+	if( nand.FilePath().isEmpty() )
+		return;
+	if( QMessageBox::warning( this, tr( "Format" ), \
+		tr( "You are about to format<br>%1.<br><br>This cannot be undone.  Are you sure you want to do it?" ).arg( nand.FilePath() ),\
+		QMessageBox::Yes | QMessageBox::No, QMessageBox::No ) != QMessageBox::Yes )
+		return;
+
+	ShowMessage( "Formatting nand..." );
+	if( !nand.Format() )
+	{
+		ShowMessage( "<b>Error!  This nand may be broken now :(</b>" );
+		return;
+	}
+
+	//add folders to root
+	if( !nand.CreateEntry( "/sys", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+		|| !nand.CreateEntry( "/ticket", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+		|| !nand.CreateEntry( "/title", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+		|| !nand.CreateEntry( "/shared1", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+		|| !nand.CreateEntry( "/shared2", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
+		|| !nand.CreateEntry( "/import", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+		|| !nand.CreateEntry( "/meta", 0x1000, 1, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
+		|| !nand.CreateEntry( "/tmp", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+	{
+		ShowMessage( "<b>Error! Can't create base folders in the new nand.</b>" );
+		return;
+	}
+	//add cert.sys
+	quint16 handle = nand.CreateEntry( "/sys/cert.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, NAND_READ );
+	if( !handle || !nand.SetData( handle, QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) ) )
+	{
+		ShowMessage( "<b>Error! Can't cert.sys.</b>" );
+		return;
+	}
+
+	//wipe all user-created entries from uid.sys
+	QByteArray uidData = uid.Data();
+	QBuffer buf( &uidData );
+	buf.open( QIODevice::ReadWrite );
+
+	quint64 tid;
+	quint16 titles = 0;
+	quint32 cnt = uidData.size() / 12;
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		buf.seek( i * 12 );
+		buf.read( (char*)&tid, 8 );
+		tid = qFromBigEndian( tid );
+		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
+		quint32 lower = ( tid & 0xffffffff );
+		qDebug() << hex << i << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << upper << lower << QChar( ( lower >> 24 ) & 0xff ) << ( lower & 0xffffff00 );
+		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||	//a channel, not starting with 'H'
+			( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
+			break;
+		titles++;
+	}
+	buf.close();
+
+	uidData.resize( 12 * titles );
+	hexdump12( uidData );
+	uid = UIDmap( uidData );
+
+	//clear content.map
+	shared = SharedContentMap();
+	if( !nand.CreateEntry( "/sys/uid.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
+	{
+		ShowMessage( "<b>Error! Can't /sys/uid.sys</b>" );
+		return;
+	}
+	if( !nand.CreateEntry( "/shared1/content.map", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
+	{
+		ShowMessage( "<b>Error! Can't /shared1/content.map</b>" );
+		return;
+	}
+
+	//commit
+	if( !nand.WriteMetaData() || !UpdateTree() )
+	{
+		ShowMessage( "<b>Error finalizing formatting!</b>" );
+		return;
+	}
+	ShowMessage( "Done!" );
 }
