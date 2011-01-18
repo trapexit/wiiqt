@@ -6,15 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>427</width>
-    <height>290</height>
+    <width>446</width>
+    <height>269</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>New Nand</string>
   </property>
   <layout class="QGridLayout" name="gridLayout_2">
-   <item row="0" column="0" colspan="3">
+   <item row="0" column="0" colspan="2">
     <layout class="QFormLayout" name="formLayout">
      <item row="0" column="0">
       <widget class="QPushButton" name="pushButton_keys">
@@ -60,7 +60,7 @@
      </item>
     </layout>
    </item>
-   <item row="1" column="0">
+   <item row="1" column="0" rowspan="2">
     <widget class="QGroupBox" name="groupBox_bad">
      <property name="title">
       <string>Bad Blocks</string>
@@ -178,39 +178,88 @@
      </layout>
     </widget>
    </item>
-   <item row="1" column="2">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>149</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
+   <item row="1" column="1">
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QPushButton" name="pushButton_oldNand">
+       <property name="minimumSize">
+        <size>
+         <width>150</width>
+         <height>69</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Existing Nand...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>149</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
    </item>
-   <item row="2" column="0" colspan="3">
+   <item row="2" column="1">
+    <layout class="QFormLayout" name="formLayout_2">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_uid">
+       <property name="text">
+        <string>uid.sys</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QComboBox" name="comboBox_uid">
+       <item>
+        <property name="text">
+         <string>None</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Jap</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Usa</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Eur</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Kor</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>From Old Nand</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="3" column="1">
     <widget class="QDialogButtonBox" name="buttonBox">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
      <property name="standardButtons">
       <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="1">
-    <widget class="QPushButton" name="pushButton_oldNand">
-     <property name="minimumSize">
-      <size>
-       <width>150</width>
-       <height>69</height>
-      </size>
-     </property>
-     <property name="text">
-      <string>Existing Nand...</string>
      </property>
     </widget>
    </item>

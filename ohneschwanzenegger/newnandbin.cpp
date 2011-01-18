@@ -1,5 +1,6 @@
 #include "newnandbin.h"
 #include "ui_newnandbin.h"
+#include "../WiiQt/uidmap.h"
 #include "../WiiQt/tools.h"
 
 NewNandBin::NewNandBin( QWidget *parent, QList<quint16> badBlocks ) : QDialog(parent), ui(new Ui::NewNandBin), nand( this )
@@ -102,9 +103,59 @@ bool NewNandBin::CreateDefaultEntries()
 	{
 		qWarning() << "NewNandBin::on_buttonBox_accepted -> error creating cert in the new nand";
 		QMessageBox::warning( this, tr( "Error" ), \
-							  tr( "Can't create cert.sys folders in the new nand." ) );
+							  tr( "Can't create cert.sys in the new nand." ) );
 		return false;
 	}
+	//create uid.sys
+	switch( ui->comboBox_uid->currentIndex() )
+	{
+	case 0:
+		uidSys.clear();
+		break;
+	case 1://jap
+		{
+			UIDmap uid;
+			uid.CreateNew( 0x4a );
+			uidSys = uid.Data();
+		}
+		break;
+	case 2://usa
+		{
+			UIDmap uid;
+			uid.CreateNew( 0x45 );
+			uidSys = uid.Data();
+		}
+		break;
+	case 3://eur
+		{
+			UIDmap uid;
+			uid.CreateNew( 0x50 );
+			uidSys = uid.Data();
+		}
+		break;
+	case 4://kor
+		{
+			UIDmap uid;
+			uid.CreateNew( 0x4b );
+			uidSys = uid.Data();
+		}
+		break;
+	default:
+		break;
+	}
+	if( !uidSys.isEmpty() )
+	{
+		//hexdump( uidSys );
+		quint16 fd = nand.CreateEntry( "/sys/uid.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 );
+		if( !fd || !nand.SetData( fd, uidSys ) )
+		{
+			qWarning() << "NewNandBin::on_buttonBox_accepted -> error creating cert in the new nand";
+			QMessageBox::warning( this, tr( "Error" ), \
+								  tr( "Can't create uid.sys in the new nand." ) );
+			return false;
+		}
+	}
+
 	//commit changes to metadata
 	if( !nand.WriteMetaData() )
 	{
@@ -268,12 +319,45 @@ void NewNandBin::on_pushButton_oldNand_clicked()
 			quint16 block = ( i / 8 );
 			badBlacks << block;
 			QString txt = QString( "%1" ).arg( block );
-			qDebug() << "bad cluster" << hex << i << block << txt;
+			//qDebug() << "bad cluster" << hex << i << block << txt;
 			//if( ui->listWidget_badBlocks->findItems( txt, Qt::MatchExactly ).isEmpty() )//just in case, but this should always be true
 				ui->listWidget_badBlocks->addItem( txt );
 		}
 	}
+	uidSys = old.GetData( "/sys/uid.sys" );
+	if( !uidSys.isEmpty() )
+	{
+		uidSys = GetCleanUid( uidSys );
+		ui->comboBox_uid->setCurrentIndex( 5 );
+		//hexdump( uidSys );
+	}
 	ui->lineEdit_boot->setText( tr( "<From old nand>" ) );
 	ui->lineEdit_keys->setText( tr( "<From old nand>" ) );
+}
 
+//remove all entries of a uid.sys from after the user has started doing stuff
+QByteArray NewNandBin::GetCleanUid( QByteArray old )
+{
+	QBuffer buf( &old );
+	buf.open( QIODevice::ReadWrite );
+
+	quint64 tid;
+	quint16 titles = 0;
+	quint32 cnt = old.size() / 12;
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		buf.seek( i * 12 );
+		buf.read( (char*)&tid, 8 );
+		tid = qFromBigEndian( tid );
+		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
+		quint32 lower = ( tid & 0xffffffff );
+		//qDebug() << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << hex << upper << lower << ( ( lower >> 24 ) & 0xff ) << ( lower & 0xffff00 );
+		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||	//a channel, not starting with 'H'
+			( upper == 0x10000 && ( ( lower & 0xffff00 ) == 0x555000 ) ) )	//a disc update partition
+			break;
+
+		titles++;
+	}
+	buf.close();
+	return old.left( 12 * titles );
 }

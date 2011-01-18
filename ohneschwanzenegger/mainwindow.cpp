@@ -359,6 +359,18 @@ void MainWindow::on_actionNew_nand_from_keys_triggered()
     InitNand( path );
     ui->lineEdit_nandPath->setText( path );
 
+	//these titles should be in order ( not really functional, but to emulate better how the wii comes from the factory )
+	if( !nand.CreateEntry( "/title/00000001", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+		|| !nand.CreateEntry( "/title/00000001/00000004", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+		|| !nand.CreateEntry( "/title/00000001/00000009", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+		|| !nand.CreateEntry( "/title/00000001/00000002", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+		|| !nand.CreateEntry( "/title/00000001/00000100", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+		|| !nand.CreateEntry( "/title/00000001/00000101", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ ) )
+	{
+		ShowMessage( "<b>Error creating title subdirs<\b>" );
+		return;
+	}
+
 	//add some factory test logs and whatnot
 	quint32 _uid = uid.GetUid( NAND_TEST_OWNER, true );
 	if( !nand.CreateEntry( "/shared2/test", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
@@ -409,7 +421,7 @@ bool MainWindow::InitNand( const QString &path )
     QTreeWidgetItem *it = ItemFromPath( "/sys/uid.sys" );
     if( !it )
     {
-		uid.CreateNew( true );
+		uid.CreateNew();//dont add any UID besides the system menu since we dont know what region it will be
 		if( !nand.CreateEntry( "/sys/uid.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
 		{
 			ShowMessage( "<b>Error creating new uid.sys</b>" );
@@ -640,11 +652,11 @@ bool MainWindow::InstallNUSItem( NusJob job )
     if( !CreateIfNeeded( "/title/" + upper + "/" + lower, 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ ) )
     { qWarning() << "can't create title+upper+lower folder";goto error;}
 
-    if( !CreateIfNeeded( "/title/" + upper + "/" + lower + "/content", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 ) )
-    { qWarning() << "can't create content folder";goto error;}
+	if( !CreateIfNeeded( "/title/" + upper + "/" + lower + "/data", _uid, _gid, NAND_DIR, NAND_RW, 0, 0 ) )
+	{ qWarning() << "can't create data folder";goto error;}
 
-    if( !CreateIfNeeded( "/title/" + upper + "/" + lower + "/data", _uid, _gid, NAND_DIR, NAND_RW, 0, 0 ) )
-    { qWarning() << "can't create data folder";goto error;}
+    if( !CreateIfNeeded( "/title/" + upper + "/" + lower + "/content", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 ) )
+	{ qWarning() << "can't create content folder";goto error;}
 
     //delete old tmd/.apps and whatever else in the content folder
     content = ItemFromPath( "/title/" + upper + "/" + lower + "/content" );

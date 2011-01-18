@@ -29,8 +29,10 @@ private:
 
 	QByteArray boots;
 	QByteArray keys;
+	QByteArray uidSys;
 
 	bool CreateDefaultEntries();
+	QByteArray GetCleanUid( QByteArray old );
 
 private slots:
 	void on_pushButton_oldNand_clicked();

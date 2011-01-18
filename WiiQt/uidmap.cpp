@@ -106,7 +106,7 @@ quint32 UIDmap::GetUid( quint64 id, bool autoCreate )
     return qFromBigEndian( uid );
 }
 
-void UIDmap::CreateNew( bool addFactorySetupDiscs )
+void UIDmap::CreateNew( quint8 addFactorySetupDiscs )
 {
     quint64 tid;
     quint32 uid;
@@ -125,9 +125,10 @@ void UIDmap::CreateNew( bool addFactorySetupDiscs )
         data = stuff;
         return;
     }
+	quint8 reg = addFactorySetupDiscs;
 
     //add some entries for the factory setup discs, as seen on my nand up until the first retail game
-    for( quint32 i = 1; i < 0x2f; i++ )
+	for( quint32 i = 1; i < 0x14; i++ )
     {
         switch( i )
         {
@@ -138,45 +139,18 @@ void UIDmap::CreateNew( bool addFactorySetupDiscs )
         case 0x5:tid = qFromBigEndian( 0x100000100ull ); break;
         case 0x6:tid = qFromBigEndian( 0x100000101ull ); break;
         case 0x7:tid = qFromBigEndian( 0x000100003132314aull ); break;
-        case 0x8:tid = qFromBigEndian( 0x100000015ull ); break;
-        case 0x9:tid = qFromBigEndian( 0x0001000030303032ull ); break;
-        case 0xa:tid = qFromBigEndian( 0x100000003ull ); break;
-        case 0xb:tid = qFromBigEndian( 0x10000000aull ); break;
-        case 0xc:tid = qFromBigEndian( 0x10000000bull ); break;
-        case 0xd:tid = qFromBigEndian( 0x10000000cull ); break;
-        case 0xe:tid = qFromBigEndian( 0x10000000dull ); break;
-        case 0xf:tid = qFromBigEndian( 0x10000000eull ); break;
-        case 0x10:tid = qFromBigEndian( 0x10000000full ); break;
-        case 0x11:tid = qFromBigEndian( 0x100000011ull ); break;
-        case 0x12:tid = qFromBigEndian( 0x100000014ull ); break;
-        case 0x13:tid = qFromBigEndian( 0x100000016ull ); break;
-        case 0x14:tid = qFromBigEndian( 0x10000001cull ); break;
-        case 0x15:tid = qFromBigEndian( 0x10000001eull ); break;
-        case 0x16:tid = qFromBigEndian( 0x10000001full ); break;
-        case 0x17:tid = qFromBigEndian( 0x100000021ull ); break;
-        case 0x18:tid = qFromBigEndian( 0x100000022ull ); break;
-        case 0x19:tid = qFromBigEndian( 0x100000023ull ); break;
-        case 0x1a:tid = qFromBigEndian( 0x100000024ull ); break;
-        case 0x1b:tid = qFromBigEndian( 0x100000025ull ); break;
-        case 0x1c:tid = qFromBigEndian( 0x100000026ull ); break;
-        case 0x1d:tid = qFromBigEndian( 0x100000032ull ); break;
-        case 0x1e:tid = qFromBigEndian( 0x100000033ull ); break;
-        case 0x1f:tid = qFromBigEndian( 0x100000035ull ); break;
-        case 0x20:tid = qFromBigEndian( 0x100000037ull ); break;
-        case 0x21:tid = qFromBigEndian( 0x1000000feull ); break;
-        case 0x22:tid = qFromBigEndian( 0x0001000248414341ull ); break;
-        case 0x23:tid = qFromBigEndian( 0x0001000248414141ull ); break;
-        case 0x24:tid = qFromBigEndian( 0x0001000248415941ull ); break;
-        case 0x25:tid = qFromBigEndian( 0x0001000248414641ull ); break;
-        case 0x26:tid = qFromBigEndian( 0x0001000248414645ull ); break;
-        case 0x27:tid = qFromBigEndian( 0x0001000248414241ull ); break;
-        case 0x28:tid = qFromBigEndian( 0x0001000248414741ull ); break;
-        case 0x29:tid = qFromBigEndian( 0x0001000248414745ull ); break;
-        case 0x2a:tid = qFromBigEndian( 0x0001000848414b45ull ); break;
-        case 0x2b:tid = qFromBigEndian( 0x0001000848414c45ull ); break;
-        case 0x2c:tid = qFromBigEndian( 0x0001000148434745ull ); break;
-        case 0x2d:tid = qFromBigEndian( 0x0001000031323245ull ); break;
-        case 0x2e:tid = qFromBigEndian( 0x0001000030303033ull ); break;
+		case 0x8:tid = qFromBigEndian( 0x10000000full ); break;
+		case 0x9:tid = qFromBigEndian( 0x0001000030303032ull ); break;
+		case 0xa:tid = qFromBigEndian( 0x10000000bull ); break;
+		case 0xb:tid = qFromBigEndian( 0x10000000cull ); break;
+		case 0xc:tid = qFromBigEndian( 0x10000000dull ); break;
+		case 0xd:tid = qFromBigEndian( 0x0001000248414341ull ); break;
+		case 0xe:tid = qFromBigEndian( 0x0001000248414141ull ); break;
+		case 0xf:tid = qFromBigEndian( 0x0001000248414641ull ); break;
+		case 0x10:tid = qFromBigEndian( 0x0001000248414241ull ); break;
+		case 0x11:tid = qFromBigEndian( 0x0001000248414741ull ); break;
+		case 0x12:tid = qFromBigEndian( (quint64)( 0x0001000848414b00ull | reg ) ); break;
+		case 0x13:tid = qFromBigEndian( 0x0001000031323200ull ); break;
         default:
             qWarning() << "oops" << hex << i;
             return;

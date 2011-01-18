@@ -58,7 +58,7 @@ public:
 	//in the list, ask for it specifically.
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
 
-	static QMap< quint64, quint16 > List20u();
+	static QMap< quint64, quint16 > List20u();//* there are no games ive seen that contain this update.  this is just a guess
 	static QMap< quint64, quint16 > List22u();
     static QMap< quint64, quint16 > List30u();
     static QMap< quint64, quint16 > List31u();
@@ -70,7 +70,7 @@ public:
     static QMap< quint64, quint16 > List42u();
     static QMap< quint64, quint16 > List43u();
 
-	static QMap< quint64, quint16 > List20e();
+	static QMap< quint64, quint16 > List20e();//* there are no games ive seen that contain this update.  this is just a guess
 	static QMap< quint64, quint16 > List21e();
 	static QMap< quint64, quint16 > List22e(); //* there are no games ive seen that contain this update.  this is just a guess
     static QMap< quint64, quint16 > List30e();
