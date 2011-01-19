@@ -26,26 +26,28 @@ bool CheckTitleIntegrity( quint64 tid );
 
 void Usage()
 {
-    qDebug() << "usage" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
+	qDebug() << "usage:" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
     qDebug() << "\nOther options:";
     qDebug() << "     -boot        shows information about boot 1 and 2";
-	qDebug() << "\n";
+	qDebug() << "";
     qDebug() << "     -fs          verify the filesystem is in tact";
     qDebug() << "                  verifies presence of uid & content.map & checks the hashes in the content.map";
-	qDebug() << "                  check installed titles for RSA & sha1 validity";
-	qDebug() << "                  check installed titles for required IOS, proper uid & gid";
-	qDebug() << "\n";
-	qDebug() << "     -settingtxt  show setting.txt.  this must be combined with \"-fs\"";
-	qDebug() << "\n";
+	qDebug() << "                  check all titles with a ticket for RSA & sha1 validity";
+	qDebug() << "                  check all titles with a ticket titles for required IOS, proper uid & gid";
+	qDebug() << "";
+	qDebug() << "     -settingtxt  check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
+	qDebug() << "";
+	qDebug() << "     -uid	       Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
+	qDebug() << "";
     qDebug() << "     -clInfo      shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
-	qDebug() << "\n";
+	qDebug() << "";
     qDebug() << "     -spare       calculate & compare ecc for all pages in the nand";
 	qDebug() << "                  calculate & compare hmac signatures for all files and superblocks";
-	qDebug() << "\n";
+	qDebug() << "";
 	qDebug() << "     -all         does all of the above";
-	qDebug() << "\n";
+	qDebug() << "";
 	qDebug() << "     -v		   increase verbosity";
-	qDebug() << "\n";
+	qDebug() << "";
 	qDebug() << "     -continue	   try to keep going as fas as possible on errors that should be fatal";
     exit( 1 );
 }
@@ -60,6 +62,15 @@ void Fail( const QString& str )
 QString TidTxt( quint64 tid )
 {
     return QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) );
+}
+
+QString AsciiTxt( quint32 lower )
+{
+	QString ret;
+	lower = qFromBigEndian( lower );
+	for( int i = 0; i < 4; i++ )
+		ret += ascii( (char)( lower >> ( 8 * i ) ) & 0xff );
+	return ret;
 }
 
 void ShowBootInfo( quint8 boot1, QList<Boot2Info> boot2stuff )
@@ -183,8 +194,8 @@ QTreeWidgetItem *ItemFromPath( const QString &path )
         item = FindItem( lookingFor, item );
         if( !item )
         {
-			if( verbose )
-				qWarning() << "ItemFromPath ->item not found" << path;
+//			if( verbose )
+//				qWarning() << "ItemFromPath ->item not found" << path;
             return NULL;
         }
         slash = nextSlash + 1;
@@ -343,7 +354,10 @@ void PrintName( const QByteArray &app )
 	QString desc;
 	if( app.size() == 0x40 )//tag for IOS, region select, ...
 	{
-		desc = QString( app ) + " " + QString( app.right( 0x10 ) );
+		desc = QString( app ).simplified();
+		QString desc2  = QString( app.right( 0x10 ) );
+		if( !desc2.isEmpty() )
+			desc += " " + desc2;
 	}
 	else if( U8::GetU8Offset( app ) >= 0 )					//maybe this is an IMET header.  try to get a name from it
 	{
@@ -371,11 +385,13 @@ void PrintName( const QByteArray &app )
 bool CheckTitleIntegrity( quint64 tid )
 {
     if( validIoses.contains( tid ) )//this one has already been checked
-        return true;
+		return true;
+	quint32 upper = ( ( tid >>32 ) & 0xffffffff );
+	quint32 lower = ( tid & 0xffffffff );
 
-//	if( verbose )
-//		qDebug() << "\n";
-    qDebug() << "Checking" << TidTxt( tid ).insert( 8, "-" ) << "...";
+	if( verbose )
+		qDebug() << "";
+	qDebug() << "Checking" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << "...";
     QString p = TidTxt( tid );
     p.insert( 8 ,"/" );
     QString tikp = p;
@@ -407,11 +423,11 @@ bool CheckTitleIntegrity( quint64 tid )
         case ERROR_RSA_TYPE_UNKNOWN:
         case ERROR_RSA_TYPE_MISMATCH:
         case ERROR_CERT_NOT_FOUND:
-			qDebug() << "\t" << it << "RSA signature isn't even close (" << ch << ")";
+			qDebug().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
             //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
             break;
         case ERROR_RSA_FAKESIGNED:
-            qDebug() << "\t" << it << "fakesigned";
+			qDebug().nospace() << "\t" << qPrintable( it ) << " fakesigned";
             break;
         default:
             break;
@@ -436,8 +452,7 @@ bool CheckTitleIntegrity( quint64 tid )
         }
     }
 
-    quint32 upper = ((tid >>32 ) & 0xffffffff);
-    if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
+	if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
         return true;
 
     quint16 cnt = t.Count();
@@ -467,8 +482,8 @@ bool CheckTitleIntegrity( quint64 tid )
             if( realH != t.Hash( i ) )
             {
                 qDebug() << "\tone of the private contents' hash doesnt check out" << i << pA <<
-                        "\n\texpected" << t.Hash( i ).toHex() <<
-                        "\n\tactual  " << realH.toHex();
+						"\n\texpected" << qPrintable( QString( t.Hash( i ).toHex() ) ) <<
+						"\n\tactual  " << qPrintable( QString( realH.toHex() ) );
                 //return false;									    //dont return false, as this this title may still boot
 			}
 
@@ -494,7 +509,9 @@ bool CheckTitleIntegrity( quint64 tid )
 	if( verbose )
 	{
 		quint16 vers = t.Version();
-		qDebug() << "\tversion:" << QString( "%1.%2" ).arg( ( vers >> 8 ) & 0xff ).arg( vers & 0xff ) << vers << "hex:" << hex << t.Version();
+		qDebug() << "\tversion:" << qPrintable( QString( "%1.%2" ).arg( ( vers >> 8 ) & 0xff ).arg( vers & 0xff ).leftJustified( 10 ) )
+				<< qPrintable( QString( "%1" ).arg( vers ).leftJustified( 10 ) )
+				<< "hex:" << hex << t.Version();
 		if( t.AccessFlags() )
 			qDebug() << "\taccess :" << hex << t.AccessFlags();
 	}
@@ -507,7 +524,7 @@ bool CheckTitleIntegrity( quint64 tid )
     }
 
 	if( verbose > 1 && upper != 1 )
-		qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff )) << TidTxt( ios ).insert( 8, "-" );
+		qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff ));// << TidTxt( ios ).insert( 8, "-" );
     quint32 uid = uidM.GetUid( tid, false );
     if( !uid )
     {
@@ -552,6 +569,139 @@ bool CheckTitleIntegrity( quint64 tid )
         }
     }
     return true;
+}
+
+void ListDeletedTitles()
+{
+	QByteArray uidSys = uidM.Data();
+	if( uidSys.isEmpty() )
+	{
+		qDebug() << "Can\'t check deleted titles without a uid.sys";
+		return;
+	}
+	qDebug() << "Comparing uid.sys against the filesystem...";
+
+	QBuffer buf( &uidSys );
+	buf.open( QIODevice::ReadWrite );
+
+	quint64 tid;
+	quint16 factory = 0;
+	quint32 cnt = uidSys.size() / 12;
+	//skip past items installed at the factory
+	for( quint32 i = 0; i < cnt; i++ )
+	{
+		buf.seek( i * 12 );
+		buf.read( (char*)&tid, 8 );
+		tid = qFromBigEndian( tid );
+		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
+		quint32 lower = ( tid & 0xffffffff );
+		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
+			lower == 0x48415858 ||												//original HBC
+			( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
+			break;
+		if( ( verbose || upper != 0x10000 ) && !tids.contains( tid ) )
+			qDebug().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " was installed at the factory and is now missing";
+
+		factory++;
+	}
+	if( verbose )
+		qDebug() << factory << "titles were installed before any user intervention";
+	for( quint32 i = factory; i < cnt; i++ )
+	{
+		buf.seek( i * 12 );
+		buf.read( (char*)&tid, 8 );
+		tid = qFromBigEndian( tid );
+		if( tids.contains( tid ) )		//this one is already checked
+			continue;
+		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
+		quint32 lower = ( tid & 0xffffffff );
+
+		bool deleted = false;
+		//load tmd
+		QString path = QString( "/title/%1/%2/content/title.tmd" ).arg( upper, 8, 16, QChar( '0' ) ).arg( lower, 8, 16, QChar( '0' ) );
+		QTreeWidgetItem *item = ItemFromPath( path );
+		if( !item )
+		{
+			if( verbose > 1 )
+				qDebug() << "\tCan\'t find TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+			deleted = true;
+		}
+		else
+		{
+			QByteArray ba = nand.GetData( path );
+			if( ba.isEmpty() )
+			{
+				if( verbose > 1 )
+					qDebug() << "\tError reading TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+				deleted = true;
+			}
+			else
+			{
+				qint32 ch = check_cert_chain( ba );
+				switch( ch )
+				{
+				case ERROR_SIG_TYPE:
+				case ERROR_SUB_TYPE:
+				case ERROR_RSA_HASH:
+				case ERROR_RSA_TYPE_UNKNOWN:
+				case ERROR_RSA_TYPE_MISMATCH:
+				case ERROR_CERT_NOT_FOUND:
+					qDebug().nospace() << "\tTMD RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
+					break;
+				case ERROR_RSA_FAKESIGNED:
+					qDebug().nospace() << "\tTMD for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		if( upper != 0x10000 )//dont try to load ticket for disc games
+		{
+			//load ticket
+			path = QString( "/ticket/%1/%2.tik" ).arg( upper, 8, 16, QChar( '0' ) ).arg( lower, 8, 16, QChar( '0' ) );
+			item = ItemFromPath( path );
+			if( !item )
+			{
+				if( verbose > 1 )
+					qDebug() << "\tCan\'t find ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+				deleted = true;
+			}
+			else
+			{
+				QByteArray ba = nand.GetData( path );
+				if( ba.isEmpty() )
+				{
+					if( verbose > 1 )
+						qDebug() << "\tError reading ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+					deleted = true;
+				}
+				else
+				{
+					qint32 ch = check_cert_chain( ba );
+					switch( ch )
+					{
+					case ERROR_SIG_TYPE:
+					case ERROR_SUB_TYPE:
+					case ERROR_RSA_HASH:
+					case ERROR_RSA_TYPE_UNKNOWN:
+					case ERROR_RSA_TYPE_MISMATCH:
+					case ERROR_CERT_NOT_FOUND:
+						qDebug().nospace() << "\tticket RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
+						break;
+					case ERROR_RSA_FAKESIGNED:
+						qDebug().nospace() << "\tticket for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
+						break;
+					default:
+						break;
+					}
+				}
+			}
+		}
+		if( deleted )
+			qDebug().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " has been deleted";
+	}
+	buf.close();
 }
 
 void CheckLostClusters()
@@ -839,7 +989,7 @@ void CheckSettingTxt()
 	{
 		shownSetting = true;
 		hexdump( settingTxt );
-		qDebug() << str;
+		qDebug() << qPrintable( str );
 	}
 	return;
 error:
@@ -847,7 +997,7 @@ error:
 	if( !shownSetting )
 	{
 		hexdump( settingTxt );
-		qDebug() << str;
+		qDebug() << qPrintable( str );
 	}
 }
 
@@ -902,10 +1052,14 @@ int main( int argc, char *argv[] )
             CheckTitleIntegrity( tid );
             //if( !CheckTitleIntegrity( tid ) && tid == 0x100000002ull )	//well, this SHOULD be the case.  but nintendo doesnt care so much about
             //Fail( "The System menu isnt valid" );			//checking signatures & hashes as the rest of us.
-        }
+		}
 		if( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
 		{
 			CheckSettingTxt();
+		}
+		if( args.contains( "-uid", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
+		{
+			ListDeletedTitles();
 		}
     }
 
