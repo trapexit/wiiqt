@@ -953,7 +953,7 @@ void MainWindow::on_actionFormat_triggered()
 		tid = qFromBigEndian( tid );
 		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
 		quint32 lower = ( tid & 0xffffffff );
-		qDebug() << hex << i << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << upper << lower << QChar( ( lower >> 24 ) & 0xff ) << ( lower & 0xffffff00 );
+		//qDebug() << hex << i << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << upper << lower << QChar( ( lower >> 24 ) & 0xff ) << ( lower & 0xffffff00 );
 		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||	//a channel, not starting with 'H'
 			( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
 			break;
@@ -962,16 +962,18 @@ void MainWindow::on_actionFormat_triggered()
 	buf.close();
 
 	uidData.resize( 12 * titles );
-	hexdump12( uidData );
+	//hexdump12( uidData );
 	uid = UIDmap( uidData );
 
-	//clear content.map
+	uidDirty = true;
+	sharedDirty = true;
 	shared = SharedContentMap();
 	if( !nand.CreateEntry( "/sys/uid.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
 	{
 		ShowMessage( "<b>Error! Can't /sys/uid.sys</b>" );
 		return;
 	}
+	//clear content.map
 	if( !nand.CreateEntry( "/shared1/content.map", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
 	{
 		ShowMessage( "<b>Error! Can't /shared1/content.map</b>" );

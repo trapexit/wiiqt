@@ -59,9 +59,13 @@ const QString NandBin::FilePath()
 bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByteArray &first8, const QList<quint16> &badBlocks )
 {
 #ifndef NAND_BIN_CAN_WRITE
+	Q_UNUSED( path );
+	Q_UNUSED( keys );
+	Q_UNUSED( first8 );
+	Q_UNUSED( badBlocks );
 	qWarning() << __FILE__ << "was built without write support";
 	return false;
-#endif
+#else
 	if( keys.size() != 0x400 || first8.size() != 0x108000 )
 	{
 		qWarning() << "NandBin::CreateNew -> bad sizes" << hex << keys.size() << first8.size();
@@ -152,15 +156,17 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
 	AddChildren( root, 0 );
 
 	return true;
+#endif
 }
 //#endif
 
 bool NandBin::Format( bool secure )
 {
 #ifndef NAND_BIN_CAN_WRITE
+	Q_UNUSED( secure );
 	qWarning() << __FILE__ << "was built without write support";
 	return false;
-#endif
+#else
 	if( !f.isOpen() || fats.size() != 0x8000 )
 	{
 		qWarning() << "NandBin::Format -> error" << hex << fats.size() << f.isOpen();
@@ -210,7 +216,7 @@ bool NandBin::Format( bool secure )
 	AddChildren( root, 0 );
 
 	return true;
-
+#endif
 }
 
 #if 0    // this boots ok on real HW.  trap15 thinks these reserved blocks are IOS's way of marking ones it thinks are bad
@@ -519,7 +525,7 @@ bool NandBin::ExtractFile( fst_t fst, const QString &parent )
     QByteArray data = GetFile( fst );
 	if( fst.size && !data.size() )//dont worry if files dont have anything in them anyways
 		//return true;
-	return false;
+		return false;
 
     if( !WriteFile( fi.absoluteFilePath(), data ) )
     {
@@ -1254,9 +1260,11 @@ bool NandBin::WriteDecryptedCluster( quint32 pageNo, const QByteArray &data, fst
 bool NandBin::WritePage( quint32 pageNo, const QByteArray &data )
 {
 #ifndef NAND_BIN_CAN_WRITE
+	Q_UNUSED( pageNo );
+	Q_UNUSED( data );
     qWarning() << __FILE__ << "was built without write support";
     return false;
-#endif
+#else
 	//qDebug() << "NandBin::WritePage(" << hex << pageNo << ")";
     quint32 n_pagelen[] = { 0x800, 0x840, 0x840 };
     if( (quint32)data.size() != n_pagelen[ type ] )
@@ -1274,6 +1282,7 @@ bool NandBin::WritePage( quint32 pageNo, const QByteArray &data )
     //qDebug() << "writing page at:" << f.pos() << hex << (quint32)f.pos();
     //hexdump(  data, 0, 0x20 );
 	return ( f.write( data ) == data.size() );
+#endif
 }
 
 quint16 NandBin::CreateNode( const QString &name, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm )

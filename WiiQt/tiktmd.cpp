@@ -502,6 +502,8 @@ static int check_rsa( const QByteArray &h, const quint8 *sig, const quint8 *key,
     if( strncmp( (char*)h.constData(), (char*) x + n - 20, 20 ) == 0 )
         return ERROR_RSA_FAKESIGNED;
 
+	qDebug() << "Decrypted signature hash:" << QByteArray( (const char*)&x[ n-20 ], 20 ).toHex();
+	qDebug() << "               SHA1 hash:" << h.toHex();
     return ERROR_RSA_HASH;
 }
 

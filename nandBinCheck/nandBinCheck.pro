@@ -24,7 +24,11 @@ SOURCES += main.cpp \
     ../WiiQt/sha1.c \
     ../WiiQt/uidmap.cpp \
     ../WiiQt/sharedcontentmap.cpp \
-    ../WiiQt/nandspare.cpp
+    ../WiiQt/nandspare.cpp \
+    ../WiiQt/settingtxtdialog.cpp \
+    ../WiiQt/u8.cpp \
+    ../WiiQt/lz77.cpp \
+    ../WiiQt/ash.cpp
 
 HEADERS += ../WiiQt/tiktmd.h \
     ../WiiQt/nandbin.h \
@@ -32,4 +36,11 @@ HEADERS += ../WiiQt/tiktmd.h \
     ../WiiQt/blocks0to7.h \
     ../WiiQt/uidmap.h \
     ../WiiQt/sharedcontentmap.h \
-    ../WiiQt/nandspare.h
+    ../WiiQt/nandspare.h \
+    ../WiiQt/settingtxtdialog.h \
+    ../WiiQt/u8.h \
+    ../WiiQt/lz77.h \
+    ../WiiQt/ash.h
+
+FORMS += \
+    ../WiiQt/settingtxtdialog.ui

@@ -607,7 +607,7 @@ QMap< quint64, quint16 > NusDownloader::List20j()
 	titles.insert( 0x100000100ull, 0x2 );		//bcv2
 	titles.insert( 0x100000101ull, 0x4 );		//miosv4
 	titles.insert( 0x1000848414B4aull, 0 );		//EULA - HAKJ
-	titles.insert( 0x1000848414C4aull, 0x2 );	//regsel  //region select isnt in the paper mario update, but putting it here just to be safe
+	titles.insert( 0x1000848414C4aull, 1 );		//regsel  //region select isnt in the paper mario update, but putting it here just to be safe
 	titles.insert( 0x1000248414341ull, 0x2 );	//nigaoeNRv2 - MII
 	titles.insert( 0x1000248414141ull, 0x1 );	//photov1
 	titles.insert( 0x1000248414241ull, 0x4 );	//shoppingv4
@@ -859,7 +859,7 @@ QMap< quint64, quint16 > NusDownloader::List20e()
 	titles.insert( 0x100000100ull, 0x2 );		//bcv2
 	titles.insert( 0x100000101ull, 0x4 );		//miosv4
 	titles.insert( 0x1000848414B50ull, 0 );		//EULA - HAKP
-	titles.insert( 0x1000848414C50ull, 0x2 );	//regsel  //region select isnt in the paper mario update, but putting it here just to be safe
+	titles.insert( 0x1000848414C50ull, 1 );		//regsel  //region select isnt in the paper mario update, but putting it here just to be safe
 	titles.insert( 0x1000248414341ull, 0x2 );	//nigaoeNRv2 - MII
 	titles.insert( 0x1000248414141ull, 0x1 );	//photov1
 	titles.insert( 0x1000248414241ull, 0x4 );	//shoppingv4

@@ -4,9 +4,12 @@
 #include "../WiiQt/uidmap.h"
 #include "../WiiQt/tools.h"
 #include "../WiiQt/tiktmd.h"
+#include "../WiiQt/settingtxtdialog.h"
+#include "../WiiQt/u8.h"
 
 
 //yippie for global variables
+QStringList args;
 NandBin nand;
 SharedContentMap sharedM;
 UIDmap uidM;
@@ -15,6 +18,8 @@ QList< quint64 > validIoses;//dont put stubs in this list.
 QTreeWidgetItem *root;
 QList<quint16> fats;
 quint32 verbose = 0;
+bool tryToKeepGoing = false;
+QByteArray sysMenuResource;
 
 
 bool CheckTitleIntegrity( quint64 tid );
@@ -24,22 +29,32 @@ void Usage()
     qDebug() << "usage" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
     qDebug() << "\nOther options:";
     qDebug() << "     -boot        shows information about boot 1 and 2";
+	qDebug() << "\n";
     qDebug() << "     -fs          verify the filesystem is in tact";
     qDebug() << "                  verifies presence of uid & content.map & checks the hashes in the content.map";
-    qDebug() << "                  check installed titles for RSA & sha1 validity";
-    qDebug() << "                  check installed titles for required IOS, proper uid & gid";
+	qDebug() << "                  check installed titles for RSA & sha1 validity";
+	qDebug() << "                  check installed titles for required IOS, proper uid & gid";
+	qDebug() << "\n";
+	qDebug() << "     -settingtxt  show setting.txt.  this must be combined with \"-fs\"";
+	qDebug() << "\n";
     qDebug() << "     -clInfo      shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
+	qDebug() << "\n";
     qDebug() << "     -spare       calculate & compare ecc for all pages in the nand";
 	qDebug() << "                  calculate & compare hmac signatures for all files and superblocks";
+	qDebug() << "\n";
 	qDebug() << "     -all         does all of the above";
+	qDebug() << "\n";
 	qDebug() << "     -v		   increase verbosity";
+	qDebug() << "\n";
+	qDebug() << "     -continue	   try to keep going as fas as possible on errors that should be fatal";
     exit( 1 );
 }
 
 void Fail( const QString& str )
 {
     qDebug() << str;
-    exit( 1 );
+	if( !tryToKeepGoing )
+		exit( 1 );
 }
 
 QString TidTxt( quint64 tid )
@@ -168,7 +183,8 @@ QTreeWidgetItem *ItemFromPath( const QString &path )
         item = FindItem( lookingFor, item );
         if( !item )
         {
-            qWarning() << "ItemFromPath ->item not found" << path;
+			if( verbose )
+				qWarning() << "ItemFromPath ->item not found" << path;
             return NULL;
         }
         slash = nextSlash + 1;
@@ -322,11 +338,43 @@ bool RecurseCheckGidUid( QTreeWidgetItem *item, const QString &uidS, const QStri
 	return ret;
 }
 
+void PrintName( const QByteArray &app )
+{
+	QString desc;
+	if( app.size() == 0x40 )//tag for IOS, region select, ...
+	{
+		desc = QString( app ) + " " + QString( app.right( 0x10 ) );
+	}
+	else if( U8::GetU8Offset( app ) >= 0 )					//maybe this is an IMET header.  try to get a name from it
+	{
+		U8 u8( app );
+		if( u8.IsOK() )
+		{
+			QStringList names = u8.IMETNames();
+			quint8 cnt = names.size();
+			if( cnt >= 2 )									//try to use english name first
+				desc = names.at( 1 );
+			for( quint8 i = 0; i < cnt && desc.isEmpty(); i++ )
+			{
+				desc = names.at( i );
+			}
+		}
+	}
+	if( desc.isEmpty() )
+	{
+		qDebug() << "\tUnable to get title";
+		return;
+	}
+	qDebug() << "\tname:   " << desc;
+}
+
 bool CheckTitleIntegrity( quint64 tid )
 {
     if( validIoses.contains( tid ) )//this one has already been checked
         return true;
 
+//	if( verbose )
+//		qDebug() << "\n";
     qDebug() << "Checking" << TidTxt( tid ).insert( 8, "-" ) << "...";
     QString p = TidTxt( tid );
     p.insert( 8 ,"/" );
@@ -350,7 +398,8 @@ bool CheckTitleIntegrity( quint64 tid )
             qDebug() << "error getting" << it << "data";
             return false;
         }
-        switch( check_cert_chain( ba ) )
+		qint32 ch = check_cert_chain( ba );
+		switch( ch )
         {
         case ERROR_SIG_TYPE:
         case ERROR_SUB_TYPE:
@@ -358,7 +407,7 @@ bool CheckTitleIntegrity( quint64 tid )
         case ERROR_RSA_TYPE_UNKNOWN:
         case ERROR_RSA_TYPE_MISMATCH:
         case ERROR_CERT_NOT_FOUND:
-            qDebug() << "\t" << it << "RSA signature isn't even close";
+			qDebug() << "\t" << it << "RSA signature isn't even close (" << ch << ")";
             //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
             break;
         case ERROR_RSA_FAKESIGNED:
@@ -374,12 +423,6 @@ bool CheckTitleIntegrity( quint64 tid )
             {
 				qDebug() << "\tthe TMD contains the wrong TID";
                 return false;
-            }
-			if( verbose )
-			{
-				qDebug() << "\tversion:" << t.Version() << hex << t.Version();
-				if( t.AccessFlags() )
-					qDebug() << "\taccess :" << hex << t.AccessFlags();
 			}
         }
         else
@@ -396,7 +439,6 @@ bool CheckTitleIntegrity( quint64 tid )
     quint32 upper = ((tid >>32 ) & 0xffffffff);
     if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
         return true;
-
 
     quint16 cnt = t.Count();
     for( quint16 i = 0; i < cnt; i++ )
@@ -428,17 +470,44 @@ bool CheckTitleIntegrity( quint64 tid )
                         "\n\texpected" << t.Hash( i ).toHex() <<
                         "\n\tactual  " << realH.toHex();
                 //return false;									    //dont return false, as this this title may still boot
-            }
+			}
+
+			//if we are going to check the setting.txt stuff, we need to get the system menu resource file to compare ( check for opera bricks )
+			//so far, i think this file is always boot index 1, type 1
+			if( tid == 0x100000002ull && t.BootIndex( i ) == 1 &&
+				  ( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) ) )
+			{
+				sysMenuResource = ba;
+			}
+
+			//print a description of this title
+			if( verbose > 1 && t.BootIndex( i ) == 0 )
+			{
+				PrintName( ba );
+			}
         }
 
+
     }
+
+	//print version
+	if( verbose )
+	{
+		quint16 vers = t.Version();
+		qDebug() << "\tversion:" << QString( "%1.%2" ).arg( ( vers >> 8 ) & 0xff ).arg( vers & 0xff ) << vers << "hex:" << hex << t.Version();
+		if( t.AccessFlags() )
+			qDebug() << "\taccess :" << hex << t.AccessFlags();
+	}
 
     quint64 ios = t.IOS();
     if( ios && !validIoses.contains( ios ) )
     {
-        qDebug() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" ) ;
+		qDebug() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" );
         return false;
     }
+
+	if( verbose > 1 && upper != 1 )
+		qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff )) << TidTxt( ios ).insert( 8, "-" );
     quint32 uid = uidM.GetUid( tid, false );
     if( !uid )
     {
@@ -576,7 +645,10 @@ void SetUpTree()
         return;
     QTreeWidgetItem *r = nand.GetTree();
     if( r->childCount() != 1 || r->child( 0 )->text( 0 ) != "/" )
+	{
+		tryToKeepGoing = false;
         Fail( "The nand FS is seriously broken.  I Couldn't even find a correct root" );
+	}
 
     root = r->takeChild( 0 );
     delete r;
@@ -643,11 +715,147 @@ void CheckHmac()
         qDebug() << sclBad;
 }
 
+void CheckSettingTxt()
+{
+	qDebug() << "Checking setting.txt stuff...";
+	QByteArray settingTxt = nand.GetData( "/title/00000001/00000002/data/setting.txt" );
+	if( settingTxt.isEmpty() )
+	{
+		Fail( "Error reading setting.txt" );
+		return;
+	}
+
+	settingTxt = SettingTxtDialog::LolCrypt( settingTxt );
+	QString area;
+	bool hArea = false;
+	bool hModel = false;
+	bool hDvd = false;
+	bool hMpch = false;
+	bool hCode = false;
+	bool hSer = false;
+	bool hVideo = false;
+	bool hGame = false;
+	bool shownSetting = false;
+	QString str( settingTxt );
+	str.replace( "\r\n", "\n" );//maybe not needed to do this in 2 steps, but there may be some reason the file only uses "\n", so do it this way to be safe
+	QStringList parts = str.split( "\n", QString::SkipEmptyParts );
+	foreach( QString part, parts )
+	{
+		if( part.startsWith( "AREA=" ) )
+		{
+			if( hArea ) goto error;
+			hArea = true;
+			area = part;
+			area.remove( 0, 5 );
+		}
+		else if( part.startsWith( "MODEL=" ) )
+		{
+			if( hModel ) goto error;
+			hModel = true;
+		}
+		else if( part.startsWith( "DVD=" ) )
+		{
+			if( hDvd ) goto error;
+			hDvd = true;
+		}
+		else if( part.startsWith( "MPCH=" ) )
+		{
+			if( hMpch ) goto error;
+			hMpch = true;
+		}
+		else if( part.startsWith( "CODE=" ) )
+		{
+			if( hCode ) goto error;
+			hCode = true;
+		}
+		else if( part.startsWith( "SERNO=" ) )
+		{
+			if( hSer ) goto error;
+			hSer = true;
+		}
+		else if( part.startsWith( "VIDEO=" ) )
+		{
+			if( hVideo ) goto error;
+			hVideo = true;
+		}
+		else if( part.startsWith( "GAME=" ) )
+		{
+			if( hGame ) goto error;
+			hGame = true;
+		}
+		else
+		{
+			qDebug() << "Extra stuff in the setting.txt.";
+			hexdump( settingTxt );
+			qDebug() << QString( settingTxt );
+			shownSetting = true;
+		}
+	}
+	//something is missing
+	if( !hArea || !hModel || !hDvd || !hMpch || !hCode || !hSer || !hVideo || !hGame )
+		goto error;
+
+	//check for opera brick,
+	//or in certain cases ( such as KOR area setting on the wrong system menu, a full brick presenting as green & purple garbage instead of the "press A" screen )
+	if( sysMenuResource.isEmpty() )
+	{
+		qDebug() << "Error getting the resource file for the system menu.\nCan\'t check it against setting.txt";
+	}
+	else
+	{
+		U8 u8( sysMenuResource );
+		QStringList entries = u8.Entries();
+		if( !u8.IsOK() || !entries.size() )
+		{
+			qDebug() << "Error parsing the resource file for the system menu.\nCan\'t check it against setting.txt";
+		}
+		else
+		{
+			QString sysMenuPath;
+			//these are all the possibilities i saw for AREA in libogc
+			if( area == "AUS" || area == "EUR" )																			//supported by 4.3e
+				sysMenuPath = "html/EU2/iplsetting.ash/EU/EU/ENG/index01.html";
+			else if( area == "USA" || area == "BRA" || area == "HKG" || area == "ASI" || area == "LTN" || area == "SAF" )	//supported by 4.3u
+				sysMenuPath = "html/US2/iplsetting.ash/FIX/US/ENG/index01.html";
+			else if( area == "JPN" || area == "TWN" || area == "ROC" )														//supported by 4.3j
+				sysMenuPath = "html/JP2/iplsetting.ash/JP/JP/JPN/index01.html";
+			else if( area == "KOR" )																						//supported by 4.3k
+				sysMenuPath = "html/KR2/iplsetting.ash/KR/KR/KOR/index01.html";
+			else
+				qDebug() << "unknown AREA setting";
+			if( !entries.contains( sysMenuPath ) )
+			{
+				qDebug() << sysMenuPath << "Was not found in the system menu resources, and is needed by the AREA setting" << area;
+				Fail( "This will likely result in a full/opera brick" );
+			}
+			else
+			{
+				if( verbose )
+					qDebug() << "system menu resource matches setting.txt AREA setting.";
+			}
+		}
+	}
+	if( verbose )
+	{
+		shownSetting = true;
+		hexdump( settingTxt );
+		qDebug() << str;
+	}
+	return;
+error:
+	qDebug() << "Something is wrong with this setting.txt";
+	if( !shownSetting )
+	{
+		hexdump( settingTxt );
+		qDebug() << str;
+	}
+}
+
 int main( int argc, char *argv[] )
 {
     QCoreApplication a( argc, argv );
-	QStringList args = QCoreApplication::arguments();
-	if( args.size() < 2 )
+	args = QCoreApplication::arguments();
+	if( args.size() < 3 )
         Usage();
 
     if( !QFile( args.at( 1 ) ).exists() )
@@ -659,6 +867,9 @@ int main( int argc, char *argv[] )
     root = NULL;
 
 	verbose = args.count( "-v" );
+
+	if( args.contains( "-continue", Qt::CaseInsensitive ) )
+		tryToKeepGoing = true;
 
     //these only serve to show info.  no action is taken
     if( args.contains( "-boot", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
@@ -692,6 +903,10 @@ int main( int argc, char *argv[] )
             //if( !CheckTitleIntegrity( tid ) && tid == 0x100000002ull )	//well, this SHOULD be the case.  but nintendo doesnt care so much about
             //Fail( "The System menu isnt valid" );			//checking signatures & hashes as the rest of us.
         }
+		if( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
+		{
+			CheckSettingTxt();
+		}
     }
 
     if( args.contains( "-clInfo", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
