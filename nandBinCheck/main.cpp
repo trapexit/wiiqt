@@ -22,142 +22,168 @@ bool tryToKeepGoing = false;
 bool color = true;
 QByteArray sysMenuResource;
 
-#ifndef Q_WS_WIN
+#ifdef Q_WS_WIN
+#include <windows.h>   // WinApi header
+#define C_STICKY 31
+#define C_CAP    192
+
+int origColor;
+HANDLE hConsole;
+
+int GetColor()
+{
+    WORD wColor = 0;
+
+    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    //We use csbi for the wAttributes word.
+    if( GetConsoleScreenBufferInfo(hStdOut, &csbi ) )
+    {
+        wColor = csbi.wAttributes;
+    }
+    return wColor;
+}
+
+#else
 #define LEN_STR_PAIR(s) sizeof (s) - 1, s
 enum indicator_no
 {
-	C_LEFT, C_RIGHT, C_END, C_RESET, C_NORM, C_FILE, C_DIR, C_LINK,
-	C_FIFO, C_SOCK,
-	C_BLK, C_CHR, C_MISSING, C_ORPHAN, C_EXEC, C_DOOR, C_SETUID, C_SETGID,
-	C_STICKY, C_OTHER_WRITABLE, C_STICKY_OTHER_WRITABLE, C_CAP, C_MULTIHARDLINK,
-	C_CLR_TO_EOL
+    C_LEFT, C_RIGHT, C_END, C_RESET, C_NORM, C_FILE, C_DIR, C_LINK,
+    C_FIFO, C_SOCK,
+    C_BLK, C_CHR, C_MISSING, C_ORPHAN, C_EXEC, C_DOOR, C_SETUID, C_SETGID,
+    C_STICKY, C_OTHER_WRITABLE, C_STICKY_OTHER_WRITABLE, C_CAP, C_MULTIHARDLINK,
+    C_CLR_TO_EOL
 };
 
 struct bin_str
 {
-	size_t len;			/* Number of bytes */
-	const char *string;		/* Pointer to the same */
+    size_t len;			/* Number of bytes */
+    const char *string;		/* Pointer to the same */
 };
 
 static struct bin_str color_indicator[] =
 {
-	{ LEN_STR_PAIR ("\033[") },		/* lc: Left of color sequence */
-	{ LEN_STR_PAIR ("m") },		/* rc: Right of color sequence */
-	{ 0, NULL },			/* ec: End color (replaces lc+no+rc) */
-	{ LEN_STR_PAIR ("0") },		/* rs: Reset to ordinary colors */
-	{ 0, NULL },			/* no: Normal */
-	{ 0, NULL },			/* fi: File: default */
-	{ LEN_STR_PAIR ("01;34") },		/* di: Directory: bright blue */
-	{ LEN_STR_PAIR ("01;36") },		/* ln: Symlink: bright cyan */
-	{ LEN_STR_PAIR ("33") },		/* pi: Pipe: yellow/brown */
-	{ LEN_STR_PAIR ("01;35") },		/* so: Socket: bright magenta */
-	{ LEN_STR_PAIR ("01;33") },		/* bd: Block device: bright yellow */
-	{ LEN_STR_PAIR ("01;33") },		/* cd: Char device: bright yellow */
-	{ 0, NULL },			/* mi: Missing file: undefined */
-	{ 0, NULL },			/* or: Orphaned symlink: undefined */
-	{ LEN_STR_PAIR ("01;32") },		/* ex: Executable: bright green */
-	{ LEN_STR_PAIR ("01;35") },		/* do: Door: bright magenta */
-	{ LEN_STR_PAIR ("37;41") },		/* su: setuid: white on red */
-	{ LEN_STR_PAIR ("30;43") },		/* sg: setgid: black on yellow */
-	{ LEN_STR_PAIR ("37;44") },		/* st: sticky: black on blue */
-	{ LEN_STR_PAIR ("34;42") },		/* ow: other-writable: blue on green */
-	{ LEN_STR_PAIR ("30;42") },		/* tw: ow w/ sticky: black on green */
-	{ LEN_STR_PAIR ("30;41") },		/* ca: black on red */
-	{ 0, NULL },			/* mh: disabled by default */
-	{ LEN_STR_PAIR ("\033[K") },	/* cl: clear to end of line */
+    { LEN_STR_PAIR ("\033[") },		/* lc: Left of color sequence */
+    { LEN_STR_PAIR ("m") },		/* rc: Right of color sequence */
+    { 0, NULL },			/* ec: End color (replaces lc+no+rc) */
+    { LEN_STR_PAIR ("0") },		/* rs: Reset to ordinary colors */
+    { 0, NULL },			/* no: Normal */
+    { 0, NULL },			/* fi: File: default */
+    { LEN_STR_PAIR ("01;34") },		/* di: Directory: bright blue */
+    { LEN_STR_PAIR ("01;36") },		/* ln: Symlink: bright cyan */
+    { LEN_STR_PAIR ("33") },		/* pi: Pipe: yellow/brown */
+    { LEN_STR_PAIR ("01;35") },		/* so: Socket: bright magenta */
+    { LEN_STR_PAIR ("01;33") },		/* bd: Block device: bright yellow */
+    { LEN_STR_PAIR ("01;33") },		/* cd: Char device: bright yellow */
+    { 0, NULL },			/* mi: Missing file: undefined */
+    { 0, NULL },			/* or: Orphaned symlink: undefined */
+    { LEN_STR_PAIR ("01;32") },		/* ex: Executable: bright green */
+    { LEN_STR_PAIR ("01;35") },		/* do: Door: bright magenta */
+    { LEN_STR_PAIR ("37;41") },		/* su: setuid: white on red */
+    { LEN_STR_PAIR ("30;43") },		/* sg: setgid: black on yellow */
+    { LEN_STR_PAIR ("37;44") },		/* st: sticky: black on blue */
+    { LEN_STR_PAIR ("34;42") },		/* ow: other-writable: blue on green */
+    { LEN_STR_PAIR ("30;42") },		/* tw: ow w/ sticky: black on green */
+    { LEN_STR_PAIR ("30;41") },		/* ca: black on red */
+    { 0, NULL },			/* mh: disabled by default */
+    { LEN_STR_PAIR ("\033[K") },	/* cl: clear to end of line */
 };
 
 static void put_indicator( const struct bin_str *ind )
 {
-	fwrite( ind->string, ind->len, 1, stdout );
+    fwrite( ind->string, ind->len, 1, stdout );
 }
-
+#endif
 void PrintColoredString( const char *msg, int highlite )
 {
-	if( !color )
-	{
-		printf( "%s\n", msg );
-	}
-	else
-	{
-		QString m( msg );
-		QString m2 = m.trimmed();
-		m.resize( m.indexOf( m2 ) );
-		printf( "%s", m.toLatin1().data() );				//print all leading whitespace
-		put_indicator( &color_indicator[ C_LEFT ] );
-		put_indicator( &color_indicator[ highlite ] );		//change color
-		put_indicator( &color_indicator[ C_RIGHT ] );
-		printf( "%s", m2.toLatin1().data() );				//print text
-		put_indicator( &color_indicator[ C_LEFT ] );
-		put_indicator( &color_indicator[ C_NORM ] );		//reset color
-		put_indicator( &color_indicator[ C_RIGHT ] );
-		printf( "\n" );
-	}
-	fflush( stdout );
+    if( !color )
+    {
+        printf( "%s\n", msg );
+    }
+    else
+    {
+        QString m( msg );
+        QString m2 = m.trimmed();
+        m.resize( m.indexOf( m2 ) );
+        printf( "%s", m.toLatin1().data() );				//print all leading whitespace
+#ifdef Q_WS_WIN
+        SetConsoleTextAttribute( hConsole, highlite );
+#else
+        put_indicator( &color_indicator[ C_LEFT ] );
+        put_indicator( &color_indicator[ highlite ] );		//change color
+        put_indicator( &color_indicator[ C_RIGHT ] );
+#endif
+        printf( "%s", m2.toLatin1().data() );				//print text
+#ifdef Q_WS_WIN
+        SetConsoleTextAttribute( hConsole, origColor );
+#else
+        put_indicator( &color_indicator[ C_LEFT ] );
+        put_indicator( &color_indicator[ C_NORM ] );		//reset color
+        put_indicator( &color_indicator[ C_RIGHT ] );
+#endif
+        printf( "\n" );
+    }
+    fflush( stdout );
 }
 
 //redirect text output.  by default, qDebug() goes to stderr
 void DebugHandler( QtMsgType type, const char *msg )
 {
-	switch( type )
-	{
-	case QtDebugMsg:
-		printf( "%s\n", msg );
-		fflush( stdout );
-		break;
-	case QtWarningMsg:
-		PrintColoredString( msg, C_STICKY );
-		break;
-	case QtCriticalMsg:
-		PrintColoredString( msg, C_CAP );
-		break;
-	case QtFatalMsg:
-		fprintf(stderr, "Fatal Error: %s\n", msg);
-		abort();
-		break;
-	}
+    switch( type )
+    {
+    case QtDebugMsg:
+        printf( "%s\n", msg );
+        break;
+    case QtWarningMsg:
+        PrintColoredString( msg, C_STICKY );
+        break;
+    case QtCriticalMsg:
+        PrintColoredString( msg, C_CAP );
+        break;
+    case QtFatalMsg:
+        fprintf(stderr, "Fatal Error: %s\n", msg);
+        abort();
+        break;
+    }
 }
-#endif
 
 bool CheckTitleIntegrity( quint64 tid );
 
 void Usage()
 {
-	qWarning() << "usage:" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
+    qWarning() << "usage:" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
     qDebug() << "\nOther options:";
-	qDebug() << "   -boot           shows information about boot 1 and 2";
-	qDebug() << "";
-	qDebug() << "   -fs             verify the filesystem is in tact";
-	qDebug() << "                   verifies presence of uid & content.map & checks the hashes in the content.map";
-	qDebug() << "                   check all titles with a ticket for RSA & sha1 validity";
-	qDebug() << "                   check all titles with a ticket titles for required IOS, proper uid & gid";
-	qDebug() << "";
-	qDebug() << "   -settingtxt     check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
-	qDebug() << "";
-	qDebug() << "   -uid            Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
-	qDebug() << "";
-	qDebug() << "   -clInfo         shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
-	qDebug() << "";
-	qDebug() << "   -spare          calculate & compare ecc for all pages in the nand";
-	qDebug() << "                   calculate & compare hmac signatures for all files and superblocks";
-	qDebug() << "";
-	qDebug() << "   -all            does all of the above";
-	qDebug() << "";
-	qDebug() << "   -v              increase verbosity";
-	qDebug() << "";
-	qDebug() << "   -continue       try to keep going as fas as possible on errors that should be fatal";
-#ifndef Q_WS_WIN
-	qDebug() << "";
-	qDebug() << "   -nocolor        don\'t use terminal color trickery";
-#endif
+    qDebug() << "   -boot           shows information about boot 1 and 2";
+    qDebug() << "";
+    qDebug() << "   -fs             verify the filesystem is in tact";
+    qDebug() << "                   verifies presence of uid & content.map & checks the hashes in the content.map";
+    qDebug() << "                   check all titles with a ticket for RSA & sha1 validity";
+    qDebug() << "                   check all titles with a ticket titles for required IOS, proper uid & gid";
+    qDebug() << "";
+    qDebug() << "   -settingtxt     check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
+    qDebug() << "";
+    qDebug() << "   -uid            Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
+    qDebug() << "";
+    qDebug() << "   -clInfo         shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
+    qDebug() << "";
+    qDebug() << "   -spare          calculate & compare ecc for all pages in the nand";
+    qDebug() << "                   calculate & compare hmac signatures for all files and superblocks";
+    qDebug() << "";
+    qDebug() << "   -all            does all of the above";
+    qDebug() << "";
+    qDebug() << "   -v              increase verbosity";
+    qDebug() << "";
+    qDebug() << "   -continue       try to keep going as fas as possible on errors that should be fatal";
+    qDebug() << "";
+    qDebug() << "   -nocolor        don\'t use terminal color trickery";
     exit( 1 );
 }
 
 void Fail( const QString& str )
 {
-	qCritical() << str;
-	if( !tryToKeepGoing )
-		exit( 1 );
+    qCritical() << str;
+    if( !tryToKeepGoing )
+        exit( 1 );
 }
 
 QString TidTxt( quint64 tid )
@@ -167,11 +193,11 @@ QString TidTxt( quint64 tid )
 
 QString AsciiTxt( quint32 lower )
 {
-	QString ret;
-	lower = qFromBigEndian( lower );
-	for( int i = 0; i < 4; i++ )
-		ret += ascii( (char)( lower >> ( 8 * i ) ) & 0xff );
-	return ret;
+    QString ret;
+    lower = qFromBigEndian( lower );
+    for( int i = 0; i < 4; i++ )
+        ret += ascii( (char)( lower >> ( 8 * i ) ) & 0xff );
+    return ret;
 }
 
 void ShowBootInfo( quint8 boot1, QList<Boot2Info> boot2stuff )
@@ -205,14 +231,14 @@ void ShowBootInfo( quint8 boot1, QList<Boot2Info> boot2stuff )
         QString str = QString( "blocks %1 & %2: " ).arg( bi.firstBlock ).arg( bi.secondBlock );
         if( bi.state == BOOT_2_ERROR_PARSING || bi.state == BOOT_2_ERROR )
             str += "parsing error";
-	    else if( bi.state == BOOT_2_BAD_SIGNATURE )
+        else if( bi.state == BOOT_2_BAD_SIGNATURE )
             str +=  "Bad RSA Signature";
-	    else if( bi.state == BOOT_2_BAD_CONTENT_HASH )
+        else if( bi.state == BOOT_2_BAD_CONTENT_HASH )
             str += "Content hash doesn't match TMD";
-	    else if( bi.state == BOOT_2_ERROR_PARSING )
+        else if( bi.state == BOOT_2_ERROR_PARSING )
             str += "Error parsing boot2";
-	    else
-	    {
+        else
+        {
 
             if( bi.state & BOOT_2_MARKED_BAD )
                 str += "Marked as bad blocks; ";
@@ -261,8 +287,8 @@ void ShowBootInfo( quint8 boot1, QList<Boot2Info> boot2stuff )
                 break;
             }
             str += ver;
-	    }
-	    qDebug() << str;
+        }
+        qDebug() << str;
     }
 }
 
@@ -295,8 +321,8 @@ QTreeWidgetItem *ItemFromPath( const QString &path )
         item = FindItem( lookingFor, item );
         if( !item )
         {
-//			if( verbose )
-//				qWarning() << "ItemFromPath ->item not found" << path;
+            //			if( verbose )
+            //				qWarning() << "ItemFromPath ->item not found" << path;
             return NULL;
         }
         slash = nextSlash + 1;
@@ -330,9 +356,9 @@ QList< quint64 > InstalledTitles()
     for( quint16 i = 0; i < subfc; i++ )//check all subfolders of "/ticket"
     {
         QTreeWidgetItem *subF = tikFolder->child( i );
-		//qDebug() << "checking folder" << subF->text( 0 );
+        //qDebug() << "checking folder" << subF->text( 0 );
         bool ok = false;
-		quint32 upper = subF->text( 0 ).toUInt( &ok, 16 );//make sure it can be converted to int
+        quint32 upper = subF->text( 0 ).toUInt( &ok, 16 );//make sure it can be converted to int
         if ( !ok )
             continue;
 
@@ -341,18 +367,18 @@ QList< quint64 > InstalledTitles()
         {
             QTreeWidgetItem *tikI = subF->child( j );
             QString name = tikI->text( 0 );
-			//qDebug() << "checking item" << subF->text( 0 ) + "/" + name;
+            //qDebug() << "checking item" << subF->text( 0 ) + "/" + name;
             if( !name.endsWith( ".tik" ) )
             {
-				//qDebug() << "!tik";
+                //qDebug() << "!tik";
                 continue;
             }
 
             name.resize( 8 );
-			quint32 lower = name.toUInt( &ok, 16 );
+            quint32 lower = name.toUInt( &ok, 16 );
             if( !ok )
             {
-				//qDebug() << "!ok";
+                //qDebug() << "!ok";
                 continue;
             }
 
@@ -360,16 +386,16 @@ QList< quint64 > InstalledTitles()
             QTreeWidgetItem *tmdI = ItemFromPath( "/title/" + subF->text( 0 ) + "/" + name + "/content/title.tmd" );
             if( !tmdI )
             {
-				//qDebug() << "no tmd";
+                //qDebug() << "no tmd";
                 continue;
             }
 
             quint64 tid = (( (quint64)upper << 32) | lower );
-			//qDebug() << "adding item to list" << TidTxt( tid );
+            //qDebug() << "adding item to list" << TidTxt( tid );
             ret << tid;
         }
     }
-	qSort( ret.begin(), ret.end() );
+    qSort( ret.begin(), ret.end() );
     return ret;
 }
 
@@ -434,65 +460,65 @@ void BuildGoodIosList()
 
 bool RecurseCheckGidUid( QTreeWidgetItem *item, const QString &uidS, const QString &gidS, const QString &path )
 {
-	bool ret = true;
-	quint16 cnt = item->childCount();
-	for( quint16 i = 0; i < cnt; i++ )
-	{
-		QTreeWidgetItem *child = item->child( i );
-		if( child->text( 3 ) != uidS || !child->text( 4 ).startsWith( gidS ) )
-		{
-			ret = false;
-			qWarning() << "\tincorrect uid/gid for" << QString( path + child->text( 0 ) );
-		}
-		if( !RecurseCheckGidUid( child, uidS, gidS, path + child->text( 0 ) + "/" ) )
-			ret = false;
-	}
-	return ret;
+    bool ret = true;
+    quint16 cnt = item->childCount();
+    for( quint16 i = 0; i < cnt; i++ )
+    {
+        QTreeWidgetItem *child = item->child( i );
+        if( child->text( 3 ) != uidS || !child->text( 4 ).startsWith( gidS ) )
+        {
+            ret = false;
+            qWarning() << "\tincorrect uid/gid for" << QString( path + child->text( 0 ) );
+        }
+        if( !RecurseCheckGidUid( child, uidS, gidS, path + child->text( 0 ) + "/" ) )
+            ret = false;
+    }
+    return ret;
 }
 
 void PrintName( const QByteArray &app )
 {
-	QString desc;
-	if( app.size() == 0x40 )//tag for IOS, region select, ...
-	{
-		desc = QString( app ).simplified();
-		QString desc2  = QString( app.right( 0x10 ) );
-		if( !desc2.isEmpty() )
-			desc += " " + desc2;
-	}
-	else if( U8::GetU8Offset( app ) >= 0 )					//maybe this is an IMET header.  try to get a name from it
-	{
-		U8 u8( app );
-		if( u8.IsOK() )
-		{
-			QStringList names = u8.IMETNames();
-			quint8 cnt = names.size();
-			if( cnt >= 2 )									//try to use english name first
-				desc = names.at( 1 );
-			for( quint8 i = 0; i < cnt && desc.isEmpty(); i++ )
-			{
-				desc = names.at( i );
-			}
-		}
-	}
-	if( desc.isEmpty() )
-	{
-		qDebug() << "\tUnable to get title";
-		return;
-	}
-	qDebug() << "\tname:   " << desc;
+    QString desc;
+    if( app.size() == 0x40 )//tag for IOS, region select, ...
+    {
+        desc = QString( app ).simplified();
+        QString desc2  = QString( app.right( 0x10 ) );
+        if( !desc2.isEmpty() )
+            desc += " " + desc2;
+    }
+    else if( U8::GetU8Offset( app ) >= 0 )					//maybe this is an IMET header.  try to get a name from it
+    {
+        U8 u8( app );
+        if( u8.IsOK() )
+        {
+            QStringList names = u8.IMETNames();
+            quint8 cnt = names.size();
+            if( cnt >= 2 )									//try to use english name first
+                desc = names.at( 1 );
+            for( quint8 i = 0; i < cnt && desc.isEmpty(); i++ )
+            {
+                desc = names.at( i );
+            }
+        }
+    }
+    if( desc.isEmpty() )
+    {
+        qDebug() << "\tUnable to get title";
+        return;
+    }
+    qDebug() << "\tname:   " << desc;
 }
 
 bool CheckTitleIntegrity( quint64 tid )
 {
     if( validIoses.contains( tid ) )//this one has already been checked
-		return true;
-	quint32 upper = ( ( tid >>32 ) & 0xffffffff );
-	quint32 lower = ( tid & 0xffffffff );
+        return true;
+    quint32 upper = ( ( tid >>32 ) & 0xffffffff );
+    quint32 lower = ( tid & 0xffffffff );
 
-	if( verbose )
-		qDebug() << "";
-	qDebug() << "Checking" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << "...";
+    if( verbose )
+        qDebug() << "";
+    qDebug() << "Checking" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << "...";
     QString p = TidTxt( tid );
     p.insert( 8 ,"/" );
     QString tikp = p;
@@ -515,8 +541,8 @@ bool CheckTitleIntegrity( quint64 tid )
             qDebug() << "error getting" << it << "data";
             return false;
         }
-		qint32 ch = check_cert_chain( ba );
-		switch( ch )
+        qint32 ch = check_cert_chain( ba );
+        switch( ch )
         {
         case ERROR_SIG_TYPE:
         case ERROR_SUB_TYPE:
@@ -524,11 +550,11 @@ bool CheckTitleIntegrity( quint64 tid )
         case ERROR_RSA_TYPE_UNKNOWN:
         case ERROR_RSA_TYPE_MISMATCH:
         case ERROR_CERT_NOT_FOUND:
-			qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+            qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
             //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
             break;
         case ERROR_RSA_FAKESIGNED:
-			qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+            qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
             break;
         default:
             break;
@@ -538,22 +564,22 @@ bool CheckTitleIntegrity( quint64 tid )
             t = Tmd( ba );
             if( t.Tid() != tid )
             {
-				qWarning() << "\tthe TMD contains the wrong TID";
+                qWarning() << "\tthe TMD contains the wrong TID";
                 return false;
-			}
+            }
         }
         else
         {
-			Ticket ticket( ba, false );
+            Ticket ticket( ba, false );
             if( ticket.Tid() != tid )
             {
-				qWarning() << "\tthe ticket contains the wrong TID";
+                qWarning() << "\tthe ticket contains the wrong TID";
                 return false;
-			}
+            }
         }
     }
 
-	if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
+    if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
         return true;
 
     quint16 cnt = t.Count();
@@ -563,7 +589,7 @@ bool CheckTitleIntegrity( quint64 tid )
         {
             if( sharedM.GetAppFromHash( t.Hash( i ) ).isEmpty() )
             {
-				qWarning() << "\tone of the shared contents is missing";
+                qWarning() << "\tone of the shared contents is missing";
                 return false;
             }
         }
@@ -576,56 +602,56 @@ bool CheckTitleIntegrity( quint64 tid )
             QByteArray ba = nand.GetData( pA );
             if( ba.isEmpty() )
             {
-				qWarning() << "\t error reading one of the private contents" << pA;
+                qWarning() << "\t error reading one of the private contents" << pA;
                 return false;
             }
             QByteArray realH = GetSha1( ba );
             if( realH != t.Hash( i ) )
             {
-				qWarning() << "\tone of the private contents' hash doesnt check out" << i << pA <<
-						"\n\texpected" << qPrintable( QString( t.Hash( i ).toHex() ) ) <<
-						"\n\tactual  " << qPrintable( QString( realH.toHex() ) );
+                qWarning() << "\tone of the private contents' hash doesnt check out" << i << pA <<
+                        "\n\texpected" << qPrintable( QString( t.Hash( i ).toHex() ) ) <<
+                        "\n\tactual  " << qPrintable( QString( realH.toHex() ) );
                 //return false;									    //dont return false, as this this title may still boot
-			}
+            }
 
-			//if we are going to check the setting.txt stuff, we need to get the system menu resource file to compare ( check for opera bricks )
-			//so far, i think this file is always boot index 1, type 1
-			if( tid == 0x100000002ull && t.BootIndex( i ) == 1 &&
-				  ( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) ) )
-			{
-				sysMenuResource = ba;
-			}
+            //if we are going to check the setting.txt stuff, we need to get the system menu resource file to compare ( check for opera bricks )
+            //so far, i think this file is always boot index 1, type 1
+            if( tid == 0x100000002ull && t.BootIndex( i ) == 1 &&
+                ( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) ) )
+            {
+                sysMenuResource = ba;
+            }
 
-			//print a description of this title
-			if( verbose > 1 && t.BootIndex( i ) == 0 )
-			{
-				PrintName( ba );
-			}
+            //print a description of this title
+            if( verbose > 1 && t.BootIndex( i ) == 0 )
+            {
+                PrintName( ba );
+            }
         }
 
 
     }
 
-	//print version
-	if( verbose )
-	{
-		quint16 vers = t.Version();
-		qDebug() << "\tversion:" << qPrintable( QString( "%1.%2" ).arg( ( vers >> 8 ) & 0xff ).arg( vers & 0xff ).leftJustified( 10 ) )
-				<< qPrintable( QString( "%1" ).arg( vers ).leftJustified( 10 ) )
-				<< "hex:" << hex << t.Version();
-		if( t.AccessFlags() )
-			qDebug() << "\taccess :" << hex << t.AccessFlags();
-	}
+    //print version
+    if( verbose )
+    {
+        quint16 vers = t.Version();
+        qDebug() << "\tversion:" << qPrintable( QString( "%1.%2" ).arg( ( vers >> 8 ) & 0xff ).arg( vers & 0xff ).leftJustified( 10 ) )
+                << qPrintable( QString( "%1" ).arg( vers ).leftJustified( 10 ) )
+                << "hex:" << hex << t.Version();
+        if( t.AccessFlags() )
+            qDebug() << "\taccess :" << hex << t.AccessFlags();
+    }
 
     quint64 ios = t.IOS();
     if( ios && !validIoses.contains( ios ) )
     {
-		qWarning() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" );
+        qWarning() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" );
         return false;
     }
 
-	if( verbose > 1 && upper != 1 )
-		qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff ));// << TidTxt( ios ).insert( 8, "-" );
+    if( verbose > 1 && upper != 1 )
+        qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff ));// << TidTxt( ios ).insert( 8, "-" );
     quint32 uid = uidM.GetUid( tid, false );
     if( !uid )
     {
@@ -645,16 +671,16 @@ bool CheckTitleIntegrity( quint64 tid )
         QString uidS = QString( "%1" ).arg( uid, 8, 16, QChar( '0' ) );
         QString gidS = QString( "%1" ).arg( gid, 4, 16, QChar( '0' ) );
         if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
-			qWarning() << "\tincorrect uid/gid for data folder";
+            qWarning() << "\tincorrect uid/gid for data folder";
 
-		RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
-		/*quint16 cnt = dataI->childCount();
+        RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
+        /*quint16 cnt = dataI->childCount();
         for( quint16 i = 0; i < cnt; i++ )
         {
             QTreeWidgetItem *item = dataI->child( i );
             if( item->text( 3 ) != uidS || !item->text( 4 ).startsWith( gidS ) )
                 qDebug() << "\tincorrect uid/gid for" << QString( "data/" + item->text( 0 ) );
-		}*/
+        }*/
     }
     dataP.resize( 25 );
     dataP += "content";
@@ -666,7 +692,7 @@ bool CheckTitleIntegrity( quint64 tid )
         {
             QTreeWidgetItem *item = dataI->child( i );
             if( item->text( 3 ) != "00000000" || !item->text( 4 ).startsWith( "0000" ) )
-				qWarning() << "\tincorrect uid/gid for" << QString( "content/" + item->text( 0 ) );
+                qWarning() << "\tincorrect uid/gid for" << QString( "content/" + item->text( 0 ) );
         }
     }
     return true;
@@ -674,135 +700,135 @@ bool CheckTitleIntegrity( quint64 tid )
 
 void ListDeletedTitles()
 {
-	QByteArray uidSys = uidM.Data();
-	if( uidSys.isEmpty() )
-	{
-		qDebug() << "Can\'t check deleted titles without a uid.sys";
-		return;
-	}
-	qDebug() << "Comparing uid.sys against the filesystem...";
+    QByteArray uidSys = uidM.Data();
+    if( uidSys.isEmpty() )
+    {
+        qDebug() << "Can\'t check deleted titles without a uid.sys";
+        return;
+    }
+    qDebug() << "Comparing uid.sys against the filesystem...";
 
-	QBuffer buf( &uidSys );
-	buf.open( QIODevice::ReadWrite );
+    QBuffer buf( &uidSys );
+    buf.open( QIODevice::ReadWrite );
 
-	quint64 tid;
-	quint16 factory = 0;
-	quint32 cnt = uidSys.size() / 12;
-	//skip past items installed at the factory
-	for( quint32 i = 0; i < cnt; i++ )
-	{
-		buf.seek( i * 12 );
-		buf.read( (char*)&tid, 8 );
-		tid = qFromBigEndian( tid );
-		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
-		quint32 lower = ( tid & 0xffffffff );
-		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
-			lower == 0x48415858 ||												//original HBC
-			( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
-			break;
-		if( ( verbose || upper != 0x10000 ) && !tids.contains( tid ) )
-			qDebug().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " was installed at the factory and is now missing";
+    quint64 tid;
+    quint16 factory = 0;
+    quint32 cnt = uidSys.size() / 12;
+    //skip past items installed at the factory
+    for( quint32 i = 0; i < cnt; i++ )
+    {
+        buf.seek( i * 12 );
+        buf.read( (char*)&tid, 8 );
+        tid = qFromBigEndian( tid );
+        quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
+        quint32 lower = ( tid & 0xffffffff );
+        if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
+            lower == 0x48415858 ||												//original HBC
+            ( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
+            break;
+        if( ( verbose || upper != 0x10000 ) && !tids.contains( tid ) )
+            qDebug().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " was installed at the factory and is now missing";
 
-		factory++;
-	}
-	if( verbose )
-		qDebug() << factory << "titles were installed before any user intervention";
-	for( quint32 i = factory; i < cnt; i++ )
-	{
-		buf.seek( i * 12 );
-		buf.read( (char*)&tid, 8 );
-		tid = qFromBigEndian( tid );
-		if( tids.contains( tid ) )		//this one is already checked
-			continue;
-		quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
-		quint32 lower = ( tid & 0xffffffff );
+        factory++;
+    }
+    if( verbose )
+        qDebug() << factory << "titles were installed before any user intervention";
+    for( quint32 i = factory; i < cnt; i++ )
+    {
+        buf.seek( i * 12 );
+        buf.read( (char*)&tid, 8 );
+        tid = qFromBigEndian( tid );
+        if( tids.contains( tid ) )		//this one is already checked
+            continue;
+        quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
+        quint32 lower = ( tid & 0xffffffff );
 
-		bool deleted = false;
-		//load tmd
-		QString path = QString( "/title/%1/%2/content/title.tmd" ).arg( upper, 8, 16, QChar( '0' ) ).arg( lower, 8, 16, QChar( '0' ) );
-		QTreeWidgetItem *item = ItemFromPath( path );
-		if( !item )
-		{
-			if( verbose > 1 )
-				qWarning() << "\tCan\'t find TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
-			deleted = true;
-		}
-		else
-		{
-			QByteArray ba = nand.GetData( path );
-			if( ba.isEmpty() )
-			{
-				if( verbose > 1 )
-					qWarning() << "\tError reading TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
-				deleted = true;
-			}
-			else
-			{
-				qint32 ch = check_cert_chain( ba );
-				switch( ch )
-				{
-				case ERROR_SIG_TYPE:
-				case ERROR_SUB_TYPE:
-				case ERROR_RSA_HASH:
-				case ERROR_RSA_TYPE_UNKNOWN:
-				case ERROR_RSA_TYPE_MISMATCH:
-				case ERROR_CERT_NOT_FOUND:
-					qWarning().nospace() << "\tTMD RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
-					break;
-				case ERROR_RSA_FAKESIGNED:
-					qWarning().nospace() << "\tTMD for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
-					break;
-				default:
-					break;
-				}
-			}
-		}
-		if( upper != 0x10000 )//dont try to load ticket for disc games
-		{
-			//load ticket
-			path = QString( "/ticket/%1/%2.tik" ).arg( upper, 8, 16, QChar( '0' ) ).arg( lower, 8, 16, QChar( '0' ) );
-			item = ItemFromPath( path );
-			if( !item )
-			{
-				if( verbose > 1 )
-					qWarning() << "\tCan\'t find ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
-				deleted = true;
-			}
-			else
-			{
-				QByteArray ba = nand.GetData( path );
-				if( ba.isEmpty() )
-				{
-					if( verbose > 1 )
-						qWarning() << "\tError reading ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
-					deleted = true;
-				}
-				else
-				{
-					qint32 ch = check_cert_chain( ba );
-					switch( ch )
-					{
-					case ERROR_SIG_TYPE:
-					case ERROR_SUB_TYPE:
-					case ERROR_RSA_HASH:
-					case ERROR_RSA_TYPE_UNKNOWN:
-					case ERROR_RSA_TYPE_MISMATCH:
-					case ERROR_CERT_NOT_FOUND:
-						qWarning().nospace() << "\tticket RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
-						break;
-					case ERROR_RSA_FAKESIGNED:
-						qWarning().nospace() << "\tticket for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
-						break;
-					default:
-						break;
-					}
-				}
-			}
-		}
-		if( deleted )
-			qWarning().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " has been deleted";
-	}
-	buf.close();
+        bool deleted = false;
+        //load tmd
+        QString path = QString( "/title/%1/%2/content/title.tmd" ).arg( upper, 8, 16, QChar( '0' ) ).arg( lower, 8, 16, QChar( '0' ) );
+        QTreeWidgetItem *item = ItemFromPath( path );
+        if( !item )
+        {
+            if( verbose > 1 )
+                qWarning() << "\tCan\'t find TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+            deleted = true;
+        }
+        else
+        {
+            QByteArray ba = nand.GetData( path );
+            if( ba.isEmpty() )
+            {
+                if( verbose > 1 )
+                    qWarning() << "\tError reading TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+                deleted = true;
+            }
+            else
+            {
+                qint32 ch = check_cert_chain( ba );
+                switch( ch )
+                {
+                case ERROR_SIG_TYPE:
+                case ERROR_SUB_TYPE:
+                case ERROR_RSA_HASH:
+                case ERROR_RSA_TYPE_UNKNOWN:
+                case ERROR_RSA_TYPE_MISMATCH:
+                case ERROR_CERT_NOT_FOUND:
+                    qWarning().nospace() << "\tTMD RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
+                    break;
+                case ERROR_RSA_FAKESIGNED:
+                    qWarning().nospace() << "\tTMD for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        if( upper != 0x10000 )//dont try to load ticket for disc games
+        {
+            //load ticket
+            path = QString( "/ticket/%1/%2.tik" ).arg( upper, 8, 16, QChar( '0' ) ).arg( lower, 8, 16, QChar( '0' ) );
+            item = ItemFromPath( path );
+            if( !item )
+            {
+                if( verbose > 1 )
+                    qWarning() << "\tCan\'t find ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+                deleted = true;
+            }
+            else
+            {
+                QByteArray ba = nand.GetData( path );
+                if( ba.isEmpty() )
+                {
+                    if( verbose > 1 )
+                        qWarning() << "\tError reading ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+                    deleted = true;
+                }
+                else
+                {
+                    qint32 ch = check_cert_chain( ba );
+                    switch( ch )
+                    {
+                    case ERROR_SIG_TYPE:
+                    case ERROR_SUB_TYPE:
+                    case ERROR_RSA_HASH:
+                    case ERROR_RSA_TYPE_UNKNOWN:
+                    case ERROR_RSA_TYPE_MISMATCH:
+                    case ERROR_CERT_NOT_FOUND:
+                        qWarning().nospace() << "\tticket RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
+                        break;
+                    case ERROR_RSA_FAKESIGNED:
+                        qWarning().nospace() << "\tticket for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
+                        break;
+                    default:
+                        break;
+                    }
+                }
+            }
+        }
+        if( deleted )
+            qWarning().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " has been deleted";
+    }
+    buf.close();
 }
 
 void CheckLostClusters()
@@ -879,10 +905,10 @@ void CheckEcc()
     /*QList< quint32 > badCpy = bad;
     while( badCpy.size() )
     {
-	quint16 p = badCpy.takeFirst();
-	quint16 block = p/64;
-	if( !blocks.contains( block ) )
-	    blocks << block;
+    quint16 p = badCpy.takeFirst();
+    quint16 block = p/64;
+    if( !blocks.contains( block ) )
+        blocks << block;
     }*/
     qDebug() << bad.size() << "out of" << checked << "pages had incorrect ecc.\nthey were spread through"
             << clusters.size() << "clusters in" << blocks.size() << "blocks:\n" << blocks;
@@ -896,10 +922,10 @@ void SetUpTree()
         return;
     QTreeWidgetItem *r = nand.GetTree();
     if( r->childCount() != 1 || r->child( 0 )->text( 0 ) != "/" )
-	{
-		tryToKeepGoing = false;
+    {
+        tryToKeepGoing = false;
         Fail( "The nand FS is seriously broken.  I Couldn't even find a correct root" );
-	}
+    }
 
     root = r->takeChild( 0 );
     delete r;
@@ -940,7 +966,7 @@ int RecurseCheckHmac( QTreeWidgetItem *dir )
 
             if( !nand.CheckHmacData( entry ) )
             {
-				qCritical() << "bad HMAC for" << PathFromItem( item );
+                qCritical() << "bad HMAC for" << PathFromItem( item );
                 ret++;
             }
         }
@@ -961,159 +987,161 @@ void CheckHmac()
         if( !nand.CheckHmacMeta( i ) )
             sclBad << i;
     }
-	qDebug() << sclBad.size() << "superClusters had bad HMAC data";
+    qDebug() << sclBad.size() << "superClusters had bad HMAC data";
     if( sclBad.size() )
-		qCritical() << sclBad;
+        qCritical() << sclBad;
 }
 
 void CheckSettingTxt()
 {
-	qDebug() << "Checking setting.txt stuff...";
-	QByteArray settingTxt = nand.GetData( "/title/00000001/00000002/data/setting.txt" );
-	if( settingTxt.isEmpty() )
-	{
-		Fail( "Error reading setting.txt" );
-		return;
-	}
+    qDebug() << "Checking setting.txt stuff...";
+    QByteArray settingTxt = nand.GetData( "/title/00000001/00000002/data/setting.txt" );
+    if( settingTxt.isEmpty() )
+    {
+        Fail( "Error reading setting.txt" );
+        return;
+    }
 
-	settingTxt = SettingTxtDialog::LolCrypt( settingTxt );
-	QString area;
-	bool hArea = false;
-	bool hModel = false;
-	bool hDvd = false;
-	bool hMpch = false;
-	bool hCode = false;
-	bool hSer = false;
-	bool hVideo = false;
-	bool hGame = false;
-	bool shownSetting = false;
-	QString str( settingTxt );
-	str.replace( "\r\n", "\n" );//maybe not needed to do this in 2 steps, but there may be some reason the file only uses "\n", so do it this way to be safe
-	QStringList parts = str.split( "\n", QString::SkipEmptyParts );
-	foreach( QString part, parts )
-	{
-		if( part.startsWith( "AREA=" ) )
-		{
-			if( hArea ) goto error;
-			hArea = true;
-			area = part;
-			area.remove( 0, 5 );
-		}
-		else if( part.startsWith( "MODEL=" ) )
-		{
-			if( hModel ) goto error;
-			hModel = true;
-		}
-		else if( part.startsWith( "DVD=" ) )
-		{
-			if( hDvd ) goto error;
-			hDvd = true;
-		}
-		else if( part.startsWith( "MPCH=" ) )
-		{
-			if( hMpch ) goto error;
-			hMpch = true;
-		}
-		else if( part.startsWith( "CODE=" ) )
-		{
-			if( hCode ) goto error;
-			hCode = true;
-		}
-		else if( part.startsWith( "SERNO=" ) )
-		{
-			if( hSer ) goto error;
-			hSer = true;
-		}
-		else if( part.startsWith( "VIDEO=" ) )
-		{
-			if( hVideo ) goto error;
-			hVideo = true;
-		}
-		else if( part.startsWith( "GAME=" ) )
-		{
-			if( hGame ) goto error;
-			hGame = true;
-		}
-		else
-		{
-			qDebug() << "Extra stuff in the setting.txt.";
-			hexdump( settingTxt );
-			qDebug() << QString( settingTxt );
-			shownSetting = true;
-		}
-	}
-	//something is missing
-	if( !hArea || !hModel || !hDvd || !hMpch || !hCode || !hSer || !hVideo || !hGame )
-		goto error;
+    settingTxt = SettingTxtDialog::LolCrypt( settingTxt );
+    QString area;
+    bool hArea = false;
+    bool hModel = false;
+    bool hDvd = false;
+    bool hMpch = false;
+    bool hCode = false;
+    bool hSer = false;
+    bool hVideo = false;
+    bool hGame = false;
+    bool shownSetting = false;
+    QString str( settingTxt );
+    str.replace( "\r\n", "\n" );//maybe not needed to do this in 2 steps, but there may be some reason the file only uses "\n", so do it this way to be safe
+    QStringList parts = str.split( "\n", QString::SkipEmptyParts );
+    foreach( QString part, parts )
+    {
+        if( part.startsWith( "AREA=" ) )
+        {
+            if( hArea ) goto error;
+            hArea = true;
+            area = part;
+            area.remove( 0, 5 );
+        }
+        else if( part.startsWith( "MODEL=" ) )
+        {
+            if( hModel ) goto error;
+            hModel = true;
+        }
+        else if( part.startsWith( "DVD=" ) )
+        {
+            if( hDvd ) goto error;
+            hDvd = true;
+        }
+        else if( part.startsWith( "MPCH=" ) )
+        {
+            if( hMpch ) goto error;
+            hMpch = true;
+        }
+        else if( part.startsWith( "CODE=" ) )
+        {
+            if( hCode ) goto error;
+            hCode = true;
+        }
+        else if( part.startsWith( "SERNO=" ) )
+        {
+            if( hSer ) goto error;
+            hSer = true;
+        }
+        else if( part.startsWith( "VIDEO=" ) )
+        {
+            if( hVideo ) goto error;
+            hVideo = true;
+        }
+        else if( part.startsWith( "GAME=" ) )
+        {
+            if( hGame ) goto error;
+            hGame = true;
+        }
+        else
+        {
+            qDebug() << "Extra stuff in the setting.txt.";
+            hexdump( settingTxt );
+            qDebug() << QString( settingTxt );
+            shownSetting = true;
+        }
+    }
+    //something is missing
+    if( !hArea || !hModel || !hDvd || !hMpch || !hCode || !hSer || !hVideo || !hGame )
+        goto error;
 
-	//check for opera brick,
-	//or in certain cases ( such as KOR area setting on the wrong system menu, a full brick presenting as green & purple garbage instead of the "press A" screen )
-	if( sysMenuResource.isEmpty() )
-	{
-		qCritical() << "Error getting the resource file for the system menu.\nCan\'t check it against setting.txt";
-	}
-	else
-	{
-		U8 u8( sysMenuResource );
-		QStringList entries = u8.Entries();
-		if( !u8.IsOK() || !entries.size() )
-		{
-			qCritical() << "Error parsing the resource file for the system menu.\nCan\'t check it against setting.txt";
-		}
-		else
-		{
-			QString sysMenuPath;
-			//these are all the possibilities i saw for AREA in libogc
-			if( area == "AUS" || area == "EUR" )																			//supported by 4.3e
-				sysMenuPath = "html/EU2/iplsetting.ash/EU/EU/ENG/index01.html";
-			else if( area == "USA" || area == "BRA" || area == "HKG" || area == "ASI" || area == "LTN" || area == "SAF" )	//supported by 4.3u
-				sysMenuPath = "html/US2/iplsetting.ash/FIX/US/ENG/index01.html";
-			else if( area == "JPN" || area == "TWN" || area == "ROC" )														//supported by 4.3j
-				sysMenuPath = "html/JP2/iplsetting.ash/JP/JP/JPN/index01.html";
-			else if( area == "KOR" )																						//supported by 4.3k
-				sysMenuPath = "html/KR2/iplsetting.ash/KR/KR/KOR/index01.html";
-			else
-				qDebug() << "unknown AREA setting";
-			if( !entries.contains( sysMenuPath ) )
-			{
-				qCritical() << sysMenuPath << "Was not found in the system menu resources, and is needed by the AREA setting" << area;
-				Fail( "This will likely result in a full/opera brick" );
-			}
-			else
-			{
-				if( verbose )
-					qDebug() << "system menu resource matches setting.txt AREA setting.";
-			}
-		}
-	}
-	if( verbose )
-	{
-		shownSetting = true;
-		hexdump( settingTxt );
-		qDebug() << qPrintable( str );
-	}
-	return;
-error:
-	qCritical() << "Something is wrong with this setting.txt";
-	if( !shownSetting )
-	{
-		hexdump( settingTxt );
-		qDebug() << qPrintable( str );
-	}
+    //check for opera brick,
+    //or in certain cases ( such as KOR area setting on the wrong system menu, a full brick presenting as green & purple garbage instead of the "press A" screen )
+    if( sysMenuResource.isEmpty() )
+    {
+        qCritical() << "Error getting the resource file for the system menu.\nCan\'t check it against setting.txt";
+    }
+    else
+    {
+        U8 u8( sysMenuResource );
+        QStringList entries = u8.Entries();
+        if( !u8.IsOK() || !entries.size() )
+        {
+            qCritical() << "Error parsing the resource file for the system menu.\nCan\'t check it against setting.txt";
+        }
+        else
+        {
+            QString sysMenuPath;
+            //these are all the possibilities i saw for AREA in libogc
+            if( area == "AUS" || area == "EUR" )																			//supported by 4.3e
+                sysMenuPath = "html/EU2/iplsetting.ash/EU/EU/ENG/index01.html";
+            else if( area == "USA" || area == "BRA" || area == "HKG" || area == "ASI" || area == "LTN" || area == "SAF" )	//supported by 4.3u
+                sysMenuPath = "html/US2/iplsetting.ash/FIX/US/ENG/index01.html";
+            else if( area == "JPN" || area == "TWN" || area == "ROC" )														//supported by 4.3j
+                sysMenuPath = "html/JP2/iplsetting.ash/JP/JP/JPN/index01.html";
+            else if( area == "KOR" )																						//supported by 4.3k
+                sysMenuPath = "html/KR2/iplsetting.ash/KR/KR/KOR/index01.html";
+            else
+                qDebug() << "unknown AREA setting";
+            if( !entries.contains( sysMenuPath ) )
+            {
+                qCritical() << sysMenuPath << "Was not found in the system menu resources, and is needed by the AREA setting" << area;
+                Fail( "This will likely result in a full/opera brick" );
+            }
+            else
+            {
+                if( verbose )
+                    qDebug() << "system menu resource matches setting.txt AREA setting.";
+            }
+        }
+    }
+    if( verbose )
+    {
+        shownSetting = true;
+        hexdump( settingTxt );
+        qDebug() << qPrintable( str );
+    }
+    return;
+    error:
+    qCritical() << "Something is wrong with this setting.txt";
+    if( !shownSetting )
+    {
+        hexdump( settingTxt );
+        qDebug() << qPrintable( str );
+    }
 }
 
 int main( int argc, char *argv[] )
 {
     QCoreApplication a( argc, argv );
-#ifndef Q_WS_WIN
-	qInstallMsgHandler( DebugHandler );
+#ifdef Q_WS_WIN
+    origColor = GetColor();
+    hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
 #endif
-	args = QCoreApplication::arguments();
+    qInstallMsgHandler( DebugHandler );
+    args = QCoreApplication::arguments();
 
-	if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
-		color = false;
+    if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
+        color = false;
 
-	if( args.size() < 3 )
+    if( args.size() < 3 )
         Usage();
 
     if( !QFile( args.at( 1 ) ).exists() )
@@ -1124,10 +1152,10 @@ int main( int argc, char *argv[] )
 
     root = NULL;
 
-	verbose = args.count( "-v" );
+    verbose = args.count( "-v" );
 
-	if( args.contains( "-continue", Qt::CaseInsensitive ) )
-		tryToKeepGoing = true;
+    if( args.contains( "-continue", Qt::CaseInsensitive ) )
+        tryToKeepGoing = true;
 
     //these only serve to show info.  no action is taken
     if( args.contains( "-boot", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
@@ -1160,15 +1188,15 @@ int main( int argc, char *argv[] )
             CheckTitleIntegrity( tid );
             //if( !CheckTitleIntegrity( tid ) && tid == 0x100000002ull )	//well, this SHOULD be the case.  but nintendo doesnt care so much about
             //Fail( "The System menu isnt valid" );			//checking signatures & hashes as the rest of us.
-		}
-		if( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
-		{
-			CheckSettingTxt();
-		}
-		if( args.contains( "-uid", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
-		{
-			ListDeletedTitles();
-		}
+        }
+        if( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
+        {
+            CheckSettingTxt();
+        }
+        if( args.contains( "-uid", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
+        {
+            ListDeletedTitles();
+        }
     }
 
     if( args.contains( "-clInfo", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
