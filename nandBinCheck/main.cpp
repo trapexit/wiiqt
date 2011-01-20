@@ -19,42 +19,143 @@ QTreeWidgetItem *root;
 QList<quint16> fats;
 quint32 verbose = 0;
 bool tryToKeepGoing = false;
+bool color = true;
 QByteArray sysMenuResource;
 
+#ifndef Q_WS_WIN
+#define LEN_STR_PAIR(s) sizeof (s) - 1, s
+enum indicator_no
+{
+	C_LEFT, C_RIGHT, C_END, C_RESET, C_NORM, C_FILE, C_DIR, C_LINK,
+	C_FIFO, C_SOCK,
+	C_BLK, C_CHR, C_MISSING, C_ORPHAN, C_EXEC, C_DOOR, C_SETUID, C_SETGID,
+	C_STICKY, C_OTHER_WRITABLE, C_STICKY_OTHER_WRITABLE, C_CAP, C_MULTIHARDLINK,
+	C_CLR_TO_EOL
+};
+
+struct bin_str
+{
+	size_t len;			/* Number of bytes */
+	const char *string;		/* Pointer to the same */
+};
+
+static struct bin_str color_indicator[] =
+{
+	{ LEN_STR_PAIR ("\033[") },		/* lc: Left of color sequence */
+	{ LEN_STR_PAIR ("m") },		/* rc: Right of color sequence */
+	{ 0, NULL },			/* ec: End color (replaces lc+no+rc) */
+	{ LEN_STR_PAIR ("0") },		/* rs: Reset to ordinary colors */
+	{ 0, NULL },			/* no: Normal */
+	{ 0, NULL },			/* fi: File: default */
+	{ LEN_STR_PAIR ("01;34") },		/* di: Directory: bright blue */
+	{ LEN_STR_PAIR ("01;36") },		/* ln: Symlink: bright cyan */
+	{ LEN_STR_PAIR ("33") },		/* pi: Pipe: yellow/brown */
+	{ LEN_STR_PAIR ("01;35") },		/* so: Socket: bright magenta */
+	{ LEN_STR_PAIR ("01;33") },		/* bd: Block device: bright yellow */
+	{ LEN_STR_PAIR ("01;33") },		/* cd: Char device: bright yellow */
+	{ 0, NULL },			/* mi: Missing file: undefined */
+	{ 0, NULL },			/* or: Orphaned symlink: undefined */
+	{ LEN_STR_PAIR ("01;32") },		/* ex: Executable: bright green */
+	{ LEN_STR_PAIR ("01;35") },		/* do: Door: bright magenta */
+	{ LEN_STR_PAIR ("37;41") },		/* su: setuid: white on red */
+	{ LEN_STR_PAIR ("30;43") },		/* sg: setgid: black on yellow */
+	{ LEN_STR_PAIR ("37;44") },		/* st: sticky: black on blue */
+	{ LEN_STR_PAIR ("34;42") },		/* ow: other-writable: blue on green */
+	{ LEN_STR_PAIR ("30;42") },		/* tw: ow w/ sticky: black on green */
+	{ LEN_STR_PAIR ("30;41") },		/* ca: black on red */
+	{ 0, NULL },			/* mh: disabled by default */
+	{ LEN_STR_PAIR ("\033[K") },	/* cl: clear to end of line */
+};
+
+static void put_indicator( const struct bin_str *ind )
+{
+	fwrite( ind->string, ind->len, 1, stdout );
+}
+
+void PrintColoredString( const char *msg, int highlite )
+{
+	if( !color )
+	{
+		printf( "%s\n", msg );
+	}
+	else
+	{
+		QString m( msg );
+		QString m2 = m.trimmed();
+		m.resize( m.indexOf( m2 ) );
+		printf( "%s", m.toLatin1().data() );				//print all leading whitespace
+		put_indicator( &color_indicator[ C_LEFT ] );
+		put_indicator( &color_indicator[ highlite ] );		//change color
+		put_indicator( &color_indicator[ C_RIGHT ] );
+		printf( "%s", m2.toLatin1().data() );				//print text
+		put_indicator( &color_indicator[ C_LEFT ] );
+		put_indicator( &color_indicator[ C_NORM ] );		//reset color
+		put_indicator( &color_indicator[ C_RIGHT ] );
+		printf( "\n" );
+	}
+	fflush( stdout );
+}
+
+//redirect text output.  by default, qDebug() goes to stderr
+void DebugHandler( QtMsgType type, const char *msg )
+{
+	switch( type )
+	{
+	case QtDebugMsg:
+		printf( "%s\n", msg );
+		fflush( stdout );
+		break;
+	case QtWarningMsg:
+		PrintColoredString( msg, C_STICKY );
+		break;
+	case QtCriticalMsg:
+		PrintColoredString( msg, C_CAP );
+		break;
+	case QtFatalMsg:
+		fprintf(stderr, "Fatal Error: %s\n", msg);
+		abort();
+		break;
+	}
+}
+#endif
 
 bool CheckTitleIntegrity( quint64 tid );
 
 void Usage()
 {
-	qDebug() << "usage:" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
+	qWarning() << "usage:" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
     qDebug() << "\nOther options:";
-    qDebug() << "     -boot        shows information about boot 1 and 2";
+	qDebug() << "   -boot           shows information about boot 1 and 2";
 	qDebug() << "";
-    qDebug() << "     -fs          verify the filesystem is in tact";
-    qDebug() << "                  verifies presence of uid & content.map & checks the hashes in the content.map";
-	qDebug() << "                  check all titles with a ticket for RSA & sha1 validity";
-	qDebug() << "                  check all titles with a ticket titles for required IOS, proper uid & gid";
+	qDebug() << "   -fs             verify the filesystem is in tact";
+	qDebug() << "                   verifies presence of uid & content.map & checks the hashes in the content.map";
+	qDebug() << "                   check all titles with a ticket for RSA & sha1 validity";
+	qDebug() << "                   check all titles with a ticket titles for required IOS, proper uid & gid";
 	qDebug() << "";
-	qDebug() << "     -settingtxt  check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
+	qDebug() << "   -settingtxt     check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
 	qDebug() << "";
-	qDebug() << "     -uid	       Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
+	qDebug() << "   -uid            Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
 	qDebug() << "";
-    qDebug() << "     -clInfo      shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
+	qDebug() << "   -clInfo         shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
 	qDebug() << "";
-    qDebug() << "     -spare       calculate & compare ecc for all pages in the nand";
-	qDebug() << "                  calculate & compare hmac signatures for all files and superblocks";
+	qDebug() << "   -spare          calculate & compare ecc for all pages in the nand";
+	qDebug() << "                   calculate & compare hmac signatures for all files and superblocks";
 	qDebug() << "";
-	qDebug() << "     -all         does all of the above";
+	qDebug() << "   -all            does all of the above";
 	qDebug() << "";
-	qDebug() << "     -v		   increase verbosity";
+	qDebug() << "   -v              increase verbosity";
 	qDebug() << "";
-	qDebug() << "     -continue	   try to keep going as fas as possible on errors that should be fatal";
+	qDebug() << "   -continue       try to keep going as fas as possible on errors that should be fatal";
+#ifndef Q_WS_WIN
+	qDebug() << "";
+	qDebug() << "   -nocolor        don\'t use terminal color trickery";
+#endif
     exit( 1 );
 }
 
 void Fail( const QString& str )
 {
-    qDebug() << str;
+	qCritical() << str;
 	if( !tryToKeepGoing )
 		exit( 1 );
 }
@@ -341,7 +442,7 @@ bool RecurseCheckGidUid( QTreeWidgetItem *item, const QString &uidS, const QStri
 		if( child->text( 3 ) != uidS || !child->text( 4 ).startsWith( gidS ) )
 		{
 			ret = false;
-			qDebug() << "\tincorrect uid/gid for" << QString( path + child->text( 0 ) );
+			qWarning() << "\tincorrect uid/gid for" << QString( path + child->text( 0 ) );
 		}
 		if( !RecurseCheckGidUid( child, uidS, gidS, path + child->text( 0 ) + "/" ) )
 			ret = false;
@@ -423,11 +524,11 @@ bool CheckTitleIntegrity( quint64 tid )
         case ERROR_RSA_TYPE_UNKNOWN:
         case ERROR_RSA_TYPE_MISMATCH:
         case ERROR_CERT_NOT_FOUND:
-			qDebug().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+			qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
             //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
             break;
         case ERROR_RSA_FAKESIGNED:
-			qDebug().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+			qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
             break;
         default:
             break;
@@ -437,7 +538,7 @@ bool CheckTitleIntegrity( quint64 tid )
             t = Tmd( ba );
             if( t.Tid() != tid )
             {
-				qDebug() << "\tthe TMD contains the wrong TID";
+				qWarning() << "\tthe TMD contains the wrong TID";
                 return false;
 			}
         }
@@ -446,7 +547,7 @@ bool CheckTitleIntegrity( quint64 tid )
 			Ticket ticket( ba, false );
             if( ticket.Tid() != tid )
             {
-				qDebug() << "\tthe ticket contains the wrong TID";
+				qWarning() << "\tthe ticket contains the wrong TID";
                 return false;
 			}
         }
@@ -462,7 +563,7 @@ bool CheckTitleIntegrity( quint64 tid )
         {
             if( sharedM.GetAppFromHash( t.Hash( i ) ).isEmpty() )
             {
-				qDebug() << "\tone of the shared contents is missing";
+				qWarning() << "\tone of the shared contents is missing";
                 return false;
             }
         }
@@ -475,13 +576,13 @@ bool CheckTitleIntegrity( quint64 tid )
             QByteArray ba = nand.GetData( pA );
             if( ba.isEmpty() )
             {
-				qDebug() << "\t error reading one of the private contents" << pA;
+				qWarning() << "\t error reading one of the private contents" << pA;
                 return false;
             }
             QByteArray realH = GetSha1( ba );
             if( realH != t.Hash( i ) )
             {
-                qDebug() << "\tone of the private contents' hash doesnt check out" << i << pA <<
+				qWarning() << "\tone of the private contents' hash doesnt check out" << i << pA <<
 						"\n\texpected" << qPrintable( QString( t.Hash( i ).toHex() ) ) <<
 						"\n\tactual  " << qPrintable( QString( realH.toHex() ) );
                 //return false;									    //dont return false, as this this title may still boot
@@ -519,7 +620,7 @@ bool CheckTitleIntegrity( quint64 tid )
     quint64 ios = t.IOS();
     if( ios && !validIoses.contains( ios ) )
     {
-		qDebug() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" );
+		qWarning() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" );
         return false;
     }
 
@@ -544,7 +645,7 @@ bool CheckTitleIntegrity( quint64 tid )
         QString uidS = QString( "%1" ).arg( uid, 8, 16, QChar( '0' ) );
         QString gidS = QString( "%1" ).arg( gid, 4, 16, QChar( '0' ) );
         if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
-            qDebug() << "\tincorrect uid/gid for data folder";
+			qWarning() << "\tincorrect uid/gid for data folder";
 
 		RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
 		/*quint16 cnt = dataI->childCount();
@@ -565,7 +666,7 @@ bool CheckTitleIntegrity( quint64 tid )
         {
             QTreeWidgetItem *item = dataI->child( i );
             if( item->text( 3 ) != "00000000" || !item->text( 4 ).startsWith( "0000" ) )
-                qDebug() << "\tincorrect uid/gid for" << QString( "content/" + item->text( 0 ) );
+				qWarning() << "\tincorrect uid/gid for" << QString( "content/" + item->text( 0 ) );
         }
     }
     return true;
@@ -623,7 +724,7 @@ void ListDeletedTitles()
 		if( !item )
 		{
 			if( verbose > 1 )
-				qDebug() << "\tCan\'t find TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+				qWarning() << "\tCan\'t find TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
 			deleted = true;
 		}
 		else
@@ -632,7 +733,7 @@ void ListDeletedTitles()
 			if( ba.isEmpty() )
 			{
 				if( verbose > 1 )
-					qDebug() << "\tError reading TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+					qWarning() << "\tError reading TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
 				deleted = true;
 			}
 			else
@@ -646,10 +747,10 @@ void ListDeletedTitles()
 				case ERROR_RSA_TYPE_UNKNOWN:
 				case ERROR_RSA_TYPE_MISMATCH:
 				case ERROR_CERT_NOT_FOUND:
-					qDebug().nospace() << "\tTMD RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
+					qWarning().nospace() << "\tTMD RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
 					break;
 				case ERROR_RSA_FAKESIGNED:
-					qDebug().nospace() << "\tTMD for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
+					qWarning().nospace() << "\tTMD for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
 					break;
 				default:
 					break;
@@ -664,7 +765,7 @@ void ListDeletedTitles()
 			if( !item )
 			{
 				if( verbose > 1 )
-					qDebug() << "\tCan\'t find ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+					qWarning() << "\tCan\'t find ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
 				deleted = true;
 			}
 			else
@@ -673,7 +774,7 @@ void ListDeletedTitles()
 				if( ba.isEmpty() )
 				{
 					if( verbose > 1 )
-						qDebug() << "\tError reading ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
+						qWarning() << "\tError reading ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
 					deleted = true;
 				}
 				else
@@ -687,10 +788,10 @@ void ListDeletedTitles()
 					case ERROR_RSA_TYPE_UNKNOWN:
 					case ERROR_RSA_TYPE_MISMATCH:
 					case ERROR_CERT_NOT_FOUND:
-						qDebug().nospace() << "\tticket RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
+						qWarning().nospace() << "\tticket RSA signature isn't even close for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) ) << " ( " << ch << " )";
 						break;
 					case ERROR_RSA_FAKESIGNED:
-						qDebug().nospace() << "\tticket for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
+						qWarning().nospace() << "\tticket for " << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " is fakesigned";
 						break;
 					default:
 						break;
@@ -699,7 +800,7 @@ void ListDeletedTitles()
 			}
 		}
 		if( deleted )
-			qDebug().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " has been deleted";
+			qWarning().nospace() << "\t" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) ) << " has been deleted";
 	}
 	buf.close();
 }
@@ -839,7 +940,7 @@ int RecurseCheckHmac( QTreeWidgetItem *dir )
 
             if( !nand.CheckHmacData( entry ) )
             {
-                qDebug() << "bad HMAC for" << PathFromItem( item );
+				qCritical() << "bad HMAC for" << PathFromItem( item );
                 ret++;
             }
         }
@@ -860,9 +961,9 @@ void CheckHmac()
         if( !nand.CheckHmacMeta( i ) )
             sclBad << i;
     }
-    qDebug() << sclBad.size() << "superClusters had bad HMAC data";
+	qDebug() << sclBad.size() << "superClusters had bad HMAC data";
     if( sclBad.size() )
-        qDebug() << sclBad;
+		qCritical() << sclBad;
 }
 
 void CheckSettingTxt()
@@ -949,7 +1050,7 @@ void CheckSettingTxt()
 	//or in certain cases ( such as KOR area setting on the wrong system menu, a full brick presenting as green & purple garbage instead of the "press A" screen )
 	if( sysMenuResource.isEmpty() )
 	{
-		qDebug() << "Error getting the resource file for the system menu.\nCan\'t check it against setting.txt";
+		qCritical() << "Error getting the resource file for the system menu.\nCan\'t check it against setting.txt";
 	}
 	else
 	{
@@ -957,7 +1058,7 @@ void CheckSettingTxt()
 		QStringList entries = u8.Entries();
 		if( !u8.IsOK() || !entries.size() )
 		{
-			qDebug() << "Error parsing the resource file for the system menu.\nCan\'t check it against setting.txt";
+			qCritical() << "Error parsing the resource file for the system menu.\nCan\'t check it against setting.txt";
 		}
 		else
 		{
@@ -975,7 +1076,7 @@ void CheckSettingTxt()
 				qDebug() << "unknown AREA setting";
 			if( !entries.contains( sysMenuPath ) )
 			{
-				qDebug() << sysMenuPath << "Was not found in the system menu resources, and is needed by the AREA setting" << area;
+				qCritical() << sysMenuPath << "Was not found in the system menu resources, and is needed by the AREA setting" << area;
 				Fail( "This will likely result in a full/opera brick" );
 			}
 			else
@@ -993,7 +1094,7 @@ void CheckSettingTxt()
 	}
 	return;
 error:
-	qDebug() << "Something is wrong with this setting.txt";
+	qCritical() << "Something is wrong with this setting.txt";
 	if( !shownSetting )
 	{
 		hexdump( settingTxt );
@@ -1004,7 +1105,14 @@ error:
 int main( int argc, char *argv[] )
 {
     QCoreApplication a( argc, argv );
+#ifndef Q_WS_WIN
+	qInstallMsgHandler( DebugHandler );
+#endif
 	args = QCoreApplication::arguments();
+
+	if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
+		color = false;
+
 	if( args.size() < 3 )
         Usage();
 

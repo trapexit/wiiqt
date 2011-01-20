@@ -994,7 +994,7 @@ const QByteArray NandBin::GetFile( fst_t fst_ )
     }*/
     if( (quint32)data.size() < fst_.size )
     {
-        qDebug() << "(quint32)data.size() < fst.size :: "
+		qWarning() << "NandBin::GetFile() -> (quint32)data.size() < fst.size : "
                 << hex << data.size()
                 << "expected size:" << hex << fst_.size;
 
@@ -1510,14 +1510,14 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
             {
                 fats.replace( cl, 0xfffe );
             }
-            qDebug() << "delete loop done.  freed" << toFree.size() << "clusters";
+ //           qDebug() << "delete loop done.  freed" << toFree.size() << "clusters";
         }
         break;
     case 2:
         {
             qDebug() << "deleting children of" << item->text( 0 );
             quint32 cnt = item->childCount();//delete all the children of this item
-            qDebug() << cnt << "childern";
+ //           qDebug() << cnt << "childern";
             for( quint32 i = cnt; i > 0; i-- )
             {
                 if( !DeleteItem( item->child( i - 1 ) ) )
@@ -1533,7 +1533,7 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
     memset( &fsts[ idx ], 0, sizeof( fst_t ) );	    //clear this entry
     fsts[ idx ].fst_pos = idx;				    //reset this
     QTreeWidgetItem *d = par->takeChild( pId );
-    qDebug() << "deleting tree item" << d->text( 0 );
+//    qDebug() << "deleting tree item" << d->text( 0 );
     delete d;
     return true;
 }
@@ -1752,7 +1752,7 @@ bool NandBin::WriteMetaData()
         bool ret = WriteCluster( (quint32)( ( nextSuperCluster + i ) * 8 ), scl.mid( 0x4000 * i, 0x4000 ), ( i == 15 ? hmR : QByteArray() ) );
         if( !ret )
         {
-            qWarning() << "failed to write the metadata.  this nand may be broken now :(" << i;
+			qCritical() << "failed to write the metadata.  this nand may be broken now :(" << i;
             return false;
         }
     }
@@ -1847,17 +1847,17 @@ bool NandBin::CheckHmacData( quint16 entry )
         //really it allows 1 copy of hmac to be bad, but im being strict about it
         if( sp1.mid( 1, 0x14 ) != hmac )
         {
-            qDebug() << "hmac bad (1)";
+			qWarning() << "hmac bad (1)";
             goto error;
         }
         if( sp1.mid( 0x15, 0xc ) != hmac.left( 0xc ) )
         {
-            qDebug() << "hmac bad (2)";
+			qWarning() << "hmac bad (2)";
             goto error;
         }
         if( sp2.mid( 1, 8 ) != hmac.right( 8 ) )
         {
-            qDebug() << "hmac bad (3)";
+			qWarning() << "hmac bad (3)";
             goto error;
         }
         //qDebug() << "hmac ok for cluster" << i;
@@ -1866,8 +1866,8 @@ bool NandBin::CheckHmacData( quint16 entry )
     }
     return true;
 
-    error:
-    qDebug() << FstName( fst ) << "is" << hex << fst.size << "bytes (" << clCnt << ") clusters";
+error:
+	qWarning() << FstName( fst ) << "is" << hex << fst.size << "bytes (" << clCnt << ") clusters";
     hexdump( sp1 );
     hexdump( sp2 );
     hexdump( hmac );
@@ -1903,23 +1903,23 @@ bool NandBin::CheckHmacMeta( quint16 clNo )
     //really it allows 1 copy of hmac to be bad, but im being strict about it
     if( sp1.mid( 1, 0x14 ) != hmac )
     {
-        qDebug() << "hmac bad (1)";
+		qWarning() << "hmac bad (1)";
         goto error;
     }
     if( sp1.mid( 0x15, 0xc ) != hmac.left( 0xc ) )
     {
-        qDebug() << "hmac bad (2)";
+		qWarning() << "hmac bad (2)";
         goto error;
     }
     if( sp2.mid( 1, 8 ) != hmac.right( 8 ) )
     {
-        qDebug() << "hmac bad (3)";
+		qWarning() << "hmac bad (3)";
         goto error;
     }
     return true;
 
-    error:
-    qDebug() << "supercluster" << hex << clNo;
+error:
+	qWarning() << "supercluster" << hex << clNo;
     hexdump( sp1 );
     hexdump( sp2 );
     hexdump( hmac );
