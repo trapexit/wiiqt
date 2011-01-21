@@ -28,7 +28,7 @@ SOURCES += main.cpp \
     ../WiiQt/settingtxtdialog.cpp \
     ../WiiQt/u8.cpp \
     ../WiiQt/lz77.cpp \
-    ../WiiQt/ash.cpp
+	../WiiQt/ash.cpp
 
 HEADERS += ../WiiQt/tiktmd.h \
     ../WiiQt/nandbin.h \
@@ -40,7 +40,7 @@ HEADERS += ../WiiQt/tiktmd.h \
     ../WiiQt/settingtxtdialog.h \
     ../WiiQt/u8.h \
     ../WiiQt/lz77.h \
-    ../WiiQt/ash.h
+	../WiiQt/ash.h
 
 FORMS += \
     ../WiiQt/settingtxtdialog.ui

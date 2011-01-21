@@ -6,7 +6,7 @@
 #include "../WiiQt/tiktmd.h"
 #include "../WiiQt/settingtxtdialog.h"
 #include "../WiiQt/u8.h"
-
+#include "../WiiQt/keysbin.h"
 
 //yippie for global variables
 QStringList args;
@@ -20,10 +20,15 @@ QList<quint16> fats;
 quint32 verbose = 0;
 bool tryToKeepGoing = false;
 bool color = true;
+bool calcRsa = false;
 QByteArray sysMenuResource;
+QByteArray sysMenuExe;
+quint64 sysMenuIos;
+
+bool CheckTitleIntegrity( quint64 tid );
 
 #ifdef Q_WS_WIN
-#include <windows.h>   // WinApi header
+#include <windows.h>
 #define C_STICKY 31
 #define C_CAP    192
 
@@ -34,10 +39,10 @@ int GetColor()
 {
     WORD wColor = 0;
 
-    HANDLE hStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	HANDLE hStdOut = GetStdHandle( STD_OUTPUT_HANDLE );
     CONSOLE_SCREEN_BUFFER_INFO csbi;
     //We use csbi for the wAttributes word.
-    if( GetConsoleScreenBufferInfo(hStdOut, &csbi ) )
+	if( GetConsoleScreenBufferInfo( hStdOut, &csbi ) )
     {
         wColor = csbi.wAttributes;
     }
@@ -64,19 +69,19 @@ struct bin_str
 static struct bin_str color_indicator[] =
 {
     { LEN_STR_PAIR ("\033[") },		/* lc: Left of color sequence */
-    { LEN_STR_PAIR ("m") },		/* rc: Right of color sequence */
-    { 0, NULL },			/* ec: End color (replaces lc+no+rc) */
-    { LEN_STR_PAIR ("0") },		/* rs: Reset to ordinary colors */
-    { 0, NULL },			/* no: Normal */
-    { 0, NULL },			/* fi: File: default */
+	{ LEN_STR_PAIR ("m") },			/* rc: Right of color sequence */
+	{ 0, NULL },					/* ec: End color (replaces lc+no+rc) */
+	{ LEN_STR_PAIR ("0") },			/* rs: Reset to ordinary colors */
+	{ 0, NULL },					/* no: Normal */
+	{ 0, NULL },					/* fi: File: default */
     { LEN_STR_PAIR ("01;34") },		/* di: Directory: bright blue */
     { LEN_STR_PAIR ("01;36") },		/* ln: Symlink: bright cyan */
     { LEN_STR_PAIR ("33") },		/* pi: Pipe: yellow/brown */
     { LEN_STR_PAIR ("01;35") },		/* so: Socket: bright magenta */
     { LEN_STR_PAIR ("01;33") },		/* bd: Block device: bright yellow */
     { LEN_STR_PAIR ("01;33") },		/* cd: Char device: bright yellow */
-    { 0, NULL },			/* mi: Missing file: undefined */
-    { 0, NULL },			/* or: Orphaned symlink: undefined */
+	{ 0, NULL },					/* mi: Missing file: undefined */
+	{ 0, NULL },					/* or: Orphaned symlink: undefined */
     { LEN_STR_PAIR ("01;32") },		/* ex: Executable: bright green */
     { LEN_STR_PAIR ("01;35") },		/* do: Door: bright magenta */
     { LEN_STR_PAIR ("37;41") },		/* su: setuid: white on red */
@@ -85,7 +90,7 @@ static struct bin_str color_indicator[] =
     { LEN_STR_PAIR ("34;42") },		/* ow: other-writable: blue on green */
     { LEN_STR_PAIR ("30;42") },		/* tw: ow w/ sticky: black on green */
     { LEN_STR_PAIR ("30;41") },		/* ca: black on red */
-    { 0, NULL },			/* mh: disabled by default */
+	{ 0, NULL },					/* mh: disabled by default */
     { LEN_STR_PAIR ("\033[K") },	/* cl: clear to end of line */
 };
 
@@ -102,26 +107,31 @@ void PrintColoredString( const char *msg, int highlite )
     }
     else
     {
-        QString m( msg );
-        QString m2 = m.trimmed();
-        m.resize( m.indexOf( m2 ) );
-        printf( "%s", m.toLatin1().data() );				//print all leading whitespace
+		QString str( msg );
+		QStringList list = str.split( "\n", QString::SkipEmptyParts );
+		foreach( QString s, list )
+		{
+			QString m = s;
+			QString m2 = s.trimmed();
+			m.resize( m.indexOf( m2 ) );
+			printf( "%s", m.toLatin1().data() );				//print all leading whitespace
 #ifdef Q_WS_WIN
-        SetConsoleTextAttribute( hConsole, highlite );
+			SetConsoleTextAttribute( hConsole, highlite );
 #else
-        put_indicator( &color_indicator[ C_LEFT ] );
-        put_indicator( &color_indicator[ highlite ] );		//change color
-        put_indicator( &color_indicator[ C_RIGHT ] );
+			put_indicator( &color_indicator[ C_LEFT ] );
+			put_indicator( &color_indicator[ highlite ] );		//change color
+			put_indicator( &color_indicator[ C_RIGHT ] );
 #endif
-        printf( "%s", m2.toLatin1().data() );				//print text
+			printf( "%s", m2.toLatin1().data() );				//print text
 #ifdef Q_WS_WIN
-        SetConsoleTextAttribute( hConsole, origColor );
+			SetConsoleTextAttribute( hConsole, origColor );
 #else
-        put_indicator( &color_indicator[ C_LEFT ] );
-        put_indicator( &color_indicator[ C_NORM ] );		//reset color
-        put_indicator( &color_indicator[ C_RIGHT ] );
+			put_indicator( &color_indicator[ C_LEFT ] );
+			put_indicator( &color_indicator[ C_NORM ] );		//reset color
+			put_indicator( &color_indicator[ C_RIGHT ] );
 #endif
-        printf( "\n" );
+			printf( "\n" );
+		}
     }
     fflush( stdout );
 }
@@ -134,20 +144,18 @@ void DebugHandler( QtMsgType type, const char *msg )
     case QtDebugMsg:
         printf( "%s\n", msg );
         break;
-    case QtWarningMsg:
-        PrintColoredString( msg, C_STICKY );
+	case QtWarningMsg:
+		PrintColoredString( msg, C_STICKY );
         break;
-    case QtCriticalMsg:
-        PrintColoredString( msg, C_CAP );
+	case QtCriticalMsg:
+		PrintColoredString( msg, C_CAP );
         break;
     case QtFatalMsg:
-        fprintf(stderr, "Fatal Error: %s\n", msg);
+		fprintf( stderr, "Fatal Error: %s\n", msg );
         abort();
         break;
     }
 }
-
-bool CheckTitleIntegrity( quint64 tid );
 
 void Usage()
 {
@@ -157,12 +165,14 @@ void Usage()
     qDebug() << "";
     qDebug() << "   -fs             verify the filesystem is in tact";
     qDebug() << "                   verifies presence of uid & content.map & checks the hashes in the content.map";
-    qDebug() << "                   check all titles with a ticket for RSA & sha1 validity";
+	qDebug() << "                   check sha1 hashes for title private contents";
     qDebug() << "                   check all titles with a ticket titles for required IOS, proper uid & gid";
     qDebug() << "";
-    qDebug() << "   -settingtxt     check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
-    qDebug() << "";
-    qDebug() << "   -uid            Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
+	qDebug() << "   -settingtxt     check setting.txt itself and against system menu resources.  this must be combined with \"-fs\"";
+	qDebug() << "";
+	qDebug() << "   -uid            Look any titles in the uid.sys, check signatures and whatnot.  this must be combined with \"-fs\"";
+	qDebug() << "";
+	qDebug() << "   -rsa            Calculate and compare RSA signatures.  this must be combined with \"-fs\"";
     qDebug() << "";
     qDebug() << "   -clInfo         shows free, used, and lost ( marked used, but dont belong to any file ) clusters";
     qDebug() << "";
@@ -173,10 +183,24 @@ void Usage()
     qDebug() << "";
     qDebug() << "   -v              increase verbosity";
     qDebug() << "";
-    qDebug() << "   -continue       try to keep going as fas as possible on errors that should be fatal";
-    qDebug() << "";
-    qDebug() << "   -nocolor        don\'t use terminal color trickery";
+	qDebug() << "   -continue       try to keep going as fas as possible on errors that should be fatal";
+	qDebug() << "";
+	qDebug() << "   -nocolor        don\'t use terminal color trickery";
+	qDebug() << "";
+	qDebug() << "   -about          info about this program";
     exit( 1 );
+}
+
+void About()
+{
+	qCritical()   << "   (c) giantpune 2010, 2011";
+	qCritical()   << "   http://code.google.com/p/wiiqt/";
+	qCritical()   << "   built:" << __DATE__ << __TIME__;
+	qWarning()    << "This software is licensed under GPLv2.  It comes with no guarentee that it will work,";
+	qWarning()    << "or that it will work well.";
+	qDebug()      << "";
+	qDebug()      << "This program is designed to gather information about a nand dump for a Nintendo Wii";
+	exit( 1 );
 }
 
 void Fail( const QString& str )
@@ -217,7 +241,7 @@ void ShowBootInfo( quint8 boot1, QList<Boot2Info> boot2stuff )
         qDebug() << "Boot1 D (fixed)";
         break;
     default:
-        qDebug() << "unrecognized boot1 version";
+		qWarning() << "unrecognized boot1 version";
         break;
     }
     quint16 cnt = boot2stuff.size();
@@ -321,8 +345,8 @@ QTreeWidgetItem *ItemFromPath( const QString &path )
         item = FindItem( lookingFor, item );
         if( !item )
         {
-            //			if( verbose )
-            //				qWarning() << "ItemFromPath ->item not found" << path;
+			//if( verbose )
+			//	qWarning() << "ItemFromPath ->item not found" << path;
             return NULL;
         }
         slash = nextSlash + 1;
@@ -366,32 +390,27 @@ QList< quint64 > InstalledTitles()
         for( quint16 j = 0; j < subfc2; j++ )
         {
             QTreeWidgetItem *tikI = subF->child( j );
-            QString name = tikI->text( 0 );
-            //qDebug() << "checking item" << subF->text( 0 ) + "/" + name;
+			QString name = tikI->text( 0 );
             if( !name.endsWith( ".tik" ) )
-            {
-                //qDebug() << "!tik";
+			{
                 continue;
             }
 
             name.resize( 8 );
             quint32 lower = name.toUInt( &ok, 16 );
             if( !ok )
-            {
-                //qDebug() << "!ok";
+			{
                 continue;
             }
 
             //now see if there is a tmd
             QTreeWidgetItem *tmdI = ItemFromPath( "/title/" + subF->text( 0 ) + "/" + name + "/content/title.tmd" );
             if( !tmdI )
-            {
-                //qDebug() << "no tmd";
+			{
                 continue;
             }
 
-            quint64 tid = (( (quint64)upper << 32) | lower );
-            //qDebug() << "adding item to list" << TidTxt( tid );
+			quint64 tid = ( ( (quint64)upper << 32) | lower );
             ret << tid;
         }
     }
@@ -442,9 +461,9 @@ void BuildGoodIosList()
         if( ba.isEmpty() )
             continue;
 
-        Tmd t( ba );			//skip stubbzzzzz
-        if( !( t.Version() % 0x100 ) && //version is a nice pretty round number
-            t.Count() == 3  &&		//3 contents, 1 private and 2 shared
+		Tmd t( ba );						//skip stubbzzzzz
+		if( !( t.Version() % 0x100 ) &&		//version is a nice pretty round number
+			t.Count() == 3  &&				//3 contents, 1 private and 2 shared
             t.Type( 0 ) == 1 &&
             t.Type( 1 ) == 0x8001 &&
             t.Type( 2 ) == 0x8001 )
@@ -454,7 +473,7 @@ void BuildGoodIosList()
         if( !CheckTitleIntegrity( tid ) )
             continue;
 
-        validIoses << tid;//seems good enough.  add it to the list
+		validIoses << tid;					//seems good enough.  add it to the list
     }
 }
 
@@ -509,6 +528,115 @@ void PrintName( const QByteArray &app )
     qDebug() << "\tname:   " << desc;
 }
 
+bool CheckArm003( const QByteArray &stuff )
+{
+	qint32 esTag = MAX( stuff.indexOf( "$IOSVersion:  ES" ), stuff.indexOf( "$IOSVersion: ES" ) );
+	if( esTag < 0 )
+	{
+		qWarning() << "\tFailed to find the ES module in the kernel";
+		return false;
+	}
+	QByteArray start = stuff.left( esTag );																				//drop the remaining modules
+	qint32 prevTag = start.lastIndexOf( "$IOSVersion:", esTag - 1 );
+	if( prevTag > 0 )
+		start.remove( 0, prevTag );
+	if( start.contains( QByteArray::fromHex( "e2511cb1d7fbbef8d7f97db5a1d81694" ) )										//1337 buffer #1
+		|| start.contains( QByteArray::fromHex( "3f5b8cc9ea855a0afa7347d23e8d664e" ) )									//1337 buffer #2
+		|| start.contains( QByteArray::fromHex( "b570b08868851c01310c22c0005218ab681b2b00d10248bff001f852680b2b45" ) ) )//blablabla, CMP     R3, #0x45
+	{
+		if( verbose > 1 )
+			qWarning() << "\tSystem menu IOS supports the Korean-key check";
+		return true;
+	}
+	if( verbose > 1 )
+		qDebug() << "\tSystem menu IOS does not appear to support the Korean-key check";
+
+	return false;
+
+}
+
+void Check003()
+{
+	qDebug() << "Checking for 003 error ...";
+	if( sysMenuExe.isEmpty() )
+	{
+		qWarning() << "can\'t check 003 error for empty data";
+		return;
+	}
+	bool brick = true;
+
+	//check the PPC half
+	if( !sysMenuExe.contains( "3880004538A0000038C00000" ) )															//li      %r4, 0x45
+	{																													//li      %r5, 0
+		brick = false;																									//li      %r6, 0
+		if( verbose > 1 )
+			qDebug() << "\tThe system menu doesn\'t appear to perform the Korean-key check";
+	}
+	else if( verbose > 1 )
+		qWarning() << "\tThe system menu performs the Korean-key check";
+
+	//check the ARM half
+	QString iosStr = TidTxt( sysMenuIos );
+	iosStr.insert( 8, "/" );
+	iosStr.prepend( "/title/" );
+	iosStr += "/content/";
+	QByteArray tmdD = nand.GetData( iosStr + "title.tmd" );
+	if( tmdD.isEmpty() )
+	{
+		qWarning() << "\tcan\'t read systemmenu-ios's TMD";
+		return;
+	}
+	Tmd t( tmdD );
+	QByteArray iosKernel;
+	QString kernelPath;
+	quint16 cnt = t.Count();
+	if( t.BootIndex() >= cnt )			//in case there is some really fucked up TMD
+	{
+		Fail( "\tThe system menu ios bootindex is fucked up pretty bad" );
+		return;
+	}
+	if( t.Type( t.BootIndex() ) == 0x8001 )
+	{
+		QString appname = sharedM.GetAppFromHash( t.Hash( t.BootIndex() ) );
+		if( appname.isEmpty() )
+		{
+			Fail( "\tError reading the system menu ios" );
+			return;
+		}
+
+		kernelPath = "/shared1/" + appname + ".app";
+	}
+	else
+	{
+		kernelPath = iosStr + t.Cid( t.BootIndex() ) + ".app";
+	}
+	iosKernel = nand.GetData( kernelPath );
+	if( iosKernel.isEmpty() )
+	{
+		Fail( "\tError reading the system menu ios data" );
+		return;
+	}
+	if( !CheckArm003( iosKernel ) )
+		brick = false;
+
+	//look for korean keys in keys.bin
+	QByteArray keys = nand.Keys();
+	if( keys.size() != 0x400 )
+	{
+		Fail( "\tError getting nand keys" );
+		return;
+	}
+	quint8 k_key[ 16 ] = KOREAN_KEY;
+	if( !keys.contains( QByteArray( (const char*)&k_key, 16 ) ) )
+	{
+		brick = false;
+		if( verbose > 1 )
+			qDebug() << "\tThe korean key is not present in this wii";
+	}
+	if( brick )
+		Fail( "\tThis wii will likely show the 003 error" );
+}
+
 bool CheckTitleIntegrity( quint64 tid )
 {
     if( validIoses.contains( tid ) )//this one has already been checked
@@ -541,24 +669,27 @@ bool CheckTitleIntegrity( quint64 tid )
             qDebug() << "error getting" << it << "data";
             return false;
         }
-        qint32 ch = check_cert_chain( ba );
-        switch( ch )
-        {
-        case ERROR_SIG_TYPE:
-        case ERROR_SUB_TYPE:
-        case ERROR_RSA_HASH:
-        case ERROR_RSA_TYPE_UNKNOWN:
-        case ERROR_RSA_TYPE_MISMATCH:
-        case ERROR_CERT_NOT_FOUND:
-            qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
-            //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
-            break;
-        case ERROR_RSA_FAKESIGNED:
-            qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
-            break;
-        default:
-            break;
-        }
+		if( calcRsa )
+		{
+			qint32 ch = check_cert_chain( ba );
+			switch( ch )
+			{
+			case ERROR_SIG_TYPE:
+			case ERROR_SUB_TYPE:
+			case ERROR_RSA_HASH:
+			case ERROR_RSA_TYPE_UNKNOWN:
+			case ERROR_RSA_TYPE_MISMATCH:
+			case ERROR_CERT_NOT_FOUND:
+				qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+				//return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
+				break;
+			case ERROR_RSA_FAKESIGNED:
+				qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+				break;
+			default:
+				break;
+			}
+		}
         if( i )
         {
             t = Tmd( ba );
@@ -591,7 +722,7 @@ bool CheckTitleIntegrity( quint64 tid )
             {
                 qWarning() << "\tone of the shared contents is missing";
                 return false;
-            }
+			}
         }
         else//private
         {
@@ -616,20 +747,23 @@ bool CheckTitleIntegrity( quint64 tid )
 
             //if we are going to check the setting.txt stuff, we need to get the system menu resource file to compare ( check for opera bricks )
             //so far, i think this file is always boot index 1, type 1
-            if( tid == 0x100000002ull && t.BootIndex( i ) == 1 &&
-                ( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) ) )
-            {
-                sysMenuResource = ba;
-            }
+			if( tid == 0x100000002ull )
+			{
+				if( t.Index( i ) == 1 &&
+					( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) ) )
+				{
+					sysMenuResource = ba;
+				}
+				else if( t.Index( i ) == t.BootIndex() )
+					sysMenuExe = ba;
+			}
 
             //print a description of this title
-            if( verbose > 1 && t.BootIndex( i ) == 0 )
+			if( verbose > 1 && t.Index( i ) == 0 )
             {
                 PrintName( ba );
-            }
+			}
         }
-
-
     }
 
     //print version
@@ -649,9 +783,11 @@ bool CheckTitleIntegrity( quint64 tid )
         qWarning() << "\tthe IOS for this title is not bootable\n\t" << TidTxt( ios ).insert( 8, "-" );
         return false;
     }
+	if( tid == 0x100000002ull )
+		sysMenuIos = ios;
 
-    if( verbose > 1 && upper != 1 )
-        qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff ));// << TidTxt( ios ).insert( 8, "-" );
+	if( verbose > 1 && ( upper != 1 || tid == 0x100000002ull ) )
+		qDebug() << "\trequires IOS" << ((quint32)( ios & 0xffffffff ));
     quint32 uid = uidM.GetUid( tid, false );
     if( !uid )
     {
@@ -673,14 +809,7 @@ bool CheckTitleIntegrity( quint64 tid )
         if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
             qWarning() << "\tincorrect uid/gid for data folder";
 
-        RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
-        /*quint16 cnt = dataI->childCount();
-        for( quint16 i = 0; i < cnt; i++ )
-        {
-            QTreeWidgetItem *item = dataI->child( i );
-            if( item->text( 3 ) != uidS || !item->text( 4 ).startsWith( gidS ) )
-                qDebug() << "\tincorrect uid/gid for" << QString( "data/" + item->text( 0 ) );
-        }*/
+		RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
     }
     dataP.resize( 25 );
     dataP += "content";
@@ -762,7 +891,7 @@ void ListDeletedTitles()
                     qWarning() << "\tError reading TMD for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
                 deleted = true;
             }
-            else
+			else if( calcRsa )
             {
                 qint32 ch = check_cert_chain( ba );
                 switch( ch )
@@ -803,7 +932,7 @@ void ListDeletedTitles()
                         qWarning() << "\tError reading ticket for" << qPrintable( TidTxt( tid ).insert( 8, "-" ) + ( upper != 1 ? " (" + AsciiTxt( lower ) + ")" : "" ) );
                     deleted = true;
                 }
-                else
+				else if( calcRsa )
                 {
                     qint32 ch = check_cert_chain( ba );
                     switch( ch )
@@ -834,7 +963,8 @@ void ListDeletedTitles()
 void CheckLostClusters()
 {
     QList<quint16> u = nand.GetFatsForEntry( 0 );//all clusters actually used for a file
-    qDebug() << "total used clusters" << hex << u.size() << "of 0x8000";
+	if( verbose )
+		qDebug() << "total used clusters" << hex << u.size() << "of 0x8000";
     quint16 lost = 0;
     QList<quint16> ffs;
     QList<quint16> frs;
@@ -875,8 +1005,7 @@ void CheckEcc()
     for( quint16 i = 0; i < 0x8000; i++ )
     {
         if( fats.at( i ) == 0xfffd || fats.at( i ) == 0xfffe )
-            continue;
-        //qDebug() << hex << i;
+			continue;
 
         for( quint8 j = 0; j < 8; j++, checked += 8 )
         {
@@ -896,24 +1025,17 @@ void CheckEcc()
     {
         quint16 p = clustersCpy.takeFirst();
         if( fats.at( p ) < 0xfff0 )
-            badClustersNotSpecial ++;
-        //qDebug() << p << hex << fats.at( p );
+			badClustersNotSpecial++;
+
         quint16 block = p/8;
         if( !blocks.contains( block ) )
             blocks << block;
-    }
-    /*QList< quint32 > badCpy = bad;
-    while( badCpy.size() )
-    {
-    quint16 p = badCpy.takeFirst();
-    quint16 block = p/64;
-    if( !blocks.contains( block ) )
-        blocks << block;
-    }*/
+	}
+
     qDebug() << bad.size() << "out of" << checked << "pages had incorrect ecc.\nthey were spread through"
             << clusters.size() << "clusters in" << blocks.size() << "blocks:\n" << blocks;
-    qDebug() << badClustersNotSpecial << "of those clusters are non-special (they belong to the fs)";
-    //qDebug() << bad;
+	qDebug() << badClustersNotSpecial << "of those clusters are non-special (they belong to the fs)";
+
 }
 
 void SetUpTree()
@@ -1119,7 +1241,7 @@ void CheckSettingTxt()
         qDebug() << qPrintable( str );
     }
     return;
-    error:
+error:
     qCritical() << "Something is wrong with this setting.txt";
     if( !shownSetting )
     {
@@ -1135,11 +1257,17 @@ int main( int argc, char *argv[] )
     origColor = GetColor();
     hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
 #endif
-    qInstallMsgHandler( DebugHandler );
+	qInstallMsgHandler( DebugHandler );
+	qCritical() << "** nandBinCheck : Wii nand info tool **";
+	qCritical() << "   from giantpune";
+	qCritical() << "   built:" << __DATE__ << __TIME__;
     args = QCoreApplication::arguments();
 
-    if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
+	if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
         color = false;
+
+	if( args.contains( "-about", Qt::CaseInsensitive ) )
+		About();
 
     if( args.size() < 3 )
         Usage();
@@ -1152,10 +1280,13 @@ int main( int argc, char *argv[] )
 
     root = NULL;
 
-    verbose = args.count( "-v" );
+	verbose = args.count( "-v" );
 
-    if( args.contains( "-continue", Qt::CaseInsensitive ) )
-        tryToKeepGoing = true;
+	if( args.contains( "-continue", Qt::CaseInsensitive ) )
+		tryToKeepGoing = true;
+
+	if( args.contains( "-rsa", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
+		calcRsa = true;
 
     //these only serve to show info.  no action is taken
     if( args.contains( "-boot", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
@@ -1189,6 +1320,7 @@ int main( int argc, char *argv[] )
             //if( !CheckTitleIntegrity( tid ) && tid == 0x100000002ull )	//well, this SHOULD be the case.  but nintendo doesnt care so much about
             //Fail( "The System menu isnt valid" );			//checking signatures & hashes as the rest of us.
         }
+		Check003();
         if( args.contains( "-settingtxt", Qt::CaseInsensitive ) || args.contains( "-all", Qt::CaseInsensitive ) )
         {
             CheckSettingTxt();

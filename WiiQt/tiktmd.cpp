@@ -162,11 +162,18 @@ bool Tmd::SetSize( quint16 cid, quint32 size )
     return true;
 }
 
-quint16 Tmd::BootIndex( quint16 i )
+quint16 Tmd::Index( quint16 i )
 {
 	if( !p_tmd || i > qFromBigEndian( p_tmd->num_contents ) )
 		return 0;
 	return qFromBigEndian( p_tmd->contents[ i ].index );
+}
+
+quint16 Tmd::BootIndex()
+{
+	if( !p_tmd )
+		return 0;
+	return qFromBigEndian( p_tmd->boot_index );
 }
 
 quint16 Tmd::Type( quint16 i )

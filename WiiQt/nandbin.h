@@ -142,6 +142,9 @@ public:
 	//get the path of this nand
 	const QString FilePath();
 
+	//get the keys.bin for this object
+	const QByteArray Keys();
+
 
 private:
     QByteArray key;

@@ -971,13 +971,13 @@ void MainWindow::on_actionFormat_triggered()
 	shared = SharedContentMap();
 	if( !nand.CreateEntry( "/sys/uid.sys", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
 	{
-		ShowMessage( "<b>Error! Can't /sys/uid.sys</b>" );
+		ShowMessage( "<b>Error! Can't create /sys/uid.sys</b>" );
 		return;
 	}
 	//clear content.map
 	if( !nand.CreateEntry( "/shared1/content.map", 0, 0, NAND_FILE, NAND_RW, NAND_RW, 0 ) )
 	{
-		ShowMessage( "<b>Error! Can't /shared1/content.map</b>" );
+		ShowMessage( "<b>Error! Can't create /shared1/content.map</b>" );
 		return;
 	}
 

@@ -186,7 +186,8 @@ public:
     //returned in host endian
 	quint64 Size( quint16 i );
 	quint16 Type( quint16 i );
-	quint16 BootIndex( quint16 i );
+	quint16 BootIndex();
+	quint16 Index( quint16 i );
     quint64 Tid();
     quint64 IOS();
     quint16 Gid();

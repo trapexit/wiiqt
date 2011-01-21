@@ -713,6 +713,48 @@ bool NandBin::GetKey( int type )
     return true;
 }
 
+const QByteArray NandBin::Keys()
+{
+	QByteArray ret;
+	switch( type )
+	{
+	case 0:
+	case 1:
+		{
+			QString keyPath = nandPath;
+			int sl = keyPath.lastIndexOf( "/" );
+			if( sl == -1 )
+			{
+				emit SendError( tr( "Error getting path of keys.bin" ) );
+				return false;
+			}
+			keyPath.resize( sl + 1 );
+			keyPath += "keys.bin";
+
+			ret = ReadFile( keyPath );
+		}
+		break;
+	case 2:
+		{
+			if( !f.isOpen() )
+			{
+				emit SendError( tr( "Tried to read keys from unopened file" ) );
+				return false;
+			}
+			f.seek( 0x21000000 );
+			ret = f.read( 0x400 );
+		}
+		break;
+	default:
+		emit SendError( tr( "Tried to read keys for unknown dump type" ) );
+		return QByteArray();
+		break;
+	}
+	if( ret.size() != 0x400 )
+		return QByteArray();
+	return ret;
+}
+
 const QByteArray NandBin::ReadKeyfile( const QString &path, quint8 type )
 {
     QByteArray retval;
