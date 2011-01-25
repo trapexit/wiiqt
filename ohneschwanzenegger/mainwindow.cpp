@@ -295,7 +295,15 @@ void MainWindow::on_actionSetting_txt_triggered()
     QByteArray ba = nand.GetData( "/title/00000001/00000002/data/setting.txt" );	//read the current setting.txt
     ba = SettingTxtDialog::Edit( this, ba );	//call a dialog to edit that existing file and store the result in the same bytearray
     if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand dump
-		nand.SetData( "/title/00000001/00000002/data/setting.txt", ba );
+	{
+		if( !nand.SetData( "/title/00000001/00000002/data/setting.txt", ba )
+			|| !nand.WriteMetaData() )
+		{
+			ShowMessage( tr( "<b>Error writing setting.txt</b>" ) );
+		}
+		else
+			ShowMessage( tr( "Saved setting.txt" ) );
+	}
 }
 
 //nand-dump -> flush
