@@ -881,7 +881,7 @@ void MainWindow::AddStuffToMetaFolder()
 	}
 	if( !nand.WriteMetaData() )
 	{
-		ShowMessage( "<b>Error writing nand matedata for \"/meta\"</b>" );
+		ShowMessage( "<b>Error writing nand metadata for \"/meta\"</b>" );
 		return;
 	}
 	ShowMessage( "Wrote entries for \"/meta\"" );

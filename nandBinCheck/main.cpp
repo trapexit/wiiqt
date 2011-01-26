@@ -836,6 +836,7 @@ void ListDeletedTitles()
         return;
     }
     qDebug() << "Comparing uid.sys against the filesystem...";
+	//hexdump12( uidSys );
 
     QBuffer buf( &uidSys );
     buf.open( QIODevice::ReadWrite );

@@ -1282,19 +1282,41 @@ QMap< quint64, quint16 > NusDownloader::List34u()
 
 QMap< quint64, quint16 > NusDownloader::List40u()
 {
-    QMap< quint64, quint16 > titles = List34u();
-    titles.insert( 0x100000002ull, 0x1a1 );
-    titles.insert( 0x100000032ull, 0x1400 );
-    titles.insert( 0x100000033ull, 0x1300 );
-    titles.insert( 0x1000248414241ull, 0x10 );
-    titles.insert( 0x1000248415941ull, 0x3 );
+	QMap< quint64, quint16 > titles = List34u();
+	titles.insert( 0x100000002ull, 0x1a1 );		// sysmenu
+	titles.insert( 0x100000009ull, 0x209 ); 	// IOS9
+	titles.insert( 0x10000000cull, 0xc ); 		// IOS12
+	titles.insert( 0x10000000dull, 0x10 ); 		// IOS13
+	titles.insert( 0x10000000eull, 0x107 ); 	// IOS14
+	titles.insert( 0x10000000full, 0x10a ); 	// IOS15
+	titles.insert( 0x100000010ull, 0x200 ); 	// IOS16
+	titles.insert( 0x100000011ull, 0x206 ); 	// IOS17
+	titles.insert( 0x100000015ull, 0x20d ); 	// IOS21
+	titles.insert( 0x100000016ull, 0x30c ); 	// IOS22
+	titles.insert( 0x10000001cull, 0x50d ); 	// IOS28
+	titles.insert( 0x10000001full, 0xc14 ); 	// IOS31
+	titles.insert( 0x100000021ull, 0xb12 ); 	// IOS33
+	titles.insert( 0x100000022ull, 0xc13 ); 	// IOS34
+	titles.insert( 0x100000023ull, 0xc14 ); 	// IOS35
+	titles.insert( 0x100000024ull, 0xc16 ); 	// IOS36
+	titles.insert( 0x100000025ull, 0xe1c ); 	// IOS37
+	titles.insert( 0x100000026ull, 0xe1a ); 	// IOS38
+	titles.insert( 0x100000032ull, 0x1400 ); 	// IOS50
+	titles.insert( 0x100000033ull, 0x1300 ); 	// IOS51
+	titles.insert( 0x100000035ull, 0x141d ); 	// IOS53
+	titles.insert( 0x100000037ull, 0x141d ); 	// IOS55
+	titles.insert( 0x10000003cull, 0x181e ); 	// IOS60
+	titles.insert( 0x10000003dull, 0x131a ); 	// IOS61
+	titles.insert( 0x1000000feull, 0x3 ); 		// IOS254
+	titles.insert( 0x1000248414241ull, 0x10 ); 	// Channel HABA
+	titles.insert( 0x1000248415941ull, 0x3 );	// Channel HAYA
     return titles;
 }
 
 QMap< quint64, quint16 > NusDownloader::List41u()
 {
     QMap< quint64, quint16 > titles = List40u();
-    titles.insert( 0x100000002ull, 0x1c1 );
+	titles.insert( 0x100000002ull, 0x1c1 );		// sysmenu
     return titles;
 }
 
