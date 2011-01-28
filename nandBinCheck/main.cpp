@@ -536,13 +536,9 @@ bool CheckArm003( const QByteArray &stuff )
 		qWarning() << "\tFailed to find the ES module in the kernel";
 		return false;
 	}
-	QByteArray start = stuff.left( esTag );																				//drop the remaining modules
-	qint32 prevTag = start.lastIndexOf( "$IOSVersion:", esTag - 1 );
-	if( prevTag > 0 )
-		start.remove( 0, prevTag );
-	if( start.contains( QByteArray::fromHex( "e2511cb1d7fbbef8d7f97db5a1d81694" ) )										//1337 buffer #1
-		|| start.contains( QByteArray::fromHex( "3f5b8cc9ea855a0afa7347d23e8d664e" ) )									//1337 buffer #2
-		|| start.contains( QByteArray::fromHex( "b570b08868851c01310c22c0005218ab681b2b00d10248bff001f852680b2b45" ) ) )//blablabla, CMP     R3, #0x45
+	if( stuff.contains( QByteArray::fromHex( "e2511cb1d7fbbef8d7f97db5a1d81694" ) )										//1337 buffer #1
+		|| stuff.contains( QByteArray::fromHex( "3f5b8cc9ea855a0afa7347d23e8d664e" ) )									//1337 buffer #2
+		|| stuff.contains( QByteArray::fromHex( "b570b08868851c01310c22c0005218ab681b2b00d10248bff001f852680b2b45" ) ) )//blablabla, CMP     R3, #0x45
 	{
 		if( verbose > 1 )
 			qWarning() << "\tSystem menu IOS supports the Korean-key check";
@@ -566,7 +562,7 @@ void Check003()
 	bool brick = true;
 
 	//check the PPC half
-	if( !sysMenuExe.contains( "3880004538A0000038C00000" ) )															//li      %r4, 0x45
+	if( !sysMenuExe.contains( QByteArray::fromHex( "3880004538A0000038C00000" ) ) )										//li      %r4, 0x45
 	{																													//li      %r5, 0
 		brick = false;																									//li      %r6, 0
 		if( verbose > 1 )
@@ -633,6 +629,9 @@ void Check003()
 		if( verbose > 1 )
 			qDebug() << "\tThe korean key is not present in this wii";
 	}
+	else if( verbose > 1 )
+		qWarning() << "\tThis wii contains the korean key";
+
 	if( brick )
 		Fail( "\tThis wii will likely show the 003 error" );
 }
@@ -852,8 +851,9 @@ void ListDeletedTitles()
         tid = qFromBigEndian( tid );
         quint32 upper = ( ( tid >> 32 ) & 0xffffffff );
         quint32 lower = ( tid & 0xffffffff );
-        if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
-            lower == 0x48415858 ||												//original HBC
+		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
+			lower == 0x48415858 ||												//original HBC
+			tid == 0x100000000ull ||											//bannerbomb -> ATD ( or any other program that uses the SU tid )
             ( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
             break;
         if( ( verbose || upper != 0x10000 ) && !tids.contains( tid ) )

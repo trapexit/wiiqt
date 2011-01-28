@@ -964,6 +964,7 @@ void MainWindow::on_actionFormat_triggered()
 		//qDebug() << hex << i << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << upper << lower << QChar( ( lower >> 24 ) & 0xff ) << ( lower & 0xffffff00 );
 		if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
 			lower == 0x48415858 ||												//original HBC
+			tid == 0x100000000ull ||											//bannerbomb -> ATD ( or any other program that uses the SU tid )
 			( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
 			break;
 		titles++;
