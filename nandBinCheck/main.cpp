@@ -25,6 +25,8 @@ QByteArray sysMenuResource;
 QByteArray sysMenuExe;
 quint64 sysMenuIos;
 
+QList<QByteArray>BadSharedItems;//remember bad shared items
+
 bool CheckTitleIntegrity( quint64 tid );
 
 #ifdef Q_WS_WIN
@@ -432,11 +434,22 @@ void CheckShared()
         qDebug() << "checking" << path << "...";
         QByteArray stuff = nand.GetData( path );
         if( stuff.isEmpty() )
+		{
+			BadSharedItems << sharedM.Hash( i );
             Fail( "One of the shared contents in this nand is missing" );
+		}
 
         QByteArray realHash = GetSha1( stuff );
         if( realHash != sharedM.Hash( i ) )
+		{
+			BadSharedItems << sharedM.Hash( i );
+			if( verbose )
+			{
+				qCritical() << "\texpected: " << sharedM.Hash( i ).toHex();
+				qCritical() << "\tactual:   " << realHash.toHex();
+			}
             Fail( "The hash for at least 1 content is bad" );
+		}
     }
 }
 
@@ -716,6 +729,11 @@ bool CheckTitleIntegrity( quint64 tid )
     {
         if( t.Type( i ) == 0x8001 )//shared
         {
+			if( BadSharedItems.contains( t.Hash( i ) ) )
+			{
+				qWarning() << "\tthis title relies on a shared content that is borked (" << i << ")\n\t" << t.Hash( i ).toHex();
+				return false;
+			}
             if( sharedM.GetAppFromHash( t.Hash( i ) ).isEmpty() )
             {
                 qWarning() << "\tone of the shared contents is missing";
