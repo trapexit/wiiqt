@@ -16,7 +16,7 @@ Tmd::Tmd( const QByteArray &stuff )
     {
         data.resize( SignedSize() );
         SetPointer();
-    }
+	}
     //hexdump( stuff );
 }
 
@@ -230,7 +230,11 @@ void Tmd::Dbg()
     QString s = QString( "TMD Dbg:\ntid:: %1\ncnt:: %2\n" )
                 .arg( Tid(), 16, 16, QChar( '0' ) )
                 .arg( cnt ) + contents;
-    qDebug() << s;
+	qDebug() << s;
+	quint8 *p = (quint8*)data.data();
+	qDebug() << "data" << p;
+	qDebug() << "pointer" << p_tmd;
+	qDebug() << "po" << payLoadOffset << SignedSize();
 }
 
 bool Tmd::FakeSign()
@@ -243,16 +247,17 @@ bool Tmd::FakeSign()
 
     quint16 i = 0;
     bool ret = false;//brute force the sha1
+	quint16 *fs = (quint16*)&p_tmd->reserved2;
     do
-    {
-        p_tmd->zero = i;//no need to worry about endian here
-        if( GetSha1( data.mid( payLoadOffset, size ) ).startsWith( '\0' ) )
+	{
+		*fs = i;//no need to worry about endian here
+		if( GetSha1( data.mid( payLoadOffset, size ) ).startsWith( '\0' ) )
         {
             ret = true;
             break;
         }
     }
-    while( ++i );
+	while( ++i );
     return ret;
 }
 

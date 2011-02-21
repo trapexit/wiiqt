@@ -548,7 +548,6 @@ bool CheckArm003( const QByteArray &stuff )
         qDebug() << "\tSystem menu IOS does not appear to support the Korean-key check";
 
     return false;
-
 }
 
 void Check003()

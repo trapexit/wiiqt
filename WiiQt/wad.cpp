@@ -207,6 +207,8 @@ Wad::Wad( QDir dir )
 	//make sure to only add the tmd & ticket without all the cert mumbo jumbo
 	tmdData = t.Data();
 	tikData = ticket.Data();
+	t = Tmd( tmdData );
+	ticket = Ticket( tikData );
 
 	quint16 cnt = t.Count();
 
