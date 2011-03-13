@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>NUS NandBuilder</string>
+   <string>Ohneschwanzenegger</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout_2">
@@ -172,7 +172,7 @@
      <x>0</x>
      <y>0</y>
      <width>654</width>
-     <height>27</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuNand_Dump">

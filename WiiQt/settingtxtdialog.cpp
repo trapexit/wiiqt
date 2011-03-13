@@ -109,7 +109,7 @@ void SettingTxtDialog::on_buttonBox_accepted()
                 "CODE=" + ui->lineEdit_code->text() + "\r\n" +
                 "SERNO=" + ui->lineEdit_serno->text() + "\r\n" +
                 "VIDEO=" + ui->lineEdit_video->text() + "\r\n" +
-                "GAME=" + ui->lineEdit_game->text();
+                "GAME=" + ui->lineEdit_game->text() + "\r\n";
 
     ret = s.toAscii();
     ret = PaddedByteArray( ret, 0x100 );
