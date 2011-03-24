@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>NandWindow</string>
+   <string>NAND Extract</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -126,6 +126,7 @@
     </property>
     <addaction name="actionShow_Usage"/>
     <addaction name="actionBoot2"/>
+    <addaction name="actionFix_Names_For_FAT"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuInfo"/>
@@ -167,6 +168,14 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+B</string>
+   </property>
+  </action>
+  <action name="actionFix_Names_For_FAT">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fix Names For FAT</string>
    </property>
   </action>
  </widget>

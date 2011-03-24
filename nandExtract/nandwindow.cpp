@@ -456,3 +456,8 @@ void NandWindow::on_actionBoot2_triggered()
     Boot2InfoDialog d( this, b, boot1 );
     d.exec();
 }
+
+void NandWindow::on_actionFix_Names_For_FAT_triggered( bool checked )
+{
+	nThread.SetFixNamesForFat( checked );
+}

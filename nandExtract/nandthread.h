@@ -34,6 +34,8 @@ public:
     const QList<Boot2Info> Boot2Infos();
     quint8 Boot1Version();
 
+	void SetFixNamesForFat( bool fix = true );
+
 protected:
     void run();
 
@@ -56,6 +58,7 @@ private:
     quint32 idx;
 
     bool abort;
+	bool fatNames;
 
     //count the number of files in a given folder
     quint32 FileCount( QTreeWidgetItem *item );

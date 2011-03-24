@@ -3,6 +3,7 @@
 NandThread::NandThread( QObject *parent ) : QThread( parent )
 {
     abort = false;
+	fatNames = false;
     itemToExtract = NULL;
 
     connect( &nandBin, SIGNAL( SendError( QString ) ), this, SLOT( GetError( QString ) ) );
@@ -40,7 +41,16 @@ bool NandThread::SetPath( const QString &path )
         emit SendError( tr( "Wait till the current job is done" ) );
         return false;
     }
-    return nandBin.SetPath( path );
+	if( !nandBin.SetPath( path ) )
+		return false;
+
+	nandBin.SetFixNamesForFAT( fatNames );
+	return true;
+}
+
+void NandThread::SetFixNamesForFat( bool fix )
+{
+	nandBin.SetFixNamesForFAT( fix );
 }
 
 const Blocks0to7 NandThread::BootBlocks()
