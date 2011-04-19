@@ -285,14 +285,16 @@ void MainWindow::on_actionSetting_txt_triggered()
     if( !nandInited )
 		return;
 
-    QTreeWidgetItem *it = ItemFromPath( "/title/00000001/00000002/data/setting.txt" );
-    if( !it )
-    {
-		ShowMessage( tr( "<b>There is no setting.txt found in %1</b>" )
-					 .arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
+	if( !ItemFromPath( "/title/00000001/00000002/data" ) )
+	{
+		ShowMessage( tr( "<b>You need to have a system menu before you can create a setting.txt</b>" ) );
 		return;
-    }
-    QByteArray ba = nand.GetData( "/title/00000001/00000002/data/setting.txt" );	//read the current setting.txt
+	}
+
+	QByteArray ba;
+	if( ItemFromPath( "/title/00000001/00000002/data/setting.txt" ) )
+		ba = nand.GetData( "/title/00000001/00000002/data/setting.txt" );	//read the current setting.txt
+
     ba = SettingTxtDialog::Edit( this, ba );	//call a dialog to edit that existing file and store the result in the same bytearray
     if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand dump
 	{
@@ -776,8 +778,7 @@ bool MainWindow::InstallNUSItem( NusJob job )
 void MainWindow::on_actionAbout_triggered()
 {
     QString txt = tr( "This is an example program from WiiQt.  It is designed to write titles to a nand.bin and even create one from scratch."
-					  "<br><br>PLEASE BE AWARE, THIS IS NOT VERY WELL TESTED AND AS OF RIGHT NOW."
-					  "  IT SHOULD ONLY BE USED BY PEOPLE THAT KNOW HOW TO VERIFY THE FILES IT PRODUCES.  AND HAVE A WAY TO FIX A BRICKED WII SHOULD THIS PROGRAM HAVE BUGS"
+					  "<br><br>IT SHOULD ONLY BE USED BY PEOPLE THAT KNOW HOW TO VERIFY THE FILES IT PRODUCES.  AND HAVE A WAY TO FIX A BRICKED WII SHOULD THIS PROGRAM HAVE BUGS"
 					  "<br><br>YOU HAVE BEEN WARNED"
 					  "<br>giantpune" );
     QMessageBox::critical( this, tr( "About" ), txt );

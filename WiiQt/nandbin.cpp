@@ -332,7 +332,18 @@ const QString NandBin::FstName( fst_t fst )
     QByteArray ba( (char*)fst.filename, 0xc );
     QString ret = QString( ba );
     if( fatNames )
-        ret.replace( ":", "-" );
+	{
+		ret.replace( ":", "-" );
+		ret.replace( "?", "-" );
+		ret.replace( "<", "-" );
+		ret.replace( ">", "-" );
+		ret.replace( "\\", "-" );
+		ret.replace( ":", "-" );
+		ret.replace( "*", "-" );
+		ret.replace( "|", "-" );
+		ret.replace( "\"", "-" );
+		ret.replace( "^", "-" );
+	}
     return ret;
 }
 

@@ -1279,7 +1279,7 @@ int main( int argc, char *argv[] )
     qCritical() << "** nandBinCheck : Wii nand info tool **";
     qCritical() << "   from giantpune";
     qCritical() << "   built:" << __DATE__ << __TIME__;
-    args = QCoreApplication::arguments();
+	args = QCoreApplication::arguments();
 
     if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
         color = false;
