@@ -712,14 +712,14 @@ bool CheckTitleIntegrity( quint64 tid )
 		}
 		else
 		{
+			Ticket ticket( ba, false );
+			if( ticket.Tid() != tid )
+			{
+				qWarning() << "\tthe ticket contains the wrong TID";
+				return false;
+			}
 			if( calcRsa )
 			{
-				Ticket ticket( ba, false );
-				if( ticket.Tid() != tid )
-				{
-					qWarning() << "\tthe ticket contains the wrong TID";
-					return false;
-				}
 				int tikVersions = ba.size() / 0x2a4;
 				qint32 ch = ERROR_RSA_TYPE_UNKNOWN;
 				bool ok = false;
