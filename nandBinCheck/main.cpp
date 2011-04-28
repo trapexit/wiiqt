@@ -680,45 +680,86 @@ bool CheckTitleIntegrity( quint64 tid )
             qDebug() << "error getting" << it << "data";
             return false;
         }
-        if( calcRsa )
-        {
-            qint32 ch = check_cert_chain( ba );
-            switch( ch )
-            {
-            case ERROR_SIG_TYPE:
-            case ERROR_SUB_TYPE:
-            case ERROR_RSA_HASH:
-            case ERROR_RSA_TYPE_UNKNOWN:
-            case ERROR_RSA_TYPE_MISMATCH:
-            case ERROR_CERT_NOT_FOUND:
-                qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
-                //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
-                break;
-            case ERROR_RSA_FAKESIGNED:
-                qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
-                break;
-            default:
-                break;
-            }
-        }
-        if( i )
-        {
-            t = Tmd( ba );
-            if( t.Tid() != tid )
-            {
-                qWarning() << "\tthe TMD contains the wrong TID";
-                return false;
-            }
-        }
-        else
-        {
-            Ticket ticket( ba, false );
-            if( ticket.Tid() != tid )
-            {
-                qWarning() << "\tthe ticket contains the wrong TID";
-                return false;
-            }
-        }
+		if( i )//tmd
+		{
+			t = Tmd( ba );
+			if( t.Tid() != tid )
+			{
+				qWarning() << "\tthe TMD contains the wrong TID";
+				return false;
+			}
+			if( calcRsa )
+			{
+				qint32 ch = check_cert_chain( ba );
+				switch( ch )
+				{
+				case ERROR_SIG_TYPE:
+				case ERROR_SUB_TYPE:
+				case ERROR_RSA_HASH:
+				case ERROR_RSA_TYPE_UNKNOWN:
+				case ERROR_RSA_TYPE_MISMATCH:
+				case ERROR_CERT_NOT_FOUND:
+					qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+					//return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
+					break;
+				case ERROR_RSA_FAKESIGNED:
+					qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+					break;
+				default:
+					break;
+				}
+			}
+		}
+		else
+		{
+			if( calcRsa )
+			{
+				Ticket ticket( ba, false );
+				if( ticket.Tid() != tid )
+				{
+					qWarning() << "\tthe ticket contains the wrong TID";
+					return false;
+				}
+				int tikVersions = ba.size() / 0x2a4;
+				qint32 ch = ERROR_RSA_TYPE_UNKNOWN;
+				bool ok = false;
+				for( int rr = 0; rr < tikVersions && !ok; rr++ )
+				{
+					ch = check_cert_chain( ba.mid( rr * 0x2a4, 0x2a4 ) );
+					switch( ch )
+					{
+					default:
+						break;
+					case ERROR_RSA_FAKESIGNED:
+					case ERROR_SUCCESS:
+						ok = true;
+						break;
+					}
+				}
+				switch( ch )
+				{
+				case ERROR_SIG_TYPE:
+				case ERROR_SUB_TYPE:
+				case ERROR_RSA_HASH:
+				case ERROR_RSA_TYPE_UNKNOWN:
+				case ERROR_RSA_TYPE_MISMATCH:
+				case ERROR_CERT_NOT_FOUND:
+					qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+					//return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
+					break;
+				case ERROR_RSA_FAKESIGNED:
+					qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+					break;
+				default:
+					break;
+				}
+			}
+
+
+		}
+
+
+
     }
 
     if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
