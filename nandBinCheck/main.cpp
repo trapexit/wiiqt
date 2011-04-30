@@ -864,7 +864,7 @@ bool CheckTitleIntegrity( quint64 tid )
         QString uidS = QString( "%1" ).arg( uid, 8, 16, QChar( '0' ) );
         QString gidS = QString( "%1" ).arg( gid, 4, 16, QChar( '0' ) );
         if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
-            qWarning() << "\tincorrect uid/gid for data folder";
+			qWarning().nospace() << "\tincorrect uid/gid for data folder--  expected: " << uidS << "/" << gidS << "   got: " << dataI->text( 3 ) << "/" << dataI->text( 4 ).left( 4 );
 
         RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
     }
