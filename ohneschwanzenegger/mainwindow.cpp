@@ -299,7 +299,7 @@ void MainWindow::on_actionSetting_txt_triggered()
     if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand dump
 	{
 		quint16 r = CreateIfNeeded( "/title/00000001/00000002/data/setting.txt", 0x1000, 1, NAND_FILE, NAND_READ, NAND_READ, NAND_READ );
-		if( !nand.SetData( r, ba )
+		if( !r || !nand.SetData( r, ba )
 			|| !nand.WriteMetaData() )
 		{
 			ShowMessage( tr( "<b>Error writing setting.txt</b>" ) );
