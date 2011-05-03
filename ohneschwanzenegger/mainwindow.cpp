@@ -298,7 +298,8 @@ void MainWindow::on_actionSetting_txt_triggered()
     ba = SettingTxtDialog::Edit( this, ba );	//call a dialog to edit that existing file and store the result in the same bytearray
     if( !ba.isEmpty() )				//if the dialog returned anything ( cancel wasnt pressed ) write that new setting.txt to the nand dump
 	{
-		if( !nand.SetData( "/title/00000001/00000002/data/setting.txt", ba )
+		quint16 r = CreateIfNeeded( "/title/00000001/00000002/data/setting.txt", 0x1000, 1, NAND_FILE, NAND_READ, NAND_READ, NAND_READ );
+		if( !nand.SetData( r, ba )
 			|| !nand.WriteMetaData() )
 		{
 			ShowMessage( tr( "<b>Error writing setting.txt</b>" ) );
@@ -624,8 +625,8 @@ bool MainWindow::InstallNUSItem( NusJob job )
     QString upper = tid.left( 8 );
     QString lower = tid.right( 8 );
 
-    Tmd t( job.data.takeFirst() );
-    Ticket ticket( job.data.takeFirst() );
+	Tmd t( job.data.takeFirst() );
+	Ticket ticket( job.data.takeFirst() );
     if( t.Tid() != job.tid || ticket.Tid() != job.tid )
     {
 		qWarning() << "bad tid";
