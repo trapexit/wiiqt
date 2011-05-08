@@ -223,8 +223,6 @@ QTreeWidgetItem *ItemFromPath( const QString &path )
         item = FindItem( lookingFor, item );
         if( !item )
         {
-            //if( verbose )
-            //	qWarning() << "ItemFromPath ->item not found" << path;
             return NULL;
         }
         slash = nextSlash + 1;
@@ -246,31 +244,6 @@ QString PathFromItem( QTreeWidgetItem *item )
 
 }
 
-/*
-quint16 MainWindow::CreateIfNeeded( const QString &path, quint32 uid, quint16 gid, quint8 attr, quint8 user_perm, quint8 group_perm, quint8 other_perm )
-{
-    QTreeWidgetItem *item = ItemFromPath( path );
-    if( !item )
-    {
-        quint16 ret = nand.CreateEntry( path, uid, gid, attr, user_perm, group_perm, other_perm );
-        if( ret && UpdateTree() )
-            return ret;
-        return 0;
-    }
-    return item->text( 1 ).toInt();
-}
-#define NAND_FILE   1
-#define NAND_DIR    2
-#define NAND_READ   1
-#define NAND_WRITE  2
-#define NAND_RW	    ( NAND_READ | NAND_WRITE )
-
-#define NAND_ATTR( type, user, group, other ) ( ( quint8 )( ( type & 3 ) | ( ( user & 3 ) << 6 ) | ( ( group & 3 ) << 4 ) | ( ( other & 3 ) << 2 ) ) )
-#define NAND_ATTR_TYPE( attr ) ( attr & 3 )
-#define NAND_ATTR_USER( attr ) ( ( attr >> 6 ) & 3 )
-#define NAND_ATTR_GROUP( attr ) ( ( attr >> 4 ) & 3 )
-#define NAND_ATTR_OTHER( attr ) ( ( attr >> 2 ) & 3 )
-*/
 void DumpItem( QTreeWidgetItem *item )
 {
     if( !item )
@@ -454,7 +427,6 @@ int main( int argc, char *argv[] )
         qDebug() << "destination nand formatted ok.";
     }
 
-
     //get the list of contents from the source nand
     SetUpTree();
     printf("\n");
@@ -472,10 +444,5 @@ int main( int argc, char *argv[] )
             Fail( "error writing metadata" );
         }
     }
-
-
-
-
-
     return 0;
 }
