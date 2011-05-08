@@ -332,18 +332,18 @@ const QString NandBin::FstName( fst_t fst )
     QByteArray ba( (char*)fst.filename, 0xc );
     QString ret = QString( ba );
     if( fatNames )
-	{
-		ret.replace( ":", "-" );
-		ret.replace( "?", "-" );
-		ret.replace( "<", "-" );
-		ret.replace( ">", "-" );
-		ret.replace( "\\", "-" );
-		ret.replace( ":", "-" );
-		ret.replace( "*", "-" );
-		ret.replace( "|", "-" );
-		ret.replace( "\"", "-" );
-		ret.replace( "^", "-" );
-	}
+    {
+        ret.replace( ":", "-" );
+        ret.replace( "?", "-" );
+        ret.replace( "<", "-" );
+        ret.replace( ">", "-" );
+        ret.replace( "\\", "-" );
+        ret.replace( ":", "-" );
+        ret.replace( "*", "-" );
+        ret.replace( "|", "-" );
+        ret.replace( "\"", "-" );
+        ret.replace( "^", "-" );
+    }
     return ret;
 }
 
@@ -1487,7 +1487,7 @@ bool NandBin::SetData( const QString &path, const QByteArray &data )
 bool NandBin::SetData( quint16 idx, const QByteArray &data )
 {
     fst_t fst = fsts[ idx ];
-    qDebug() << "NandBin::SetData" << FstName( fst );
+    //qDebug() << "NandBin::SetData" << FstName( fst );
     if( ( fst.attr & 3 ) != 1 )
     {
         qDebug() << idx << "is a folder";
@@ -1672,7 +1672,7 @@ bool NandBin::WriteMetaData()
     b.close();
     QByteArray hmR = spare.Get_hmac_meta( scl, nextSuperCluster );
 
-    qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
+    //qDebug() << "about to write the meta block" << hex << nextSuperCluster << nextClusterVersion << "to page" << (quint32)( nextSuperCluster * 8 );
 
     for( quint8 i = 0; i < 0x10; i++ )
     {
