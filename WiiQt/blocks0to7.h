@@ -47,7 +47,7 @@ enum
 
 struct Boot2Info    //this little guy is just some container to hold the information about the state of boot2 in these blocks
 {		    //the above values are used for the "state".  it will either be < 0 or it will be any of the other values |'d together
-		    //if the state is above 0, version will either be the version from the TMD or one of the BOOTMII_... values
+            //if the state is above 0, version will either be the version from the TMD or one of the BOOTMII_... values
 
     quint8 firstBlock;	    //block that contains the header
     quint8 secondBlock;	    //block that contains the blockmap
@@ -61,31 +61,31 @@ struct Boot2Info    //this little guy is just some container to hold the informa
 class Blocks0to7
 {
 public:
-    Blocks0to7( QList<QByteArray>blocks = QList<QByteArray>() );
-    bool SetBlocks( QList<QByteArray>blocks );
+    Blocks0to7( const QList<QByteArray> &blocks = QList<QByteArray>() );
+    bool SetBlocks( const QList<QByteArray> &blocks );
     bool IsOk(){ return _ok; }
 
     //check which version of boot1 we have
     quint8 Boot1Version();
 
     //get a list containing info for each copy of boot2 on the given blocks
-    QList<Boot2Info> Boot2Infos();
+    const QList<Boot2Info> &Boot2Infos();
 
 private:
     bool _ok;
     //should hold the blocks, without ecc
     QList<QByteArray>blocks;
 
-    //after teh first time Boot2Infos() is called, store the result here so any subsequent calls can just return this for speed
+    //after the first time Boot2Infos() is called, store the result here so any subsequent calls can just return this for speed
     QList< Boot2Info > boot2Infos;
 
     //this one doesnt really return a complete info, it only gets the block map from a block
     //and returns it in an incomplete Boot2Info
-    Boot2Info GetBlockMap( QByteArray block );
+    Boot2Info GetBlockMap( const QByteArray &block );
 
     //checks the hashes and whatnot in a copy of boot2
     //returns an incomplete Boot2Info
-    Boot2Info CheckHashes( Boot2Info info );
+    Boot2Info CheckHashes( const Boot2Info &info );
 
 };
 

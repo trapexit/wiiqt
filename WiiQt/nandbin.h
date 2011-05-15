@@ -21,7 +21,6 @@ struct fst_t
 // class to deal with an encrypted wii nand dump
 // basic usage... create an object, set a path, call InitNand.  then you can get the detailed list of entries with GetTree()
 // extract files with GetFile()
-//! so far, all functions for writing to the nand are highly untested.  it is not recommended to try to use this code productively!!
 //! you should verify anything written with this code before attempting to install it on you wii
 
 //once InitNand() is called, you can get the contents of the nand in a nice QTreeWidgetItem* with GetTree()
@@ -134,16 +133,16 @@ public:
     //expects 0x7f00 - 0x7ff0
     bool CheckHmacMeta( quint16 clNo );
 
-	//wipe out all data within the nand FS, leaving only the root entry
-	//preserve all bad/reserved clusters
-	//if secure is true, overwrite old file data with 0xff
-	bool Format( bool secure = true );
+    //wipe out all data within the nand FS, leaving only the root entry
+    //preserve all bad/reserved clusters
+    //if secure is true, overwrite old file data with 0xff
+    bool Format( bool secure = true );
 
-	//get the path of this nand
-	const QString FilePath();
+    //get the path of this nand
+    const QString FilePath();
 
-	//get the keys.bin for this object
-	const QByteArray Keys();
+    //get the keys.bin for this object
+    const QByteArray Keys();
 
 
 private:

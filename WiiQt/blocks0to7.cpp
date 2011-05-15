@@ -2,14 +2,14 @@
 #include "tools.h"
 #include "tiktmd.h"
 
-Blocks0to7::Blocks0to7( QList<QByteArray>blocks )
+Blocks0to7::Blocks0to7( const QList<QByteArray> &blocks )
 {
     _ok = false;
     if( !blocks.isEmpty() )
         SetBlocks( blocks );
 }
 
-bool Blocks0to7::SetBlocks( QList<QByteArray>blocks )
+bool Blocks0to7::SetBlocks( const QList<QByteArray> &blocks )
 {
     //qDebug() << "Blocks0to7::SetBlocks" << blocks.size();
     _ok = false;
@@ -58,7 +58,7 @@ quint8 Blocks0to7::Boot1Version()
 //this doesnt take into account the possibility that boot2 is bigger and takes up more than 2 blocks
 //there are 0x40 blocks in the blockmap, but only 8 are used.  maybe IOS has the authority to hijack the others if
 //it runs out of room here.  if that ever happns, this code will become quite wrong
-QList<Boot2Info> Blocks0to7::Boot2Infos()
+const QList<Boot2Info> &Blocks0to7::Boot2Infos()
 {
     if( !boot2Infos.isEmpty() )
     {
@@ -66,13 +66,10 @@ QList<Boot2Info> Blocks0to7::Boot2Infos()
         return boot2Infos;
     }
 
-    QList< Boot2Info > ret;
-    if( blocks.size() != 8 )
-        return ret;
-
+    //QList< Boot2Info > ret;
     quint16 cnt = blocks.size();
     if( cnt != 8 )
-        return ret;
+        return boot2Infos;
 
     //get all the blockmaps
     quint16 newest = 0;
@@ -138,44 +135,44 @@ QList<Boot2Info> Blocks0to7::Boot2Infos()
                 lbm[ j ] = info.blockMap[ j ];
         }
 
-        ret << info;
+        boot2Infos << info;
     }
     //qDebug() << "newest blockmap" << QByteArray( (const char*)&lbm, 8 ).toHex();
 
-    cnt = ret.size();
+    cnt = boot2Infos.size();
     bool foundBoot = false;
     bool foundBackup = false;
     for( quint8 i = 0; i < cnt; i++ )
     {
-        ret[ i ] = CheckHashes( ret[ i ] );//check all the hashes and stuff
-        if( !foundBoot && !lbm[ ret.at( i ).firstBlock ] && !lbm[ ret.at( i ).secondBlock ] )
+        boot2Infos[ i ] = CheckHashes( boot2Infos[ i ] );//check all the hashes and stuff
+        if( !foundBoot && !lbm[ boot2Infos.at( i ).firstBlock ] && !lbm[ boot2Infos.at( i ).secondBlock ] )
         {
             //qDebug() << "copy" << i << "is used when booting";
-            ret[ i ].state |= BOOT_2_USED_TO_BOOT;
-            //ret[ i ].usedToBoot = true;
+            boot2Infos[ i ].state |= BOOT_2_USED_TO_BOOT;
             foundBoot = true;
         }
-        else if( lbm[ ret.at( i ).firstBlock ] || lbm[ ret.at( i ).secondBlock ] )
+        else if( lbm[ boot2Infos.at( i ).firstBlock ] || lbm[ boot2Infos.at( i ).secondBlock ] )
         {
-            ret[ i ].state |= BOOT_2_MARKED_BAD;
+            boot2Infos[ i ].state |= BOOT_2_MARKED_BAD;
         }
     }
-    for( quint8 i = ret.size(); !foundBackup && i > 0; i-- )
+    for( quint8 i = boot2Infos.size(); !foundBackup && i > 0; i-- )
     {
-        if( !lbm[ ret.at( i - 1 ).firstBlock ] && !lbm[ ret.at( i - 1 ).secondBlock ] && ret.at( i - 1 ).firstBlock > ret.at( i - 1 ).secondBlock )
+        if( !lbm[ boot2Infos.at( i - 1 ).firstBlock ]
+            && !lbm[ boot2Infos.at( i - 1 ).secondBlock ]
+            && boot2Infos.at( i - 1 ).firstBlock > boot2Infos.at( i - 1 ).secondBlock )
         {
             //qDebug() << "copy" << i << "is used when booting from backup";
-            ret[ i - 1 ].state |= BOOT_2_BACKUP_COPY;
+            boot2Infos[ i - 1 ].state |= BOOT_2_BACKUP_COPY;
             foundBackup = true;
             if( !foundBoot )
-                ret[ i - 1 ].state |= BOOT_2_USED_TO_BOOT;
+                boot2Infos[ i - 1 ].state |= BOOT_2_USED_TO_BOOT;
         }
     }
-    boot2Infos = ret;
-    return ret;
+    return boot2Infos;
 }
 
-Boot2Info Blocks0to7::GetBlockMap( QByteArray block )
+Boot2Info Blocks0to7::GetBlockMap( const QByteArray &block )
 {
     Boot2Info ret;
     ret.state = BOOT_2_ERROR;
@@ -201,7 +198,7 @@ Boot2Info Blocks0to7::GetBlockMap( QByteArray block )
     return ret;
 }
 
-Boot2Info Blocks0to7::CheckHashes( Boot2Info info )
+Boot2Info Blocks0to7::CheckHashes( const Boot2Info &info )
 {
     Boot2Info ret = info;
     ret.state = BOOT_2_ERROR_PARSING;
@@ -307,7 +304,7 @@ Boot2Info Blocks0to7::CheckHashes( Boot2Info info )
     stuff += blocks.at( ret.secondBlock );
 
     AesSetKey( ticket.DecryptedKey() );
-	QByteArray decD = AesDecrypt( 0, stuff.mid( dataOff, RU( t.Size( 0 ), 0x40 ) ) );
+    QByteArray decD = AesDecrypt( 0, stuff.mid( dataOff, RU( t.Size( 0 ), 0x40 ) ) );
     decD.resize( t.Size( 0 ) );
     QByteArray realHash = GetSha1( decD );
     if( realHash != t.Hash( 0 ) )

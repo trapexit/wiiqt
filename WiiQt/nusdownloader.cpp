@@ -113,7 +113,7 @@ void NusDownloader::StartNextJob()
 }
 
 //tries to read data for the job from the PC
-QByteArray NusDownloader::GetDataFromCache( downloadJob job )
+QByteArray NusDownloader::GetDataFromCache( const downloadJob &job )
 {
     //qDebug() << "NusDownloader::GetDataFromCache";
     if( cachePath.isEmpty() || currentJob.version == TITLE_LATEST_VERSION )
@@ -330,7 +330,7 @@ QString NusDownloader::GetCachePath( quint32 idx )
 }
 
 //print info about a job
-void NusDownloader::DbgJoB( NusJob job )
+void NusDownloader::DbgJoB( const NusJob &job )
 {
     QString dataStuff = QString( "%1 items:" ).arg( job.data.size() );
     for( int i = 0; i < job.data.size(); i++ )
@@ -372,7 +372,7 @@ bool NusDownloader::DecryptCheckHashAndAppendData( const QByteArray &encData, qu
 }
 
 //something is done downloading
-void NusDownloader::FileIsFinishedDownloading( downloadJob job )
+void NusDownloader::FileIsFinishedDownloading( const downloadJob &job )
 {
     //qDebug() << "NusDownloader::FileIsFinishedDownloading" << job.index;
     if( job.data.isEmpty() )

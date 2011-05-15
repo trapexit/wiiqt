@@ -55,11 +55,11 @@ public:
     //get a list of titles for a given update
     //if a title is not available on NUS, a substitute is given instead ( a later version of the same title )
     //to keep people from bulk DLing and installing and messing something up, any boot2 update will NOT be included
-	//in the list, ask for it specifically.
+    //in the list, ask for it specifically.
     //lists are created from wiimpersonator logs when available.  otherwise they come from examining game update partitions
 
-	static QMap< quint64, quint16 > List20u();//* there are no games ive seen that contain this update.  this is just a guess
-	static QMap< quint64, quint16 > List22u();
+    static QMap< quint64, quint16 > List20u();//* there are no games ive seen that contain this update.  this is just a guess
+    static QMap< quint64, quint16 > List22u();
     static QMap< quint64, quint16 > List30u();
     static QMap< quint64, quint16 > List31u();
     static QMap< quint64, quint16 > List32u();
@@ -70,12 +70,12 @@ public:
     static QMap< quint64, quint16 > List42u();
     static QMap< quint64, quint16 > List43u();
 
-	static QMap< quint64, quint16 > List20e();//* there are no games ive seen that contain this update.  this is just a guess
-	static QMap< quint64, quint16 > List21e();
-	static QMap< quint64, quint16 > List22e(); //* there are no games ive seen that contain this update.  this is just a guess
+    static QMap< quint64, quint16 > List20e();//* there are no games ive seen that contain this update.  this is just a guess
+    static QMap< quint64, quint16 > List21e();
+    static QMap< quint64, quint16 > List22e(); //* there are no games ive seen that contain this update.  this is just a guess
     static QMap< quint64, quint16 > List30e();
     static QMap< quint64, quint16 > List31e();
-	static QMap< quint64, quint16 > List32e(); //* there are no games ive seen that contain this update, i have only copied 3.1e and changed the system menu
+    static QMap< quint64, quint16 > List32e(); //* there are no games ive seen that contain this update, i have only copied 3.1e and changed the system menu
     static QMap< quint64, quint16 > List33e();
     static QMap< quint64, quint16 > List34e();
     static QMap< quint64, quint16 > List40e();
@@ -88,11 +88,11 @@ public:
     static QMap< quint64, quint16 > List42k();
     static QMap< quint64, quint16 > List43k();
 
-	static QMap< quint64, quint16 > List20j();
-	static QMap< quint64, quint16 > List22j();//* there are no games ive seen that contain this update, i have only copied 2.1e and changed the system menu
-	static QMap< quint64, quint16 > List30j();
+    static QMap< quint64, quint16 > List20j();
+    static QMap< quint64, quint16 > List22j();//* there are no games ive seen that contain this update, i have only copied 2.1e and changed the system menu
+    static QMap< quint64, quint16 > List30j();
     static QMap< quint64, quint16 > List31j();
-	static QMap< quint64, quint16 > List32j();//* there are no games ive seen that contain this update, i have only copied 3.1j and changed the system menu
+    static QMap< quint64, quint16 > List32j();//* there are no games ive seen that contain this update, i have only copied 3.1j and changed the system menu
     static QMap< quint64, quint16 > List33j();
     static QMap< quint64, quint16 > List34j();
     static QMap< quint64, quint16 > List40j();
@@ -110,7 +110,7 @@ private:
 
     //get data from the cache and put it in the job's data
     //uses the version from currentJob
-    QByteArray GetDataFromCache( downloadJob job );
+    QByteArray GetDataFromCache( const downloadJob &job );
 
     //saves downloaded data to the HDD for later use
     bool SaveDataToCache( const QString &path, const QByteArray &stuff );
@@ -121,13 +121,13 @@ private:
     bool DecryptCheckHashAndAppendData( const QByteArray &encData, quint16 idx );
 
     //triggered when a file is done downloading
-    void FileIsFinishedDownloading( downloadJob job );
+    void FileIsFinishedDownloading( const downloadJob &job );
 
     //send a fail message about the current job and skip to the next
     void CurrentJobErrored( const QString &str );
 
     //print info about a job to qDebug()
-    void DbgJoB( NusJob job );
+    void DbgJoB( const NusJob &job );
 
     //get the path for a file in the local cache
     QString GetCachePath( quint32 idx );

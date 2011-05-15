@@ -7,10 +7,8 @@ QStringList args;
 NandBin nandS;//source
 NandBin nandD;//dest
 QTreeWidgetItem *root = NULL;
-quint32 verbose = 0;
 bool color = true;
 bool testMode = true;
-bool CheckTitleIntegrity( quint64 tid );
 quint32 fileCnt = 0;
 quint32 dirCnt = 0;
 

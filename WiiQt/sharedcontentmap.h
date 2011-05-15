@@ -26,7 +26,7 @@ public:
     void AddEntry( const QString &app, const QByteArray &hash );
 
     //get the entire data ready for writing to a wii nand
-    const QByteArray Data(){ return data; }
+    const QByteArray &Data(){ return data; }
 
     const QByteArray Hash( quint16 i );
     const QString Cid( quint16 i );
