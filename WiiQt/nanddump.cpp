@@ -26,8 +26,8 @@ bool NandDump::Flush()
 bool NandDump::SetPath( const QString &path )
 {
     qDebug() << "NandDump::SetPath(" << path << ")";
-	uidDirty = true;
-	cmDirty = true;
+    uidDirty = true;
+    cmDirty = true;
     //check what is already in this path and create stuff that is missing
     QFileInfo fi( path );
     basePath = fi.absoluteFilePath();
@@ -379,9 +379,9 @@ bool NandDump::InstallNusItem( const NusJob &job )
     }
 
     quint32 cnt = qFromBigEndian( t.payload()->num_contents );
-	if( cnt != (quint32)job.data.size() - 2 )
+    if( cnt != (quint32)job.data.size() - 2 )
     {
-		qWarning() << "cnt != (quint32)job.data.size()";
+        qWarning() << "cnt != (quint32)job.data.size()";
         AbortInstalling( job.tid );
         return false;
     }
@@ -440,80 +440,80 @@ bool NandDump::InstallNusItem( const NusJob &job )
 
 bool NandDump::InstallWad( Wad wad )
 {
-	if( !wad.Tid() || wad.content_count() < 3 )
-	{
-		qWarning() << "NandDump::InstallNusItem -> invalid item";
-		return false;
-	}
-	if( !uidDirty )
-	{
-		uidDirty = uidMap.GetUid( wad.Tid(), false ) == 0;//only flag the uid as dirty if it has to be, this way it is only flushed if needed
-	}
-	uidMap.GetUid( wad.Tid() );
-	QString p = QString( "%1" ).arg( wad.Tid(), 16, 16, QChar( '0' ) );
-	p.insert( 8 ,"/" );
-	p.prepend( "/title/" );
-	QString path = basePath + p + "/content";
+    if( !wad.Tid() || wad.content_count() < 3 )
+    {
+        qWarning() << "NandDump::InstallNusItem -> invalid item";
+        return false;
+    }
+    if( !uidDirty )
+    {
+        uidDirty = uidMap.GetUid( wad.Tid(), false ) == 0;//only flag the uid as dirty if it has to be, this way it is only flushed if needed
+    }
+    uidMap.GetUid( wad.Tid() );
+    QString p = QString( "%1" ).arg( wad.Tid(), 16, 16, QChar( '0' ) );
+    p.insert( 8 ,"/" );
+    p.prepend( "/title/" );
+    QString path = basePath + p + "/content";
 
     //remove old title if it exists
     AbortInstalling( wad.Tid() );
 
-	if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
+    if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
         return false;
 
-	path = basePath + p + "/data";
-	if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
+    path = basePath + p + "/data";
+    if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
         return false;
 
-	QByteArray ba = wad.getTmd();
-	if( !InstallTmd( ba, wad.Tid() ) )
+    QByteArray ba = wad.getTmd();
+    if( !InstallTmd( ba, wad.Tid() ) )
         return false;
 
-	Tmd t( ba );
+    Tmd t( ba );
 
-	ba = wad.getTik();
+    ba = wad.getTik();
     //Ticket ti( ba );
-	if( !InstallTicket( ba, wad.Tid() ) )
-	{
-		AbortInstalling( wad.Tid() );
-		return false;
-	}
+    if( !InstallTicket( ba, wad.Tid() ) )
+    {
+        AbortInstalling( wad.Tid() );
+        return false;
+    }
 
-	quint32 cnt = qFromBigEndian( t.payload()->num_contents );
-	if( cnt != wad.content_count() )
-	{
-		AbortInstalling( wad.Tid() );
-		return false;
-	}
+    quint32 cnt = qFromBigEndian( t.payload()->num_contents );
+    if( cnt != wad.content_count() )
+    {
+        AbortInstalling( wad.Tid() );
+        return false;
+    }
 
-	for( quint32 i = 0; i < cnt; i++ )
-	{
-		QByteArray decData = wad.Content(i);
+    for( quint32 i = 0; i < cnt; i++ )
+    {
+        QByteArray decData = wad.Content(i);
 
-		if( t.Type( i ) == 0x8001 )
-		{
-			if( !InstallSharedContent( decData, t.Hash( i ) ) )
-			{
-				AbortInstalling( wad.Tid() );
-				return false;
-			}
-		}
-		else if( t.Type( i ) == 1 )
-		{
-			if( !InstallPrivateContent( decData, wad.Tid(), t.Cid( i ) ) )
-			{
-				AbortInstalling( wad.Tid() );
-				return false;
-			}
-		}
-		else//unknown content type
-		{
-			qWarning() << "NandDump::InstallWad -> unknown content type";
-			AbortInstalling( wad.Tid() );
-			return false;
-		}
-	}
-	return true;
+        if( t.Type( i ) == 0x8001 )
+        {
+            if( !InstallSharedContent( decData, t.Hash( i ) ) )
+            {
+                AbortInstalling( wad.Tid() );
+                return false;
+            }
+        }
+        else if( t.Type( i ) == 1 )
+        {
+            if( !InstallPrivateContent( decData, wad.Tid(), t.Cid( i ) ) )
+            {
+                AbortInstalling( wad.Tid() );
+                return false;
+            }
+        }
+        else//unknown content type
+        {
+            qWarning() << "NandDump::InstallWad -> unknown content type";
+            AbortInstalling( wad.Tid() );
+            return false;
+        }
+    }
+    return true;
 }
 
 QMap< quint64, quint16 > NandDump::GetInstalledTitles()
@@ -885,7 +885,7 @@ bool NandDump::InstallSave( const SaveGame &save )
     QString path = basePath + p + "/data";
 
     //make sure the path exists
-	if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
+    if( !QFileInfo( path ).exists() && !QDir().mkpath( path ) )
     {
         qWarning() << "NandDump::InstallSave -> error creating" << path;
         return false;
@@ -894,13 +894,13 @@ bool NandDump::InstallSave( const SaveGame &save )
     if( !QFileInfo( basePath + p + "/content" ).exists() )
         QDir().mkpath( basePath + p + "/content" );
 
-	path = p + "/data";
+    path = p + "/data";
 
     quint16 dataIdx = 0;
     quint16 entryIdx = 0;
     foreach( QString entry, save.entries )
-	{
-		QString cp = ToNandPath( entry );
+    {
+        QString cp = ToNandPath( entry );
         quint8 attr = save.attr.at( entryIdx );
         if( NAND_ATTR_TYPE( attr ) == NAND_FILE )//this is a file
         {

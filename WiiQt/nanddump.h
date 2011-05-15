@@ -46,7 +46,7 @@ public:
     //if it doesnt exist, the function will try to create it
     //also creates the normal folders in the nand
     bool SetPath( const QString &path );
-    const QString GetPath(){ return basePath; }
+    const QString &GetPath(){ return basePath; }
 
     //installs a title to the nand dump from an already existing NusJob
     //returns false if something went wrong
