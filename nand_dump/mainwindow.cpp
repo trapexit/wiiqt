@@ -8,23 +8,23 @@
 
 MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::MainWindow ), nus ( this )
 {
-	ui->setupUi(this);
-	ui->mainToolBar->setVisible( false );//hide toolbar for now
+    ui->setupUi(this);
+    ui->mainToolBar->setVisible( false );//hide toolbar for now
 
-	//resize buttons to be same size
-	QFontMetrics fm( fontMetrics() );
-	int max = fm.width( ui->pushButton_CachePathBrowse->text() );
-	max = MAX( max, fm.width( ui->pushButton_decFolder->text() ) );
-	max = MAX( max, fm.width( ui->pushButton_GetTitle->text() ) );
-	max = MAX( max, fm.width( ui->pushButton_nandPath->text() ) );
-	max = MAX( max, fm.width( ui->pushButton_wad->text() ) );
+    //resize buttons to be same size
+    QFontMetrics fm( fontMetrics() );
+    int max = fm.width( ui->pushButton_CachePathBrowse->text() );
+    max = MAX( max, fm.width( ui->pushButton_decFolder->text() ) );
+    max = MAX( max, fm.width( ui->pushButton_GetTitle->text() ) );
+    max = MAX( max, fm.width( ui->pushButton_nandPath->text() ) );
+    max = MAX( max, fm.width( ui->pushButton_wad->text() ) );
 
-	max += 15;
-	ui->pushButton_CachePathBrowse->setMinimumWidth( max );
-	ui->pushButton_decFolder->setMinimumWidth( max );
-	ui->pushButton_GetTitle->setMinimumWidth( max );
-	ui->pushButton_nandPath->setMinimumWidth( max );
-	ui->pushButton_wad->setMinimumWidth( max );
+    max += 15;
+    ui->pushButton_CachePathBrowse->setMinimumWidth( max );
+    ui->pushButton_decFolder->setMinimumWidth( max );
+    ui->pushButton_GetTitle->setMinimumWidth( max );
+    ui->pushButton_nandPath->setMinimumWidth( max );
+    ui->pushButton_wad->setMinimumWidth( max );
 
     Wad::SetGlobalCert( QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) );
 
@@ -33,48 +33,48 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nus, SIGNAL( SendTitleProgress( int ) ), ui->progressBar_title, SLOT( setValue( int ) ) );
     connect( &nus, SIGNAL( SendTotalProgress( int ) ), ui->progressBar_whole, SLOT( setValue( int ) ) );
     connect( &nus, SIGNAL( SendText( QString ) ), ui->statusBar, SLOT( showMessage( QString ) ) );
-    connect( &nus, SIGNAL( SendError( const QString &, NusJob ) ), this, SLOT( GetError( const QString &, NusJob ) ) );
+    connect( &nus, SIGNAL( SendError( const QString &, const NusJob & ) ), this, SLOT( GetError( const QString &, const NusJob & ) ) );
     connect( &nus, SIGNAL( SendDone() ), this, SLOT( NusIsDone() ) );
-    connect( &nus, SIGNAL( SendData( NusJob ) ), this, SLOT( ReceiveTitleFromNus( NusJob) ) );
+    connect( &nus, SIGNAL( SendData( const NusJob & ) ), this, SLOT( ReceiveTitleFromNus( const NusJob & ) ) );
 
-	LoadSettings();
+    LoadSettings();
 }
 
 MainWindow::~MainWindow()
 {
-	SaveSettings();
+    SaveSettings();
     delete ui;
 }
 
 void MainWindow::SaveSettings()
 {
-	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+    QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
 
-	//settings specific to this program
-	s.beginGroup( "nusDownloader" );
-	//window geometry
-	s.setValue( "size", size() );
-	s.setValue( "pos", pos() );
+    //settings specific to this program
+    s.beginGroup( "nusDownloader" );
+    //window geometry
+    s.setValue( "size", size() );
+    s.setValue( "pos", pos() );
 
-	//which radio button is selected
-	quint8 val = 0;
-	if( ui->radioButton_folder->isChecked() )
-		val = 1;
-	else if( ui->radioButton_wad->isChecked() )
-		val = 2;
-	s.setValue( "radio", val );
+    //which radio button is selected
+    quint8 val = 0;
+    if( ui->radioButton_folder->isChecked() )
+        val = 1;
+    else if( ui->radioButton_wad->isChecked() )
+        val = 2;
+    s.setValue( "radio", val );
 
-	s.setValue( "folder", ui->lineEdit_extractPath->text() );
-	s.setValue( "nuswads", ui->lineEdit_wad->text() );
+    s.setValue( "folder", ui->lineEdit_extractPath->text() );
+    s.setValue( "nuswads", ui->lineEdit_wad->text() );
 
-	s.endGroup();
+    s.endGroup();
 
-	//settings shared in multiple programs
-	//paths
-	s.beginGroup( "paths" );
-	s.setValue( "nusCache", ui->lineEdit_cachePath->text() );
-	s.setValue( "sneek", ui->lineEdit_nandPath->text() );
-	s.endGroup();
+    //settings shared in multiple programs
+    //paths
+    s.beginGroup( "paths" );
+    s.setValue( "nusCache", ui->lineEdit_cachePath->text() );
+    s.setValue( "sneek", ui->lineEdit_nandPath->text() );
+    s.endGroup();
 
 }
 #ifdef Q_WS_WIN
@@ -85,42 +85,42 @@ void MainWindow::SaveSettings()
 
 void MainWindow::LoadSettings()
 {
-	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+    QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
 
-	//settings specific to this program
-	s.beginGroup( "nusDownloader" );
-	resize( s.value("size", QSize( 585, 457 ) ).toSize() );
-	move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
+    //settings specific to this program
+    s.beginGroup( "nusDownloader" );
+    resize( s.value("size", QSize( 585, 457 ) ).toSize() );
+    move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
 
-	quint8 radio = s.value( "radio", 0 ).toInt();
-	if( radio == 1 )
-		ui->radioButton_folder->setChecked( true );
-	else if( radio == 2 )
-		ui->radioButton_wad->setChecked( true );
+    quint8 radio = s.value( "radio", 0 ).toInt();
+    if( radio == 1 )
+        ui->radioButton_folder->setChecked( true );
+    else if( radio == 2 )
+        ui->radioButton_wad->setChecked( true );
 
-	ui->lineEdit_extractPath->setText( s.value( "folder", PATH_PREFIX + "/downloaded" ).toString() );
-	ui->lineEdit_wad->setText( s.value( "nuswads", PATH_PREFIX + "/wads" ).toString() );
+    ui->lineEdit_extractPath->setText( s.value( "folder", PATH_PREFIX + "/downloaded" ).toString() );
+    ui->lineEdit_wad->setText( s.value( "nuswads", PATH_PREFIX + "/wads" ).toString() );
 
-	s.endGroup();
+    s.endGroup();
 
-	//settings shared in multiple programs
-	s.beginGroup( "paths" );
+    //settings shared in multiple programs
+    s.beginGroup( "paths" );
 
-	QString cachePath = s.value( "nusCache", PATH_PREFIX + "/NUS_cache" ).toString();
-	QString nandPath = s.value( "sneek" ).toString();
-	ui->lineEdit_cachePath->setText( cachePath );
-	ui->lineEdit_nandPath->setText( nandPath );
+    QString cachePath = s.value( "nusCache", PATH_PREFIX + "/NUS_cache" ).toString();
+    QString nandPath = s.value( "sneek" ).toString();
+    ui->lineEdit_cachePath->setText( cachePath );
+    ui->lineEdit_nandPath->setText( nandPath );
 
-	if( !nandPath.isEmpty() )
-		nand.SetPath( QFileInfo( nandPath ).absoluteFilePath() );
-	if( !cachePath.isEmpty() )
-		nus.SetCachePath( QFileInfo( cachePath ).absoluteFilePath() );
-	s.endGroup();
+    if( !nandPath.isEmpty() )
+        nand.SetPath( QFileInfo( nandPath ).absoluteFilePath() );
+    if( !cachePath.isEmpty() )
+        nus.SetCachePath( QFileInfo( cachePath ).absoluteFilePath() );
+    s.endGroup();
 
 }
 
 //some slots to respond to the NUS downloader
-void MainWindow::GetError( const QString &message, NusJob job )
+void MainWindow::GetError( const QString &message, const NusJob &job )
 {
     QString dataStuff = QString( "%1 items:" ).arg( job.data.size() );
     for( int i = 0; i < job.data.size(); i++ )
@@ -155,14 +155,14 @@ void MainWindow::NusIsDone()
     }
     else if( ui->radioButton_nand->isChecked() )
     {
-		//check if IOS35 is present in nand dump - needed for sneek
-		QByteArray tmdBA = nand.GetFile( "/title/00000001/00000023/content/title.tmd" );
-		if( tmdBA.isEmpty() )
-		{
-			ui->plainTextEdit_log->appendHtml( tr( "IOS35 not found on nand.  Getting it now...") );
-			nus.Get( 0x100000023ull, true );
-			return;
-		}
+        //check if IOS35 is present in nand dump - needed for sneek
+        QByteArray tmdBA = nand.GetFile( "/title/00000001/00000023/content/title.tmd" );
+        if( tmdBA.isEmpty() )
+        {
+            ui->plainTextEdit_log->appendHtml( tr( "IOS35 not found on nand.  Getting it now...") );
+            nus.Get( 0x100000023ull, true );
+            return;
+        }
         ui->lineEdit_nandPath->setEnabled( true );
         ui->pushButton_nandPath->setEnabled( true );
 
@@ -186,13 +186,13 @@ void MainWindow::NusIsDone()
                 nand.SetSettingTxt( set );
         }
         /*QMap< quint64, quint16 > t = nand.GetInstalledTitles();
-	QMap< quint64, quint16 >::iterator i = t.begin();
-	while( i != t.end() )
-	{
-	    QString title = QString( "%1v%2" ).arg( i.key(), 16, 16, QChar( '0' ) ).arg( i.value() );
-	    qDebug() << "title:" << title;
-	    i++;
-	}*/
+    QMap< quint64, quint16 >::iterator i = t.begin();
+    while( i != t.end() )
+    {
+        QString title = QString( "%1v%2" ).arg( i.key(), 16, 16, QChar( '0' ) ).arg( i.value() );
+        qDebug() << "title:" << title;
+        i++;
+    }*/
     }
     else if( ui->radioButton_wad->isChecked() )
     {
@@ -205,7 +205,7 @@ void MainWindow::NusIsDone()
     ui->radioButton_wad->setEnabled( true );
 }
 
-void MainWindow::ReceiveTitleFromNus( NusJob job )
+void MainWindow::ReceiveTitleFromNus( const NusJob &job )
 {
     QString str = tr( "Received a completed download from NUS" );
     QString title = QString( "%1v%2" ).arg( job.tid, 16, 16, QChar( '0' ) ).arg( job.version );
@@ -223,7 +223,7 @@ void MainWindow::ReceiveTitleFromNus( NusJob job )
         if( ok )
             ShowMessage( tr( "Installed %1 title to nand" ).arg( title ) );
         else
-			ShowMessage( tr( "<b>Error installing %1 title to nand</b>" ).arg( title ) );
+            ShowMessage( tr( "<b>Error installing %1 title to nand</b>" ).arg( title ) );
     }
     else if( ui->radioButton_wad->isChecked() )
     {
@@ -314,7 +314,7 @@ void MainWindow::on_pushButton_GetTitle_clicked()
     //ui->progressBar_dl->setValue( 0 );
     //ui->progressBar_title->setValue( 0 );
     //ui->progressBar_whole->setValue( 0 );
-	nus.SetCachePath( QFileInfo( ui->lineEdit_cachePath->text() ).absoluteFilePath() );
+    nus.SetCachePath( QFileInfo( ui->lineEdit_cachePath->text() ).absoluteFilePath() );
 
     if( wholeUpdate )
     {
@@ -406,34 +406,34 @@ void MainWindow::on_actionFlush_triggered()
 //nand-dump -> ImportWad
 void MainWindow::on_actionImportWad_triggered()
 {
-	if( nand.GetPath() != ui->lineEdit_nandPath->text() &&
+    if( nand.GetPath() != ui->lineEdit_nandPath->text() &&
         !nand.SetPath( ui->lineEdit_nandPath->text() ) )
-	{
-		ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" ).arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
-		return;
-	}
-	QString path = ui->lineEdit_wad->text().isEmpty() ?
+    {
+        ShowMessage( tr( "<b>Error setting the basepath of the nand to %1</b>" ).arg( QFileInfo( ui->lineEdit_nandPath->text() ).absoluteFilePath() ) );
+        return;
+    }
+    QString path = ui->lineEdit_wad->text().isEmpty() ?
                    QCoreApplication::applicationDirPath() : ui->lineEdit_wad->text();
-	QString fn = QFileDialog::getOpenFileName( this,
+    QString fn = QFileDialog::getOpenFileName( this,
                                                tr("Wad files(*.wad)"),
                                                path,
                                                tr("WadFiles (*.wad)"));
-	if(fn == "") return;
+    if(fn == "") return;
 
-	QByteArray data = ReadFile( fn );
-	if( data.isEmpty() )
-	    return;
+    QByteArray data = ReadFile( fn );
+    if( data.isEmpty() )
+        return;
 
-	Wad wad(data);
-	if( !wad.IsOk() ) {
-		ShowMessage( tr( "Wad data not ok" ) );;
-		return;
-	}
-	bool ok = nand.InstallWad( wad );
-	if( ok )
-	    ShowMessage( tr( "Installed %1 title to nand" ).arg( wad.WadName() ) );
-	else
-	    ShowMessage( tr( "<b>Error %1 title to nand</b>" ).arg( wad.WadName() ) );
+    Wad wad(data);
+    if( !wad.IsOk() ) {
+        ShowMessage( tr( "Wad data not ok" ) );;
+        return;
+    }
+    bool ok = nand.InstallWad( wad );
+    if( ok )
+        ShowMessage( tr( "Installed %1 title to nand" ).arg( wad.WadName() ) );
+    else
+        ShowMessage( tr( "<b>Error %1 title to nand</b>" ).arg( wad.WadName() ) );
 }
 
 //save a NUS job to a folder
@@ -489,14 +489,14 @@ void MainWindow::SaveJobToFolder( NusJob job )
     for( quint16 i = 0; i < cnt; i++ )//write all the contents in the new folder. if the job is decrypted, append ".app" to the end of their names
     {
         QString appName = t.Cid( i );
-		QByteArray stuff = job.data.takeFirst();
+        QByteArray stuff = job.data.takeFirst();
         if( job.decrypt )
-		{
+        {
             appName += ".app";
-			//qDebug() << "resizing from" << hex << stuff.size() << "to" << (quint32)t.Size( i );
-			//stuff.resize( t.Size( i ) );
-		}
-		if( !WriteFile( d.absoluteFilePath( appName ), stuff ) )
+            //qDebug() << "resizing from" << hex << stuff.size() << "to" << (quint32)t.Size( i );
+            //stuff.resize( t.Size( i ) );
+        }
+        if( !WriteFile( d.absoluteFilePath( appName ), stuff ) )
         {
             ShowMessage( "<b>Error writing " + d.absoluteFilePath( appName ) + "!<\b>" );
             return;

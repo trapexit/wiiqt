@@ -56,10 +56,10 @@ private:
 
 public slots:
     //slots for getting info from the NUS downloader
-    void GetError( const QString &message, NusJob job );
+    void GetError( const QString &message, const NusJob &job );
     void GetError( const QString &message );
     void NusIsDone();
-    void ReceiveTitleFromNus( NusJob job );
+    void ReceiveTitleFromNus( const NusJob &job );
 
 private slots:
     void on_actionFormat_triggered();

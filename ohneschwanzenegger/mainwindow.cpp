@@ -47,9 +47,9 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nus, SIGNAL( SendTitleProgress( int ) ), ui->progressBar_title, SLOT( setValue( int ) ) );
     connect( &nus, SIGNAL( SendTotalProgress( int ) ), ui->progressBar_whole, SLOT( setValue( int ) ) );
     connect( &nus, SIGNAL( SendText( QString ) ), ui->statusBar, SLOT( showMessage( QString ) ) );
-    connect( &nus, SIGNAL( SendError( const QString &, NusJob ) ), this, SLOT( GetError( const QString &, NusJob ) ) );
+    connect( &nus, SIGNAL( SendError( const QString &, const NusJob & ) ), this, SLOT( GetError( const QString &, const NusJob & ) ) );
     connect( &nus, SIGNAL( SendDone() ), this, SLOT( NusIsDone() ) );
-    connect( &nus, SIGNAL( SendData( NusJob ) ), this, SLOT( ReceiveTitleFromNus( NusJob ) ) );
+    connect( &nus, SIGNAL( SendData( const NusJob & ) ), this, SLOT( ReceiveTitleFromNus( const NusJob & ) ) );
 
     //connect to the nand.bin to get text and crap from it
     connect( &nand, SIGNAL( SendError( const QString & ) ), this, SLOT( GetError( const QString & ) ) );
@@ -109,7 +109,7 @@ void MainWindow::LoadSettings()
 }
 
 //some slots to respond to the NUS downloader
-void MainWindow::GetError( const QString &message, NusJob job )
+void MainWindow::GetError( const QString &message, const NusJob &job )
 {
     QString dataStuff = QString( "%1 items:" ).arg( job.data.size() );
     for( int i = 0; i < job.data.size(); i++ )
@@ -190,7 +190,7 @@ void MainWindow::NusIsDone()
     }
 }
 
-void MainWindow::ReceiveTitleFromNus( NusJob job )
+void MainWindow::ReceiveTitleFromNus( const NusJob &job )
 {
     QString str = tr( "Received a completed download from NUS" );
     //QString title = QString( "%1v%2" ).arg( job.tid, 16, 16, QChar( '0' ) ).arg( job.version );

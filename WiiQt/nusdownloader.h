@@ -165,7 +165,7 @@ private:
 signals:
     void SendError( const QString &message, NusJob job );//send an errer and the title the error is about
     //send an errer and the title the error is about, no more jobs will be done, and the SendDone signal will not be emited
-    void SendFatalErrorError( const QString &message, NusJob job );//currently not used
+    void SendFatalErrorError( const QString &message, const NusJob &job );//currently not used
     void SendDone();//message that all jobs are done
 
     //send progress about the currently downloading job
@@ -178,13 +178,13 @@ signals:
     void SendTitleProgress( int );
 
     //sends a completed job to whoever is listening
-    void SendData( NusJob );
+    void SendData( const NusJob & );
 
     //a file is done downloading
     void finished();
 
     //send pretty text about what is happening
-    void SendText( QString );
+    void SendText( const QString & );
 
     //maybe this one is redundant
     //void SendJobFinished( downloadJob );

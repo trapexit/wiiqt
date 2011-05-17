@@ -29,24 +29,24 @@ private:
     void SaveJobToFolder( NusJob job );
     void SaveJobToWad( NusJob job );
 
-	//settings
-	void SaveSettings();
-	void LoadSettings();
+    //settings
+    void SaveSettings();
+    void LoadSettings();
 
 
 
 public slots:
     //slots for getting info from the NUS downloader
-    void GetError( const QString &message, NusJob job );
+    void GetError( const QString &message, const NusJob &job );
     void NusIsDone();
-    void ReceiveTitleFromNus( NusJob job );
+    void ReceiveTitleFromNus( const NusJob &job );
 
 
 private slots:
     void on_pushButton_CachePathBrowse_clicked();
     void on_actionFlush_triggered();
     void on_actionSetting_txt_triggered();
-	void on_actionImportWad_triggered();
+    void on_actionImportWad_triggered();
     void on_pushButton_wad_clicked();
     void on_pushButton_decFolder_clicked();
     void on_pushButton_nandPath_clicked();
