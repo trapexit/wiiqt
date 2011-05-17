@@ -111,7 +111,7 @@ void PrintColoredString( const char *msg, int highlite )
     {
         QString str( msg );
         QStringList list = str.split( "\n", QString::SkipEmptyParts );
-        foreach( QString s, list )
+        foreach( const QString &s, list )
         {
             QString m = s;
             QString m2 = s.trimmed();
@@ -183,7 +183,7 @@ void Usage()
     qDebug() << "";
     qDebug() << "   -all            does all of the above";
     qDebug() << "";
-    qDebug() << "   -v              increase verbosity";
+    qDebug() << "   -v              increase verbosity ( can be used more than once )";
     qDebug() << "";
     qDebug() << "   -continue       try to keep going as fas as possible on errors that should be fatal";
     qDebug() << "";
@@ -434,22 +434,22 @@ void CheckShared()
         qDebug() << "checking" << path << "...";
         QByteArray stuff = nand.GetData( path );
         if( stuff.isEmpty() )
-		{
-			BadSharedItems << sharedM.Hash( i );
+        {
+            BadSharedItems << sharedM.Hash( i );
             Fail( "One of the shared contents in this nand is missing" );
-		}
+        }
 
         QByteArray realHash = GetSha1( stuff );
         if( realHash != sharedM.Hash( i ) )
-		{
-			BadSharedItems << sharedM.Hash( i );
-			if( verbose )
-			{
-				qCritical() << "\texpected: " << sharedM.Hash( i ).toHex();
-				qCritical() << "\tactual:   " << realHash.toHex();
-			}
+        {
+            BadSharedItems << sharedM.Hash( i );
+            if( verbose )
+            {
+                qCritical() << "\texpected: " << sharedM.Hash( i ).toHex();
+                qCritical() << "\tactual:   " << realHash.toHex();
+            }
             Fail( "The hash for at least 1 content is bad" );
-		}
+        }
     }
 }
 
@@ -680,86 +680,81 @@ bool CheckTitleIntegrity( quint64 tid )
             qDebug() << "error getting" << it << "data";
             return false;
         }
-		if( i )//tmd
-		{
-			t = Tmd( ba );
-			if( t.Tid() != tid )
-			{
-				qWarning() << "\tthe TMD contains the wrong TID";
-				return false;
-			}
-			if( calcRsa )
-			{
-				qint32 ch = check_cert_chain( ba );
-				switch( ch )
-				{
-				case ERROR_SIG_TYPE:
-				case ERROR_SUB_TYPE:
-				case ERROR_RSA_HASH:
-				case ERROR_RSA_TYPE_UNKNOWN:
-				case ERROR_RSA_TYPE_MISMATCH:
-				case ERROR_CERT_NOT_FOUND:
-					qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
-					//return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
-					break;
-				case ERROR_RSA_FAKESIGNED:
-					qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
-					break;
-				default:
-					break;
-				}
-			}
-		}
-		else
-		{
-			Ticket ticket( ba, false );
-			if( ticket.Tid() != tid )
-			{
-				qWarning() << "\tthe ticket contains the wrong TID";
-				return false;
-			}
-			if( calcRsa )
-			{
-				int tikVersions = ba.size() / 0x2a4;
-				qint32 ch = ERROR_RSA_TYPE_UNKNOWN;
-				bool ok = false;
-				for( int rr = 0; rr < tikVersions && !ok; rr++ )
-				{
-					ch = check_cert_chain( ba.mid( rr * 0x2a4, 0x2a4 ) );
-					switch( ch )
-					{
-					default:
-						break;
-					case ERROR_RSA_FAKESIGNED:
-					case ERROR_SUCCESS:
-						ok = true;
-						break;
-					}
-				}
-				switch( ch )
-				{
-				case ERROR_SIG_TYPE:
-				case ERROR_SUB_TYPE:
-				case ERROR_RSA_HASH:
-				case ERROR_RSA_TYPE_UNKNOWN:
-				case ERROR_RSA_TYPE_MISMATCH:
-				case ERROR_CERT_NOT_FOUND:
-					qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
-					//return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
-					break;
-				case ERROR_RSA_FAKESIGNED:
-					qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
-					break;
-				default:
-					break;
-				}
-			}
-
-
-		}
-
-
-
+        if( i )//tmd
+        {
+            t = Tmd( ba );
+            if( t.Tid() != tid )
+            {
+                qWarning() << "\tthe TMD contains the wrong TID";
+                return false;
+            }
+            if( calcRsa )
+            {
+                qint32 ch = check_cert_chain( ba );
+                switch( ch )
+                {
+                case ERROR_SIG_TYPE:
+                case ERROR_SUB_TYPE:
+                case ERROR_RSA_HASH:
+                case ERROR_RSA_TYPE_UNKNOWN:
+                case ERROR_RSA_TYPE_MISMATCH:
+                case ERROR_CERT_NOT_FOUND:
+                    qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+                    //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
+                    break;
+                case ERROR_RSA_FAKESIGNED:
+                    qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
+        else
+        {
+            Ticket ticket( ba, false );
+            if( ticket.Tid() != tid )
+            {
+                qWarning() << "\tthe ticket contains the wrong TID";
+                return false;
+            }
+            if( calcRsa )
+            {
+                int tikVersions = ba.size() / 0x2a4;
+                qint32 ch = ERROR_RSA_TYPE_UNKNOWN;
+                bool ok = false;
+                for( int rr = 0; rr < tikVersions && !ok; rr++ )
+                {
+                    ch = check_cert_chain( ba.mid( rr * 0x2a4, 0x2a4 ) );
+                    switch( ch )
+                    {
+                    default:
+                        break;
+                    case ERROR_RSA_FAKESIGNED:
+                    case ERROR_SUCCESS:
+                        ok = true;
+                        break;
+                    }
+                }
+                switch( ch )
+                {
+                case ERROR_SIG_TYPE:
+                case ERROR_SUB_TYPE:
+                case ERROR_RSA_HASH:
+                case ERROR_RSA_TYPE_UNKNOWN:
+                case ERROR_RSA_TYPE_MISMATCH:
+                case ERROR_CERT_NOT_FOUND:
+                    qWarning().nospace() << "\t" << qPrintable( it ) << " RSA signature isn't even close ( " << ch << " )";
+                    //return false;					    //maye in the future this will be true, but for now, this doesnt mean it wont boot
+                    break;
+                case ERROR_RSA_FAKESIGNED:
+                    qWarning().nospace() << "\t" << qPrintable( it ) << " fakesigned";
+                    break;
+                default:
+                    break;
+                }
+            }
+        }
     }
 
     if( upper == 0x10005 ||  upper == 0x10007 )							    //dont try to verify all the contents of DLC, it will just find a bunch of missing contents and bitch about them
@@ -770,11 +765,11 @@ bool CheckTitleIntegrity( quint64 tid )
     {
         if( t.Type( i ) == 0x8001 )//shared
         {
-			if( BadSharedItems.contains( t.Hash( i ) ) )
-			{
-				qWarning() << "\tthis title relies on a shared content that is borked (" << i << ")\n\t" << t.Hash( i ).toHex();
-				return false;
-			}
+            if( BadSharedItems.contains( t.Hash( i ) ) )
+            {
+                qWarning() << "\tthis title relies on a shared content that is borked (" << i << ")\n\t" << t.Hash( i ).toHex();
+                return false;
+            }
             if( sharedM.GetAppFromHash( t.Hash( i ) ).isEmpty() )
             {
                 qWarning() << "\tone of the shared contents is missing";
@@ -864,7 +859,7 @@ bool CheckTitleIntegrity( quint64 tid )
         QString uidS = QString( "%1" ).arg( uid, 8, 16, QChar( '0' ) );
         QString gidS = QString( "%1" ).arg( gid, 4, 16, QChar( '0' ) );
         if( dataI->text( 3 ) != uidS || !dataI->text( 4 ).startsWith( gidS ) )//dont necessarily fail for this.  the title will still be bootable without its data
-			qWarning().nospace() << "\tincorrect uid/gid for data folder--  expected: " << uidS << "/" << gidS << "   got: " << dataI->text( 3 ) << "/" << dataI->text( 4 ).left( 4 );
+            qWarning().nospace() << "\tincorrect uid/gid for data folder--  expected: " << uidS << "/" << gidS << "   got: " << dataI->text( 3 ) << "/" << dataI->text( 4 ).left( 4 );
 
         RecurseCheckGidUid( dataI, uidS, gidS, "data/" );
     }
@@ -1197,7 +1192,7 @@ void CheckSettingTxt()
     QString str( settingTxt );
     str.replace( "\r\n", "\n" );//maybe not needed to do this in 2 steps, but there may be some reason the file only uses "\n", so do it this way to be safe
     QStringList parts = str.split( "\n", QString::SkipEmptyParts );
-    foreach( QString part, parts )
+    foreach( const QString &part, parts )
     {
         if( part.startsWith( "AREA=" ) )
         {
@@ -1320,7 +1315,7 @@ int main( int argc, char *argv[] )
     qCritical() << "** nandBinCheck : Wii nand info tool **";
     qCritical() << "   from giantpune";
     qCritical() << "   built:" << __DATE__ << __TIME__;
-	args = QCoreApplication::arguments();
+    args = QCoreApplication::arguments();
 
     if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
         color = false;

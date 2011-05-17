@@ -35,7 +35,7 @@ void hexdump( const void *d, int len ) {
         fprintf( stderr, " " );
         for ( i = 0; i < 16; i++ )
             if ( ( i + off) >= len ) fprintf( stderr," ");
-	    else fprintf( stderr,"%c", ascii( data[ off + i ]));
+        else fprintf( stderr,"%c", ascii( data[ off + i ]));
         fprintf( stderr,"\n");
     }
     fflush( stderr );
@@ -70,7 +70,7 @@ void hexdump12( const void *d, int len ) {
         fprintf( stderr, " " );
         for ( i = 0; i < 12; i++ )
             if ( ( i + off) >= len ) fprintf( stderr," ");
-	    else fprintf( stderr,"%c", ascii( data[ off + i ]));
+        else fprintf( stderr,"%c", ascii( data[ off + i ]));
         fprintf( stderr,"\n");
     }
     fflush( stderr );
@@ -83,34 +83,34 @@ void hexdump12( const QByteArray &d, int from, int len )
 
 QByteArray PaddedByteArray( const QByteArray &orig, quint32 padTo )
 {
-	//qDebug() << "need to pad from" << hex << orig.size() << "to nearest" << padTo;
-	QByteArray padding( RU( orig.size(), padTo ) - orig.size(), '\0' );
+    //qDebug() << "need to pad from" << hex << orig.size() << "to nearest" << padTo;
+    QByteArray padding( RU( orig.size(), padTo ) - orig.size(), '\0' );
     return orig + padding;
 }
 
 QByteArray AesDecrypt( quint16 index, const QByteArray &source )
 {
     //qDebug() << "AesDecrypt" << hex << index << source.size();
-	quint8 iv[ 16 ];
+    quint8 iv[ 16 ];
 
-	quint16 beidx = qFromBigEndian( index );
-	memset( &iv, 0, 16 );
-	memcpy( &iv, &beidx, 2 );
-	QByteArray ret( source.size(), '\0' );
-	aes_decrypt( (quint8*)&iv, (const quint8*)source.data(), (quint8*)ret.data(), source.size() );
-	return ret;
+    quint16 beidx = qFromBigEndian( index );
+    memset( &iv, 0, 16 );
+    memcpy( &iv, &beidx, 2 );
+    QByteArray ret( source.size(), '\0' );
+    aes_decrypt( (quint8*)&iv, (const quint8*)source.data(), (quint8*)ret.data(), source.size() );
+    return ret;
 }
 
 QByteArray AesEncrypt( quint16 index, const QByteArray &source )
 {
-	static quint8 iv[ 16 ];
+    static quint8 iv[ 16 ];
 
-	quint16 beidx = qFromBigEndian( index );
-	memset( iv, 0, 16 );
-	memcpy( iv, &beidx, 2 );
-	QByteArray ret( source.size(), '\0' );
-	aes_encrypt( iv, (const quint8*)source.data(), (quint8*)ret.data(), source.size() );
-	return ret;
+    quint16 beidx = qFromBigEndian( index );
+    memset( iv, 0, 16 );
+    memcpy( iv, &beidx, 2 );
+    QByteArray ret( source.size(), '\0' );
+    aes_encrypt( iv, (const quint8*)source.data(), (quint8*)ret.data(), source.size() );
+    return ret;
 }
 
 void AesSetKey( const QByteArray &key )
@@ -121,12 +121,12 @@ void AesSetKey( const QByteArray &key )
 
 QByteArray GetSha1( const QByteArray &stuff )
 {
-	return QCryptographicHash::hash( stuff, QCryptographicHash::Sha1 );
+    return QCryptographicHash::hash( stuff, QCryptographicHash::Sha1 );
 }
 
 QByteArray GetMd5( const QByteArray &stuff )
 {
-	return QCryptographicHash::hash( stuff, QCryptographicHash::Md5 );
+    return QCryptographicHash::hash( stuff, QCryptographicHash::Md5 );
 }
 
 QByteArray ReadFile( const QString &path )
@@ -229,10 +229,10 @@ const QByteArray DataFromSave( const SaveGame &save, const QString &name )
 
 quint32 SaveItemSize( const SaveGame &save )
 {
-	quint32 ret = 0;
-	foreach( QByteArray ba, save.data )
-		ret += ba.size();
-	return ret;
+    quint32 ret = 0;
+    foreach( const QByteArray &ba, save.data )
+        ret += ba.size();
+    return ret;
 }
 
 quint8 AttrFromSave( const SaveGame &save, const QString &name )

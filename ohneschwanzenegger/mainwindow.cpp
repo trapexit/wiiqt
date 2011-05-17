@@ -329,7 +329,7 @@ void MainWindow::on_actionImportWad_triggered()
 
     if( fns.isEmpty() )
         return;
-    foreach( QString fn, fns )
+    foreach( const QString &fn, fns )
     {
         QByteArray data = ReadFile( fn );
         if( data.isEmpty() )

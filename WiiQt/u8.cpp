@@ -896,7 +896,7 @@ void U8::CreateEntryList()
                         if( child.IsOK() )
                         {
                             nestedU8s.insert( path, child );
-                            foreach( QString chPath, child.Entries() )
+                            foreach( const QString &chPath, child.Entries() )
                             {
                                 QString newPath = path + "/" + chPath;
                                 paths << newPath;
