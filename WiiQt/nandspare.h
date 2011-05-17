@@ -11,11 +11,11 @@ class NandSpare
 {
 public:
     NandSpare();
-    void SetHMacKey( const QByteArray key );
-    QByteArray Get_hmac_data( const QByteArray cluster, quint32 uid, const unsigned char *name, quint32 entry_n, quint32 x3, quint16 blk );
-    QByteArray Get_hmac_meta( const QByteArray cluster, quint16 super_blk );
+    void SetHMacKey( const QByteArray &key );
+    QByteArray Get_hmac_data( const QByteArray &cluster, quint32 uid, const unsigned char *name, quint32 entry_n, quint32 x3, quint16 blk );
+    QByteArray Get_hmac_meta( const QByteArray &cluster, quint16 super_blk );
 
-    static QByteArray CalcEcc( QByteArray in );
+    static QByteArray CalcEcc( const QByteArray &in );
     static quint8 Parity( quint8 x );
 private:
     QByteArray hmacKey;

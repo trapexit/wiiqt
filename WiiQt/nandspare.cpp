@@ -4,7 +4,7 @@
 NandSpare::NandSpare()
 {
 }
-void NandSpare::SetHMacKey( const QByteArray key )
+void NandSpare::SetHMacKey( const QByteArray &key )
 {
     hmacKey = key;
 }
@@ -20,7 +20,7 @@ quint8 NandSpare::Parity( quint8 x )
     return y;
 }
 
-QByteArray NandSpare::CalcEcc( QByteArray in )
+QByteArray NandSpare::CalcEcc( const QByteArray &in )
 {
     if( in.size() != 0x800 )
         return QByteArray();
@@ -31,7 +31,7 @@ QByteArray NandSpare::CalcEcc( QByteArray in )
 
     QByteArray ret( 16, '\0' );
     char* ecc = ret.data();
-    char* data = in.data();
+    const char* data = in.data();
 
     for( int k = 0; k < 4; k++ )
     {
@@ -75,8 +75,8 @@ QByteArray NandSpare::CalcEcc( QByteArray in )
 }
 
 typedef struct{
-	unsigned char key[ 0x40 ];
-	SHA1Context hash_ctx;
+    unsigned char key[ 0x40 ];
+    SHA1Context hash_ctx;
 } hmac_ctx;
 
 void wbe32(void *ptr, quint32 val) { *(quint32*)ptr = qFromBigEndian( (quint32)val ); }
@@ -101,7 +101,7 @@ void hmac_init(hmac_ctx *ctx, const char *key, int key_size)
 
 void hmac_update( hmac_ctx *ctx, const quint8 *data, int size )
 {
-	SHA1Input( &ctx->hash_ctx,data,size );
+    SHA1Input( &ctx->hash_ctx,data,size );
 }
 
 void hmac_final( hmac_ctx *ctx, unsigned char *hmac )
@@ -183,7 +183,7 @@ void fs_hmac_data( const unsigned char *data, quint32 uid, const unsigned char *
     fs_hmac_generic( data, 0x4000, extra, 0x40, hmac );
 }
 
-QByteArray NandSpare::Get_hmac_data( const QByteArray cluster, quint32 uid, const unsigned char *name, quint32 entry_n, quint32 x3, quint16 blk )
+QByteArray NandSpare::Get_hmac_data( const QByteArray &cluster, quint32 uid, const unsigned char *name, quint32 entry_n, quint32 x3, quint16 blk )
 {
     //qDebug() << "NandSpare::Get_hmac_data" << hex << cluster.size() << uid << QString( QByteArray( (const char*)name, 12 ) ) << entry_n << x3 << blk;
     if( hmacKey.size() != 0x14 || cluster.size() != 0x4000 )
@@ -197,7 +197,7 @@ QByteArray NandSpare::Get_hmac_data( const QByteArray cluster, quint32 uid, cons
     return ret;
 }
 
-QByteArray NandSpare::Get_hmac_meta( const QByteArray cluster, quint16 super_blk )
+QByteArray NandSpare::Get_hmac_meta( const QByteArray &cluster, quint16 super_blk )
 {
     //qDebug() << "NandSpare::Get_hmac_meta" << hex << super_blk;
     if( hmacKey.size() != 0x14 || cluster.size() != 0x40000 )
@@ -209,7 +209,7 @@ QByteArray NandSpare::Get_hmac_meta( const QByteArray cluster, quint16 super_blk
     fs_hmac_set_key( hmacKey.data(), 0x14 );
 
     QByteArray ret( 0x14, '\0' );
-	fs_hmac_meta( (const unsigned char *)cluster.data(), super_blk, (unsigned char *)ret.data() );
+    fs_hmac_meta( (const unsigned char *)cluster.data(), super_blk, (unsigned char *)ret.data() );
 
     return ret;
 }
