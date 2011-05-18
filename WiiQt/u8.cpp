@@ -1363,7 +1363,7 @@ QByteArray U8::GetIMET( const QStringList &names, int paddingType, quint32 iconS
     return ret;
 }
 
-const QStringList U8::IMETNames()
+const QStringList &U8::IMETNames()
 {
     return imetNames;
 }

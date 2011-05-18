@@ -18,29 +18,29 @@ korean
 
 struct FEntry
 {
-	union
-	{
-		struct
-		{
-			unsigned int Type	:8;
-			unsigned int NameOffset	:24;
-		};
-		unsigned int TypeName;
-	};
-	union
-	{
-		struct		// File Entry
-		{
-			unsigned int FileOffset;
-			unsigned int FileLength;
-		};
-		struct		// Dir Entry
-		{
-			unsigned int ParentOffset;
-			unsigned int NextOffset;
-		};
-		unsigned int entry[ 2 ];
-	};
+    union
+    {
+        struct
+        {
+            unsigned int Type	:8;
+            unsigned int NameOffset	:24;
+        };
+        unsigned int TypeName;
+    };
+    union
+    {
+        struct		// File Entry
+        {
+            unsigned int FileOffset;
+            unsigned int FileLength;
+        };
+        struct		// Dir Entry
+        {
+            unsigned int ParentOffset;
+            unsigned int NextOffset;
+        };
+        unsigned int entry[ 2 ];
+    };
 };
 
 enum
@@ -137,7 +137,7 @@ public:
     const QByteArray AddIMET( int paddingType = U8_Hdr_IMET_app );
 
     //ruterns a list of the names as read from the imet header
-    const QStringList IMETNames();
+    const QStringList &IMETNames();
 
     //set the imet names
     //the data in the archive is not changed, but calling AddIMET() on this banner will use the new names
