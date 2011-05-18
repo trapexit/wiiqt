@@ -107,9 +107,8 @@ void NusDownloader::StartNextJob()
     {
         tmdJob.name = "tmd";
         dlJob = tmdJob;
-        QTimer::singleShot( 500, this, SLOT( StartDownload() ) );
+        QTimer::singleShot( 50, this, SLOT( StartDownload() ) );
     }
-
 }
 
 //tries to read data for the job from the PC
@@ -589,7 +588,7 @@ bool NusDownloader::GetUpdate( const QString & upd, bool decrypt )
     while( i != titles.end() )
     {
         Get( i.key(), decrypt, i.value() );
-        i++;
+        ++i;
     }
     return true;
 }

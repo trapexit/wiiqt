@@ -115,7 +115,7 @@ bool U8::RenameEntry( const QString &path, const QString &newName )
             return ReplaceEntry( i.key(),i.value().GetData() );
             //NOTE - after replacing the entry, "i" is no longer valid.  keep that in mind when changing this code.  its a bitch to track down this bug
         }
-        i++;
+        ++i;
     }
     //make sure the new filename doesnt already exist
     QString parentPath = path;
@@ -294,7 +294,7 @@ bool U8::ReplaceEntry( const QString &path, const QByteArray &nba, bool autoComp
             return ReplaceEntry( chPath, ch.GetData() );
             //NOTE - after replacing the entry, "i" is no longer valid.  keep that in mind when changing this code.  its a bitch to track down this bug
         }
-        i++;
+        ++i;
     }
     //find the entry to replace
     int entryToReplace = FindEntry( path );
@@ -397,7 +397,7 @@ bool U8::RemoveEntry( const QString &path )
             return ReplaceEntry( chPath, ch.GetData() );//insert the new nested archive in this one
             //NOTE - after replacing the entry, "i" is no longer valid.  keep that in mind when changing this code.  its a bitch to track down this bug
         }
-        i++;
+        ++i;
     }
     //find the entry to delete
     int entryToDelete = FindEntry( path );
@@ -617,7 +617,7 @@ int U8::AddEntry( const QString &path, int type, const QByteArray &newData )
             //qDebug() << "done replacing the child entry in this archive, finding the index to return (" << thisPath << ")";
             return FindEntry( thisPath );//just return the index of the nested archive
         }
-        i++;
+        ++i;
     }
 
     //make sure this path doesnt already exist
@@ -1124,7 +1124,7 @@ const QByteArray U8::GetData( const QString &str, bool onlyPayload )
             subPath.remove( 0, i.key().size() + 1 );//remove the path of the archive itself + the slash
             return i.value().GetData( subPath, onlyPayload );
         }
-        i++;
+        ++i;
     }
     int index = FindEntry( str );
     if( index < 0 )

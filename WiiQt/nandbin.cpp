@@ -37,7 +37,7 @@ bool NandBin::SetPath( const QString &path )
     f.setFileName( path );
     bool ret = ( f.exists() &&
 #ifdef NAND_BIN_CAN_WRITE
-                 f.open( QIODevice::ReadWrite ) );
+    f.open( QIODevice::ReadWrite ) );
 #else
     f.open( QIODevice::ReadOnly ) );
 #endif
@@ -237,8 +237,6 @@ bool NandBin::ExtractToDir( QTreeWidgetItem *item, const QString &path )
         return false;
     }
     return ExtractFST( entry, path, true );//dont bother extracting this item's siblings
-
-    return true;
 }
 
 QTreeWidgetItem *NandBin::CreateItem( QTreeWidgetItem *parent, const QString &name, quint32 size, quint16 entry, quint32 uid, quint32 gid, quint32 x3, quint8 attr, quint8 wtf)
