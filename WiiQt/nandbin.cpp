@@ -608,7 +608,7 @@ const QByteArray NandBin::Keys()
             if( sl == -1 )
             {
                 emit SendError( tr( "Error getting path of keys.bin" ) );
-                return false;
+                return ret;
             }
             keyPath.resize( sl + 1 );
             keyPath += "keys.bin";
@@ -621,7 +621,7 @@ const QByteArray NandBin::Keys()
             if( !f.isOpen() )
             {
                 emit SendError( tr( "Tried to read keys from unopened file" ) );
-                return false;
+                return ret;
             }
             f.seek( 0x21000000 );
             ret = f.read( 0x400 );
@@ -629,7 +629,7 @@ const QByteArray NandBin::Keys()
         break;
     default:
         emit SendError( tr( "Tried to read keys for unknown dump type" ) );
-        return QByteArray();
+        return ret;
         break;
     }
     if( ret.size() != 0x400 )
