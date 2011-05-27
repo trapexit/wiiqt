@@ -242,11 +242,10 @@ void MainWindow::on_pushButton_GetTitle_clicked()
         }
     }
     //decide how we want nus to give us the title
-    bool decrypt = true;
     nus.SetCachePath( ui->lineEdit_cachePath->text() );
     if( wholeUpdate )
     {
-        if( !nus.GetUpdate( ui->lineEdit_tid->text(), decrypt ) )
+        if( !nus.GetUpdate( ui->lineEdit_tid->text(), true ) )
         {
             ShowMessage( tr( "<b>I dont know the titles that were in the %1 update</b>" ).arg( ui->lineEdit_tid->text() ) );
             return;
@@ -254,7 +253,7 @@ void MainWindow::on_pushButton_GetTitle_clicked()
     }
     else
     {
-        nus.Get( tid, decrypt, ver );
+        nus.Get( tid, true, ver );
     }
 }
 
@@ -333,13 +332,13 @@ void MainWindow::on_actionImportWad_triggered()
     {
         QByteArray data = ReadFile( fn );
         if( data.isEmpty() )
-            return;
+            continue;
 
         Wad wad( data );
         if( !wad.IsOk() )
         {
             ShowMessage( tr( "Wad data not ok for \"%1\"" ).arg( fn ) );
-            return;
+            continue;
         }
 
         //work smart, not hard... just turn the wad into a NUSJob and reused the same code to install it
@@ -360,7 +359,6 @@ void MainWindow::on_actionImportWad_triggered()
         ShowMessage( tr( "Installing %1 to nand" ).arg( fn ) );
         InstallNUSItem( job );
     }
-
 }
 
 void MainWindow::on_actionNew_nand_from_keys_triggered()
@@ -378,16 +376,17 @@ void MainWindow::on_actionNew_nand_from_keys_triggered()
         || !nand.CreateEntry( "/title/00000001/00000002", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
         || !nand.CreateEntry( "/title/00000001/00000100", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
         || !nand.CreateEntry( "/title/00000001/00000101", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ ) )
-        {
+    {
         ShowMessage( "<b>Error creating title subdirs<\b>" );
         return;
     }
-
+    WriteTestLog();
+#if 0
     //add some factory test logs and whatnot
     quint32 _uid = uid.GetUid( NAND_TEST_OWNER, true );
     if( !nand.CreateEntry( "/shared2/test", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
         || !nand.CreateEntry( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
-        {
+    {
         ShowMessage( "<b>Error creating folder for testlog<\b>" );
         return;
     }
@@ -405,6 +404,7 @@ void MainWindow::on_actionNew_nand_from_keys_triggered()
     }
     UpdateTree();
     ShowMessage( "Created /shared2/test/testlog.txt" );
+#endif
 }
 
 void MainWindow::on_pushButton_initNand_clicked()
@@ -913,6 +913,34 @@ void MainWindow::on_actionWrite_meta_entries_triggered()
     AddStuffToMetaFolder();
 }
 
+void MainWindow::WriteTestLog()
+{
+    if( ( !nandInited && !InitNand( ui->lineEdit_nandPath->text() ) )
+        || ItemFromPath( "/shared2/test/testlog.txt" ) )                //already exists
+        return;
+
+    quint32 _uid = uid.GetUid( NAND_TEST_OWNER, true );
+    if( !CreateIfNeeded( "/shared2/test", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
+        || !CreateIfNeeded( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+    {
+        ShowMessage( "<b>Error creating folder for testlog<\b>" );
+        return;
+    }
+    quint16 handle = CreateIfNeeded( "/shared2/test/testlog.txt", _uid, NAND_TEST_GROUP, NAND_FILE, NAND_RW, NAND_RW, NAND_RW );
+    if( !handle )
+    {
+        ShowMessage( "<b>Error creating testlog<\b>" );
+        return;
+    }
+    QByteArray tLog = ReadFile( ":/testlog.txt" );
+    if( !nand.SetData( handle, tLog ) )
+    {
+        ShowMessage( "<b>Error writing to testlog.txt<\b>" );
+        return;
+    }
+    ShowMessage( "Created /shared2/test/testlog.txt" );
+}
+
 //content -> format
 void MainWindow::on_actionFormat_triggered()
 {
@@ -939,7 +967,7 @@ void MainWindow::on_actionFormat_triggered()
         || !nand.CreateEntry( "/import", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
         || !nand.CreateEntry( "/meta", 0x1000, 1, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
         || !nand.CreateEntry( "/tmp", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
-        {
+    {
         ShowMessage( "<b>Error! Can't create base folders in the new nand.</b>" );
         return;
     }
@@ -1001,5 +1029,6 @@ void MainWindow::on_actionFormat_triggered()
         ShowMessage( "<b>Error finalizing formatting!</b>" );
         return;
     }
+    WriteTestLog();
     ShowMessage( "Done!" );
 }

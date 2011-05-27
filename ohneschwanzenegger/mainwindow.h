@@ -54,6 +54,8 @@ private:
     void AddStuffToMetaFolder();
     QByteArray GenMeta( const QString &desc, quint64 tid, quint16 version );
 
+    void WriteTestLog();
+
 public slots:
     //slots for getting info from the NUS downloader
     void GetError( const QString &message, const NusJob &job );
