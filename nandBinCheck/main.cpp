@@ -1,3 +1,6 @@
+
+#include "svnrev.h"
+
 #include "../WiiQt/includes.h"
 #include "../WiiQt/nandbin.h"
 #include "../WiiQt/sharedcontentmap.h"
@@ -1312,13 +1315,15 @@ int main( int argc, char *argv[] )
     hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
 #endif
     qInstallMsgHandler( DebugHandler );
-    qCritical() << "** nandBinCheck : Wii nand info tool **";
-    qCritical() << "   from giantpune";
-    qCritical() << "   built:" << __DATE__ << __TIME__;
-    args = QCoreApplication::arguments();
 
+    args = QCoreApplication::arguments();
     if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
         color = false;
+
+    qCritical() << "** nandBinCheck : Wii nand info tool **";
+    qCritical() << "   from giantpune";
+    qCritical() << "   svn r:" << qPrintable( CleanSvnStr( SVN_REV_STR ) );
+    qCritical() << "   built:" << __DATE__ << __TIME__;
 
     if( args.contains( "-about", Qt::CaseInsensitive ) )
         About();
