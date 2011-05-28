@@ -48,5 +48,5 @@ unix {
 }
 
 win32 {
-    system( ../tools/SubWCRev.exe "." "../tools/svnrev_template.h" "./svnrev.h" )
+    system( "..\\tools\\SubWCRev.exe" "." "..\\tools\\svnrev_template.h" ".\\svnrev.h" )
 }
