@@ -39,3 +39,14 @@ FORMS += mainwindow.ui \
     ../WiiQt/settingtxtdialog.ui \
     newnandbin.ui
 RESOURCES += rc.qrc
+
+
+# create new svnrev.h
+unix {
+    system( chmod 755 ../tools/makesvnrev.sh )
+    system( ../tools/makesvnrev.sh )
+}
+
+win32 {
+    system( ../tools/SubWCRev.exe "." "../tools/svnrev_template.h" "./svnrev.h" )
+}

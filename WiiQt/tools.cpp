@@ -249,6 +249,21 @@ quint8 AttrFromSave( const SaveGame &save, const QString &name )
     return 0;
 }
 
+QString CleanSvnStr( const QString &orig )
+{
+    QString ret = orig;
+
+    if( ret.isEmpty() )
+        return ret;
+
+    QRegExp notNum( "[^0-9]" );
+    QStringList parts = ret.split( notNum, QString::SkipEmptyParts );
+    if( parts.size() )
+        return parts.at( parts.size() - 1 );
+
+    return ret;
+}
+
 #define CERTS_DAT_SIZE 2560
 const quint8 certs_dat[ CERTS_DAT_SIZE ] = {
     0x00, 0x01, 0x00, 0x01, 0x7D, 0x9D, 0x5E, 0xBA, 0x52, 0x81, 0xDC, 0xA7, 0x06, 0x5D, 0x2F, 0x08,

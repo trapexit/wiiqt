@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "newnandbin.h"
+#include "svnrev.h"
 #include "ui_mainwindow.h"
 
 #include "../WiiQt/settingtxtdialog.h"
@@ -57,7 +58,6 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
 
     LoadSettings();
     ui->lineEdit_nandPath->setText( "./testNand.bin" );
-
 }
 
 MainWindow::~MainWindow()
@@ -785,7 +785,7 @@ void MainWindow::on_actionAbout_triggered()
                       "<br><br>IT SHOULD ONLY BE USED BY PEOPLE THAT KNOW HOW TO VERIFY THE FILES IT PRODUCES.  AND HAVE A WAY TO FIX A BRICKED WII SHOULD THIS PROGRAM HAVE BUGS"
                       "<br><br>YOU HAVE BEEN WARNED"
                       "<br>giantpune" );
-    QMessageBox::critical( this, tr( "About" ), txt );
+    QMessageBox::critical( this, tr( "svn r%1" ).arg( CleanSvnStr( SVN_REV_STR ) ), txt );
 }
 
 #if 0
