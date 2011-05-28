@@ -121,7 +121,9 @@ private:
     bool DecryptCheckHashAndAppendData( const QByteArray &encData, quint16 idx );
 
     //triggered when a file is done downloading
-    void FileIsFinishedDownloading( const downloadJob &job );
+    //! dont use const reference here, as the job is really a variable which is reused
+    //! for every download
+    void FileIsFinishedDownloading( downloadJob job );
 
     //send a fail message about the current job and skip to the next
     void CurrentJobErrored( const QString &str );

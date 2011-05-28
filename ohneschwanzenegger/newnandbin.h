@@ -13,10 +13,10 @@ class NewNandBin : public QDialog
     Q_OBJECT
 
 public:
-    explicit NewNandBin( QWidget *parent = 0, QList<quint16>badBlocks = QList<quint16>() );
+    explicit NewNandBin( QWidget *parent = 0, const QList<quint16> &badBlocks = QList<quint16>() );
     ~NewNandBin();
 
-    static QString GetNewNandPath( QWidget *parent = 0, QList<quint16>badBlocks = QList<quint16>() );
+    static QString GetNewNandPath( QWidget *parent = 0, const QList<quint16> &badBlocks = QList<quint16>() );
 
 private:
     Ui::NewNandBin *ui;
@@ -32,7 +32,7 @@ private:
 	QByteArray uidSys;
 
 	bool CreateDefaultEntries();
-	QByteArray GetCleanUid( QByteArray old );
+    QByteArray GetCleanUid( QByteArray old );
 
 private slots:
 	void on_pushButton_oldNand_clicked();

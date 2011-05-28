@@ -3,7 +3,7 @@
 #include "../WiiQt/uidmap.h"
 #include "../WiiQt/tools.h"
 
-NewNandBin::NewNandBin( QWidget *parent, QList<quint16> badBlocks ) : QDialog(parent), ui(new Ui::NewNandBin), nand( this )
+NewNandBin::NewNandBin( QWidget *parent, const QList<quint16> &badBlocks ) : QDialog(parent), ui(new Ui::NewNandBin), nand( this )
 {
     dir = QDir::currentPath();
     ui->setupUi(this);
@@ -204,7 +204,7 @@ void NewNandBin::on_buttonBox_accepted()
     ret = ui->lineEdit_dest->text();
 }
 
-QString NewNandBin::GetNewNandPath( QWidget *parent, QList<quint16> badBlocks )
+QString NewNandBin::GetNewNandPath( QWidget *parent, const QList<quint16> &badBlocks )
 {
     NewNandBin d( parent, badBlocks );
     if( !d.exec() )
@@ -339,7 +339,7 @@ void NewNandBin::on_pushButton_oldNand_clicked()
 QByteArray NewNandBin::GetCleanUid( QByteArray old )
 {
     QBuffer buf( &old );
-    buf.open( QIODevice::ReadWrite );
+    buf.open( QIODevice::ReadOnly );
 
     quint64 tid;
     quint16 titles = 0;

@@ -685,7 +685,7 @@ bool MainWindow::InstallNUSItem( NusJob job )
     {
         //nand.WriteMetaData();
         UpdateTree();
-        ShowMessage( tr( "Deleted old TMD and private contents for<br>%1" ).arg( title ) );
+        ShowMessage( tr( "Deleted old TMD and private contents for<br>%1" ).arg( job.tid, 16, 16, QChar( '0' ) ) );
     }
 
     cnt = t.Count();
@@ -982,7 +982,7 @@ void MainWindow::on_actionFormat_triggered()
     //wipe all user-created entries from uid.sys
     QByteArray uidData = uid.Data();
     QBuffer buf( &uidData );
-    buf.open( QIODevice::ReadWrite );
+    buf.open( QIODevice::ReadOnly );
 
     quint64 tid;
     quint16 titles = 0;

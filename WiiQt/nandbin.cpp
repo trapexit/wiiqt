@@ -48,6 +48,7 @@ bool NandBin::SetPath( const QString &path )
 
     return ret;
 }
+
 const QString NandBin::FilePath()
 {
     if( !f.isOpen() )
@@ -55,7 +56,6 @@ const QString NandBin::FilePath()
     return QFileInfo( f ).absoluteFilePath();
 }
 
-//#if 0 // apparently you dont need any extra reserved blocks for the thing to boot?
 bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByteArray &first8, const QList<quint16> &badBlocks )
 {
 #ifndef NAND_BIN_CAN_WRITE
@@ -158,7 +158,6 @@ bool NandBin::CreateNew( const QString &path, const QByteArray &keys, const QByt
     return true;
 #endif
 }
-//#endif
 
 bool NandBin::Format( bool secure )
 {
@@ -1344,7 +1343,7 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
         return false;
     }
 
-    qDebug() << "NandBin::DeleteItem" << item->text( 0 );
+    //qDebug() << "NandBin::DeleteItem" << item->text( 0 );
     bool ok = false;
     quint16 idx = item->text( 1 ).toInt( &ok );//get the index of the entry to remove
     if( !ok || idx > 0x17fe )
@@ -1428,7 +1427,7 @@ bool NandBin::DeleteItem( QTreeWidgetItem *item )
     case 1:
         {
             //int q = 0;
-            qDebug() << "deleting clusters of" << item->text( 0 ) << idx;
+            //qDebug() << "deleting clusters of" << item->text( 0 ) << idx;
             QList<quint16> toFree = GetFatsForFile( idx );
             foreach( quint16 cl, toFree )
             {
