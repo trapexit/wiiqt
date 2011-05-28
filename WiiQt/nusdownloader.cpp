@@ -674,7 +674,7 @@ QMap< quint64, quint16 > NusDownloader::List31j()
 {
     QMap< quint64, quint16 > titles = List30j();
     titles.insert( 0x100000002ull, 256 );		//sys menu
-    titles.insert( 0x10000000eull, 257 );		// IOS14v257
+    titles.insert( 0x10000000eull, 262 );		// IOS14v257 isnt available on NUS, use v262 instead
     titles.insert( 0x10000001eull, 1040 );		//30v1040
     titles.insert( 0x10000001full, 1040 );		//31v1040
     titles.insert( 0x100000022ull, 1039 );		//34v1039
