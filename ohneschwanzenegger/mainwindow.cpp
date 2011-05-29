@@ -35,11 +35,11 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     max = MAX( max, fm.width( ui->pushButton_initNand->text() ) );
     max = MAX( max, fm.width( ui->pushButton_nandPath->text() ) );
 
-    max += 15;
-    ui->pushButton_CachePathBrowse->setMinimumWidth( max );
-    ui->pushButton_GetTitle->setMinimumWidth( max );
-    ui->pushButton_initNand->setMinimumWidth( max );
-    ui->pushButton_nandPath->setMinimumWidth( max );
+    max += 20;
+    ui->pushButton_CachePathBrowse->setFixedWidth( max );
+    ui->pushButton_GetTitle->setFixedWidth( max );
+    ui->pushButton_initNand->setFixedWidth( max );
+    ui->pushButton_nandPath->setFixedWidth( max );
 
     Wad::SetGlobalCert( QByteArray( (const char*)&certs_dat, CERTS_DAT_SIZE ) );
 
@@ -117,9 +117,9 @@ void MainWindow::GetError( const QString &message, const NusJob &job )
 
     QString str = tr( "<b>Error getting title from NUS: %1</b>" ).arg( message );
     QString j = QString( "NusJob( %1, %2, %3, %4 )<br>" )
-                .arg( job.tid, 16, 16, QChar( '0' ) )
-                .arg( job.version ).arg( job.decrypt ? "decrypted" : "encrypted" )
-                .arg( dataStuff );
+            .arg( job.tid, 16, 16, QChar( '0' ) )
+            .arg( job.version ).arg( job.decrypt ? "decrypted" : "encrypted" )
+            .arg( dataStuff );
 
 
     ui->plainTextEdit_log->appendHtml( str );
@@ -299,7 +299,7 @@ void MainWindow::on_actionSetting_txt_triggered()
     {
         quint16 r = CreateIfNeeded( "/title/00000001/00000002/data/setting.txt", 0x1000, 1, NAND_FILE, NAND_READ, NAND_READ, NAND_READ );
         if( !r || !nand.SetData( r, ba )
-            || !nand.WriteMetaData() )
+                || !nand.WriteMetaData() )
         {
             ShowMessage( tr( "<b>Error writing setting.txt</b>" ) );
         }
@@ -371,11 +371,11 @@ void MainWindow::on_actionNew_nand_from_keys_triggered()
 
     //these titles should be in order ( not really functional, but to emulate better how the wii comes from the factory )
     if( !nand.CreateEntry( "/title/00000001", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
-        || !nand.CreateEntry( "/title/00000001/00000004", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
-        || !nand.CreateEntry( "/title/00000001/00000009", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
-        || !nand.CreateEntry( "/title/00000001/00000002", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
-        || !nand.CreateEntry( "/title/00000001/00000100", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
-        || !nand.CreateEntry( "/title/00000001/00000101", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ ) )
+            || !nand.CreateEntry( "/title/00000001/00000004", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+            || !nand.CreateEntry( "/title/00000001/00000009", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+            || !nand.CreateEntry( "/title/00000001/00000002", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+            || !nand.CreateEntry( "/title/00000001/00000100", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+            || !nand.CreateEntry( "/title/00000001/00000101", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ ) )
     {
         ShowMessage( "<b>Error creating title subdirs<\b>" );
         return;
@@ -385,7 +385,7 @@ void MainWindow::on_actionNew_nand_from_keys_triggered()
     //add some factory test logs and whatnot
     quint32 _uid = uid.GetUid( NAND_TEST_OWNER, true );
     if( !nand.CreateEntry( "/shared2/test", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
-        || !nand.CreateEntry( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+            || !nand.CreateEntry( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
     {
         ShowMessage( "<b>Error creating folder for testlog<\b>" );
         return;
@@ -774,7 +774,7 @@ bool MainWindow::InstallNUSItem( NusJob job )
     //UpdateTree();
     return true;
     error:
-    ShowMessage( "<b>Error installing title " + title + " to nand</b>" );
+        ShowMessage( "<b>Error installing title " + title + " to nand</b>" );
     return false;
 }
 
@@ -782,9 +782,9 @@ bool MainWindow::InstallNUSItem( NusJob job )
 void MainWindow::on_actionAbout_triggered()
 {
     QString txt = tr( "This is an example program from WiiQt.  It is designed to write titles to a nand.bin and even create one from scratch."
-                      "<br><br>IT SHOULD ONLY BE USED BY PEOPLE THAT KNOW HOW TO VERIFY THE FILES IT PRODUCES.  AND HAVE A WAY TO FIX A BRICKED WII SHOULD THIS PROGRAM HAVE BUGS"
-                      "<br><br>YOU HAVE BEEN WARNED"
-                      "<br>giantpune" );
+                     "<br><br>IT SHOULD ONLY BE USED BY PEOPLE THAT KNOW HOW TO VERIFY THE FILES IT PRODUCES.  AND HAVE A WAY TO FIX A BRICKED WII SHOULD THIS PROGRAM HAVE BUGS"
+                     "<br><br>YOU HAVE BEEN WARNED"
+                     "<br>giantpune" );
     QMessageBox::critical( this, tr( "svn r%1" ).arg( CleanSvnStr( SVN_REV_STR ) ), txt );
 }
 
@@ -916,12 +916,12 @@ void MainWindow::on_actionWrite_meta_entries_triggered()
 void MainWindow::WriteTestLog()
 {
     if( ( !nandInited && !InitNand( ui->lineEdit_nandPath->text() ) )
-        || ItemFromPath( "/shared2/test/testlog.txt" ) )                //already exists
+            || ItemFromPath( "/shared2/test/testlog.txt" ) )                //already exists
         return;
 
     quint32 _uid = uid.GetUid( NAND_TEST_OWNER, true );
     if( !CreateIfNeeded( "/shared2/test", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
-        || !CreateIfNeeded( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+            || !CreateIfNeeded( "/shared2/sys", _uid, NAND_TEST_GROUP, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
     {
         ShowMessage( "<b>Error creating folder for testlog<\b>" );
         return;
@@ -947,8 +947,8 @@ void MainWindow::on_actionFormat_triggered()
     if( nand.FilePath().isEmpty() )
         return;
     if( QMessageBox::warning( this, tr( "Format" ), \
-                              tr( "You are about to format<br>%1.<br><br>This cannot be undone.  Are you sure you want to do it?" ).arg( nand.FilePath() ),\
-                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No ) != QMessageBox::Yes )
+                             tr( "You are about to format<br>%1.<br><br>This cannot be undone.  Are you sure you want to do it?" ).arg( nand.FilePath() ),\
+                             QMessageBox::Yes | QMessageBox::No, QMessageBox::No ) != QMessageBox::Yes )
         return;
 
     ShowMessage( "Formatting nand..." );
@@ -960,13 +960,13 @@ void MainWindow::on_actionFormat_triggered()
 
     //add folders to root
     if( !nand.CreateEntry( "/sys", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
-        || !nand.CreateEntry( "/ticket", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
-        || !nand.CreateEntry( "/title", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
-        || !nand.CreateEntry( "/shared1", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
-        || !nand.CreateEntry( "/shared2", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
-        || !nand.CreateEntry( "/import", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
-        || !nand.CreateEntry( "/meta", 0x1000, 1, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
-        || !nand.CreateEntry( "/tmp", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
+            || !nand.CreateEntry( "/ticket", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+            || !nand.CreateEntry( "/title", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_READ )
+            || !nand.CreateEntry( "/shared1", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+            || !nand.CreateEntry( "/shared2", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
+            || !nand.CreateEntry( "/import", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )
+            || !nand.CreateEntry( "/meta", 0x1000, 1, NAND_DIR, NAND_RW, NAND_RW, NAND_RW )
+            || !nand.CreateEntry( "/tmp", 0, 0, NAND_DIR, NAND_RW, NAND_RW, NAND_RW ) )
     {
         ShowMessage( "<b>Error! Can't create base folders in the new nand.</b>" );
         return;
@@ -996,9 +996,9 @@ void MainWindow::on_actionFormat_triggered()
         quint32 lower = ( tid & 0xffffffff );
         //qDebug() << hex << i << QString( "%1" ).arg( tid, 16, 16, QChar( '0' ) ) << upper << lower << QChar( ( lower >> 24 ) & 0xff ) << ( lower & 0xffffff00 );
         if( ( upper == 0x10001 && ( ( lower >> 24 ) & 0xff ) != 0x48 ) ||		//a channel, not starting with 'H'
-            lower == 0x48415858 ||												//original HBC
-            tid == 0x100000000ull ||											//bannerbomb -> ATD ( or any other program that uses the SU tid )
-            ( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
+                lower == 0x48415858 ||												//original HBC
+                tid == 0x100000000ull ||											//bannerbomb -> ATD ( or any other program that uses the SU tid )
+                ( upper == 0x10000 && ( ( lower & 0xffffff00 ) == 0x555000 ) ) )	//a disc update partition
             break;
         titles++;
     }
@@ -1031,4 +1031,17 @@ void MainWindow::on_actionFormat_triggered()
     }
     WriteTestLog();
     ShowMessage( "Done!" );
+}
+
+// respond to keyboard events
+void MainWindow::keyPressEvent( QKeyEvent *event )
+{
+    if( event->key() == Qt::Key_Return )
+    {
+        on_pushButton_GetTitle_clicked();
+        event->accept();
+        return;
+    }
+
+    event->ignore();
 }

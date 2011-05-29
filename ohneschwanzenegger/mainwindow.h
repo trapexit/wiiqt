@@ -55,6 +55,8 @@ private:
     QByteArray GenMeta( const QString &desc, quint64 tid, quint16 version );
 
     void WriteTestLog();
+protected:
+    void keyPressEvent( QKeyEvent* event );
 
 public slots:
     //slots for getting info from the NUS downloader
