@@ -951,12 +951,15 @@ void MainWindow::on_actionFormat_triggered()
                              QMessageBox::Yes | QMessageBox::No, QMessageBox::No ) != QMessageBox::Yes )
         return;
 
+    setCursor( Qt::BusyCursor );
     ShowMessage( "Formatting nand..." );
     if( !nand.Format() )
     {
+        unsetCursor();
         ShowMessage( "<b>Error!  This nand may be broken now :(</b>" );
         return;
     }
+    unsetCursor();
 
     //add folders to root
     if( !nand.CreateEntry( "/sys", 0, 0, NAND_DIR, NAND_RW, NAND_RW, 0 )

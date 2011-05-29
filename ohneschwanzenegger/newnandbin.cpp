@@ -186,9 +186,11 @@ void NewNandBin::on_buttonBox_accepted()
         boots.clear();
         return;
     }
+    setCursor( Qt::BusyCursor );
     if( !nand.CreateNew( ui->lineEdit_dest->text(), keys, boots, BadBlocks() ) )
     {
         qDebug() << "error creating nand.bin";
+        unsetCursor();
         keys.clear();
         boots.clear();
         return;
@@ -196,10 +198,12 @@ void NewNandBin::on_buttonBox_accepted()
     //qDebug() << "created nand, trying to add default entries";
     if( !CreateDefaultEntries() )
     {
+        unsetCursor();
         keys.clear();
         boots.clear();
         return;
     }
+    unsetCursor();
 
     ret = ui->lineEdit_dest->text();
 }

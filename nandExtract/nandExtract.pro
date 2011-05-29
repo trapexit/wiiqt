@@ -9,7 +9,6 @@ SOURCES += main.cpp \
     ../WiiQt/tiktmd.cpp \
     ../WiiQt/nandbin.cpp \
     ../WiiQt/tools.cpp \
-    ../WiiQt/savebanner.cpp \
     ../WiiQt/aes.c \
     ../WiiQt/sha1.c \
     nandthread.cpp \
