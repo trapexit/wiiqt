@@ -57,7 +57,17 @@ MainWindow::MainWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::M
     connect( &nand, SIGNAL( SendText( QString ) ), ui->statusBar, SLOT( showMessage( QString ) ) );
 
     LoadSettings();
-    ui->lineEdit_nandPath->setText( "./testNand.bin" );
+
+    QStringList args = QCoreApplication::arguments();
+    if( args.size() > 1 && QFileInfo( args.at( 1 ) ).exists() )
+    {
+        ui->lineEdit_nandPath->setText( args.at( 1 ) );
+        InitNand( args.at( 1 ) );
+    }
+    else
+    {
+        ui->lineEdit_nandPath->setText( "./testNand.bin" );
+    }
 }
 
 MainWindow::~MainWindow()

@@ -127,10 +127,10 @@ private:
 
     //send a fail message about the current job and skip to the next
     void CurrentJobErrored( const QString &str );
-
+#if 0
     //print info about a job to qDebug()
     void DbgJoB( const NusJob &job );
-
+#endif
     //get the path for a file in the local cache
     QString GetCachePath( quint32 idx );
 

@@ -165,6 +165,7 @@ void DebugHandler( QtMsgType type, const char *msg )
 void Usage()
 {
     qWarning() << "usage:" << QCoreApplication::arguments().at( 0 ) << "nand.bin" << "<other options>";
+    qDebug() << "\nif no <other options> are given, it will default to \"-all -v -v\"";
     qDebug() << "\nOther options:";
     qDebug() << "   -boot           shows information about boot 1 and 2";
     qDebug() << "";
@@ -1328,7 +1329,7 @@ int main( int argc, char *argv[] )
     if( args.contains( "-about", Qt::CaseInsensitive ) )
         About();
 
-    if( args.size() < 3 )
+    if( args.size() < 2 )
         Usage();
 
     if( !QFile( args.at( 1 ) ).exists() )
@@ -1336,6 +1337,11 @@ int main( int argc, char *argv[] )
 
     if( !nand.SetPath( args.at( 1 ) ) || !nand.InitNand() )
         Fail( "Error setting path to nand object" );
+
+    if( args.size() < 3 )
+    {
+        args << "-all" << "-v" << "-v";
+    }
 
     root = NULL;
 

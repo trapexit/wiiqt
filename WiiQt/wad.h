@@ -89,7 +89,7 @@ public:
     quint32 content_count();
 
     //get the last error encountered while trying to do something
-    const QString LastError(){ return errStr; }
+    const QString &LastError(){ return errStr; }
 
     //get a name for a wad as it would be seen in a wii disc update partition
     //if a path is given, it will check that path for existing wads with the name and append a number to the end "(1)" to avoid duplicate files

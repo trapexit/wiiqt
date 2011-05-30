@@ -354,6 +354,7 @@ QString NusDownloader::GetCachePath( quint32 idx )
     return path;
 }
 
+#if 0
 //print info about a job
 void NusDownloader::DbgJoB( const NusJob &job )
 {
@@ -366,6 +367,7 @@ void NusDownloader::DbgJoB( const NusJob &job )
             .arg( job.version ).arg( job.decrypt ? "decrypted" : "encrypted" )
             .arg( dataStuff );
 }
+#endif
 
 //check a hash and add the data to the return item
 bool NusDownloader::DecryptCheckHashAndAppendData( const QByteArray &encData, quint16 idx )
@@ -540,7 +542,6 @@ void NusDownloader::downloadFinished()
     {
         emit SendDownloadProgress( 100 );
         FileIsFinishedDownloading( dlJob );
-
     }
     currentDownload->deleteLater();
 }
