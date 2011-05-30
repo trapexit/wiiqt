@@ -133,7 +133,7 @@ void MainWindow::GetError( const QString &message )
     ui->plainTextEdit_log->appendHtml( str );
 }
 
-void MainWindow::ShowMessage( const QString& mes )
+void MainWindow::ShowMessage( const QString &mes )
 {
     QString str = mes + "<br>";
     ui->plainTextEdit_log->appendHtml( str );
@@ -981,7 +981,8 @@ void MainWindow::on_actionFormat_triggered()
         ShowMessage( "<b>Error! Can't cert.sys.</b>" );
         return;
     }
-
+#if 0//this doesnt work right when the source uid came with 4.3 from the factory and then 3.2 or something lower is
+    //installed.  there are a bunch of unneeded entries for IOS left behind
     //wipe all user-created entries from uid.sys
     QByteArray uidData = uid.Data();
     QBuffer buf( &uidData );
@@ -1010,7 +1011,8 @@ void MainWindow::on_actionFormat_triggered()
     uidData.resize( 12 * titles );
     //hexdump12( uidData );
     uid = UIDmap( uidData );
-
+#endif
+    uid.CreateNew();
     uidDirty = true;
     sharedDirty = true;
     shared = SharedContentMap();
