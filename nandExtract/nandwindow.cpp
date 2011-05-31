@@ -1,4 +1,5 @@
 #include "nandwindow.h"
+#include "svnrev.h"
 #include "ui_nandwindow.h"
 #include "boot2infodialog.h"
 #include "../WiiQt/tools.h"
@@ -6,7 +7,8 @@
 NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::NandWindow ), nThread( this )
 {
     ui->setupUi( this );
-	ui->mainToolBar->setVisible( false );
+    ui->mainToolBar->setVisible( false );
+    this->setWindowTitle( "NAND Extract   r" + CleanSvnStr( SVN_REV_STR ) );
 
     //setup the block map
     SetUpBlockMap();
@@ -15,7 +17,7 @@ NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::N
     ui->progressBar->setVisible( false );
     ui->statusBar->addPermanentWidget( ui->progressBar, 0 );
 
-	LoadSettings();
+    LoadSettings();
 
     QFontMetrics fm( fontMetrics() );
     ui->treeWidget->header()->resizeSection( 0, fm.width( QString( 22, 'W' ) ) );//name
@@ -36,40 +38,40 @@ NandWindow::NandWindow( QWidget *parent ) : QMainWindow( parent ), ui( new Ui::N
 
 NandWindow::~NandWindow()
 {
-	SaveSettings();
+    SaveSettings();
     delete ui;
 }
 
 void NandWindow::SaveSettings()
 {
-	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
-	s.beginGroup( "nandExtract" );
-	//window geometry
-	s.setValue( "size", size() );
-	s.setValue( "pos", pos() );
-	s.setValue( "usage", ui->actionShow_Usage->isChecked() );
+    QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+    s.beginGroup( "nandExtract" );
+    //window geometry
+    s.setValue( "size", size() );
+    s.setValue( "pos", pos() );
+    s.setValue( "usage", ui->actionShow_Usage->isChecked() );
 
-	//if the usage is visible, remember its size
-	int uSize = ui->splitter->sizes().at( 0 ) + 23;//WTF?  why do i need to add 20ish here
-	if( ui->actionShow_Usage->isChecked() )
-		s.setValue( "usage_size", uSize );
+    //if the usage is visible, remember its size
+    int uSize = ui->splitter->sizes().at( 0 ) + 23;//WTF?  why do i need to add 20ish here
+    if( ui->actionShow_Usage->isChecked() )
+        s.setValue( "usage_size", uSize );
 
-	s.endGroup();
+    s.endGroup();
 }
 
 void NandWindow::LoadSettings()
 {
-	QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
+    QSettings s( QSettings::IniFormat, QSettings::UserScope, "WiiQt", "examples", this );
 
-	//settings specific to this program
-	s.beginGroup( "nandExtract" );
-	resize( s.value("size", QSize( 1180, 654 ) ).toSize() );
-	move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
+    //settings specific to this program
+    s.beginGroup( "nandExtract" );
+    resize( s.value("size", QSize( 1180, 654 ) ).toSize() );
+    move( s.value("pos", QPoint( 2, 72 ) ).toPoint() );
 
-	int top = s.value( "usage_size", 200 ).toInt();
-	ui->splitter->setSizes( QList< int >() << top << ( height() - top ) );
-	ui->actionShow_Usage->setChecked( s.value( "usage", true ).toBool() );
-	s.endGroup();
+    int top = s.value( "usage_size", 200 ).toInt();
+    ui->splitter->setSizes( QList< int >() << top << ( height() - top ) );
+    ui->actionShow_Usage->setChecked( s.value( "usage", true ).toBool() );
+    s.endGroup();
 }
 
 void NandWindow::SetUpBlockMap()
@@ -372,28 +374,28 @@ void NandWindow::on_actionShow_Usage_triggered()
     QList<quint16>badOnes;
     for( quint16 i = 0; i < 0x8000; i++ )
     {
-	quint16 fat = GetFAT( i );
-	if( 0xfffc == fat )
-	    reserved++;
-	else if( 0xfffd == fat )
-	{
-	    badBlocks++;
-	    if( i % 8 == 0 )
-	    {
-		badOnes << ( i / 8 );
-	    }
-	}
-	else if( 0xfffe == fat )
-	    freeBlocks++;
+    quint16 fat = GetFAT( i );
+    if( 0xfffc == fat )
+        reserved++;
+    else if( 0xfffd == fat )
+    {
+        badBlocks++;
+        if( i % 8 == 0 )
+        {
+        badOnes << ( i / 8 );
+        }
+    }
+    else if( 0xfffe == fat )
+        freeBlocks++;
     }
     if( badBlocks )
-	 badBlocks /= 8;
+     badBlocks /= 8;
 
     if( reserved )
-	 reserved /= 8;
+     reserved /= 8;
 
     if( freeBlocks )
-	 freeBlocks /= 8;*/
+     freeBlocks /= 8;*/
 }
 
 //some item in the nand tree was clicked
@@ -459,5 +461,5 @@ void NandWindow::on_actionBoot2_triggered()
 
 void NandWindow::on_actionFix_Names_For_FAT_triggered( bool checked )
 {
-	nThread.SetFixNamesForFat( checked );
+    nThread.SetFixNamesForFat( checked );
 }
