@@ -151,11 +151,16 @@ public:
     //reads from the fst and makes the list of paths
     void CreateEntryList();
 
+    // if this archive was packed by any of the wii.cs tools and it is not
+    // a standard banner, it will be incorrectly packed, and this will return true
+    bool IsBuggy(){ return wii_cs_error; }
 
 private:
     QByteArray data;//data starting at the U8 tag
     QStringList paths;
     bool ok;
+
+    bool wii_cs_error;
 
     //if this archive as a whole is lz77 compressed
     bool isLz77;

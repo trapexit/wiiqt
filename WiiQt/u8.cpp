@@ -19,6 +19,7 @@ U8::U8( bool initialize, int type, const QStringList &names )
 {
     ok = false;
     isLz77 = false;
+    wii_cs_error = false;
     paths.clear();
     nestedU8s.clear();
     fst = NULL;
@@ -876,11 +877,17 @@ void U8::CreateEntryList()
                             {
                                 qWarning() << "This archive was made by a broken tool such as U8Mii.  I'm trying to fix it, but I can't make any promises";
                                 fixWarn = true;
+                                wii_cs_error = true;
                             }
-                            fst[ current ].ParentOffset = qFromBigEndian( folder );
+#ifndef U8_DONT_FIX_RECURSION_ERRORS
+                        fst[ current ].ParentOffset = qFromBigEndian( folder );
+#endif
                         }
+//#ifndef U8_DONT_FIX_RECURSION_ERRORS
+//                        fst[ current ].ParentOffset = qFromBigEndian( folder );
+//#endif
                     }
-                    path += "/";
+                    path += '/';
                     paths << path;
                 }
                 else
@@ -924,6 +931,7 @@ void U8::CreateEntryList()
 
 U8::U8( const QByteArray &ba )
 {
+    wii_cs_error = false;
     //qDebug() << "U8::U8 dataSize:" << hex << ba.size();
     Load( ba );
 }
@@ -931,6 +939,7 @@ U8::U8( const QByteArray &ba )
 void U8::Load( const QByteArray &ba )
 {
     ok = false;
+    wii_cs_error = false;
     isLz77 = false;
     headerType = U8_Hdr_none;
     paths.clear();
@@ -1063,7 +1072,8 @@ int U8::FindEntry( const QString &str, int d )
         else
             item = str;
 
-        if( FstName( entry ) == item )
+        if( !FstName( entry ).compare( item, Qt::CaseInsensitive ) )
+        //if( FstName( entry ) == item )
         {
             if( item == str || item + "/" == str )//this is the item we are looking for
             {

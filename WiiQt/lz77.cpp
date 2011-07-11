@@ -189,7 +189,12 @@ QByteArray LZ77::Decompress( const QByteArray &compressed, int offset )
     infile.read( (char*)&gbaheader, 4 );
 
     decomp_size = gbaheader >> 8;
+    if( !decomp_size )
+    {
+        infile.read( (char*)&decomp_size, 4 );
+    }
     quint8 text_buf[ N + 17 ];
+    //qDebug() << "decomp_size:" << decomp_size;
 
     for( i = 0; i < N - F; i++ )
 		text_buf[ i ] = 0xdf;

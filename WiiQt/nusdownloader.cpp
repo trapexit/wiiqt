@@ -332,6 +332,9 @@ QString NusDownloader::GetCachePath( quint32 idx )
     if( currentJob.version == TITLE_LATEST_VERSION || !currentJob.tid )//c'mon guy
         return QString();
 
+    if( cachePath.isEmpty() )
+        return QString();
+
     QString path = cachePath;
     if( path.endsWith( "/" ) )
         path.resize( path.size() - 1 );
@@ -486,7 +489,7 @@ void NusDownloader::StartDownload()
     //qDebug() << "NusDownloader::StartDownload" << dlJob.index;
     emit SendDownloadProgress( 0 );
     QString dlUrl = NUS_BASE_URL + dlJob.tid + "/" + dlJob.name;
-    //qDebug() << "url" << dlUrl;
+    qDebug() << "url" << dlUrl;
     currentJobText = dlUrl;
 
     QUrl url( dlUrl );
