@@ -165,12 +165,12 @@ int AlignedBASearch( const QByteArray &needle, const QByteArray &haystack, qint6
 	qint64 hSize = haystack.size();
 	qint64 nSize = needle.size();
 
-	if( start % 4 || start > hSize )
+	if( start % 4 || start >= hSize )
 	{
 		return -1;
 	}
 	qint64 end = hSize - nSize;
-	for( ; start < end; start += 8 )
+	for( ; start < end; start += 4 )
 	{
 		qint64 j;
 		for( j = 0; j < nSize; j++ )
@@ -322,7 +322,7 @@ int PatternSearch( const QString &needle, const QString &haystack, qint64 start 
 	qint64 hSize = haystack.size();
 	qint64 nSize = needle.size();
 
-	if( start % 8 || start > hSize )
+	if( start % 8 || start >= hSize )
 	{
 		return -1;
 	}
@@ -388,7 +388,7 @@ bool PattenMatches( const QString &needle, const QString &haystack, qint64 offse
 	qint64 hSize = haystack.size();
 	qint64 nSize = needle.size();
 
-	if( nSize > hSize || offset > hSize )
+	if( nSize > hSize || offset >= hSize )
 	{
 		return false;
 	}
