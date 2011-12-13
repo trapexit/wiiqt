@@ -19,10 +19,12 @@ SOURCES += main.cpp\
 	../WiiQt/aes.c \
 	elfparser.cpp \
 	dol.cpp \
-	be.cpp
+	be.cpp \
+    ppc_disasm.c
 
 HEADERS  += ../WiiQt/tools.h \
 	../WiiQt/aes.h \
 	elfparser.h \
 	dol.h \
-	be.h
+	be.h \
+    ppc_disasm.h

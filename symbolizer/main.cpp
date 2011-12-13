@@ -2,6 +2,7 @@
 
 #include "dol.h"
 #include "elfparser.h"
+#include "ppc_disasm.h"
 #include "../WiiQt/includes.h"
 #include "../WiiQt/tools.h"
 
@@ -30,6 +31,16 @@ struct KnownFunction
 	}
 };
 
+#define GLOBALVAR_MASK( x )		( (quint32)( x & ( PPCAMASK | 0xffff ) ) )
+// keep track of known rtoc & r13 references
+struct KnownVariable
+{
+	quint32 sig;							// signature for opcodes dealing with this variable when GLOBALVAR_MASK()'d
+											//! given lwz     %r0, -0x5460(%r13), it will store the -0x5460(%r13)
+	QString name;							// symbol name
+	ElfParser::File *file;					// pointer to the file object that contains the data
+};
+
 // holds the info about a dol to use while searching for crap in it
 Dol dol;
 QStringList dolTextHex;// store a copy of the dol as hex  for easier searching for patterns
@@ -42,13 +53,31 @@ QList< ElfParser::File > libFiles;
 QList< KnownData > knownData;
 QList< KnownFunction > knownFunctions;
 
+// keep track of variables accessed through r2 and r13
+QList< KnownVariable > knownVariables;
+
 // keep a list of the locations that each function's pattern matched to keep from looking them up over and over
 QMap< const ElfParser::Function *, QList< quint32 > >patternMatches;
+
+#define DU32( x ) qDebug().nospace() << #x << ": " << hex << (x)
 
 QString NStr( quint32 num, quint8 width = 8 );
 QString NStr( quint32 num, quint8 width )
 {
 	return QString( "%1" ).arg( num, width, 16, QChar( '0' ) );
+}
+
+bool IsVariableKnown( quint32 sig, const QList< KnownVariable > &list = knownVariables );
+bool IsVariableKnown( quint32 sig, const QList< KnownVariable > &list )
+{
+	foreach( const KnownVariable &var, list )
+	{
+		if( var.sig == sig )
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 // read dol into memory
@@ -942,6 +971,177 @@ void TryToMatchFunctions1()
 	RemoveOverlaps();
 }
 
+void FindGlobalVariables()
+{
+	QList< QPair< const ElfParser::Function *, const KnownData *> > maybeMatches;// keep track of functions to check
+	//QList< QPair< QPair< const ElfParser::Function *, const KnownData *> *, const SymAlias * > > aliasMatches;// keep track of functions to check via aliases
+
+	QMap< const ElfParser::Function *, const ElfParser::File * >fileMap;
+	QMap< const ElfParser::Function *, quint32 >winners;
+
+	QList< KnownVariable > newVariables;
+
+	foreach( const KnownFunction &kf1, knownFunctions )// look in all known functions for global variables
+	{
+		if( !kf1.file )
+		{
+			continue;
+		}
+		foreach( const SymRef &ref, kf1.function->References() )
+		{
+			if( ref.type != SymRef::R_PPC_EMB_SDA21 )
+			{
+				continue;
+			}
+			quint32 addr = kf1.addr + ( ref.off & ~3 );
+			quint32 opcode = GetOpcodeFromAddr( addr );
+			if( opcode == 0xdeadbeef )
+			{
+				DBG << "opcode" << hex << opcode;
+				continue;
+			}
+			quint32 reg = (quint32)PPCGETA( opcode );
+			if( reg != 2 && reg != 13 )
+			{
+				DBG << "reg:" << hex << reg << kf1.function->Name() << ref.name;
+				continue;
+			}
+			quint32 sig = GLOBALVAR_MASK( opcode );
+			if( IsVariableKnown( sig, newVariables ) || IsVariableKnown( sig ) )
+			{
+				continue;
+			}
+			KnownVariable nw;
+			nw.file = (ElfParser::File *)kf1.file;
+			nw.name = ref.name;
+			nw.sig = sig;
+			newVariables << nw;
+
+			/*qDebug() << "opcode" << hex << opcode << "addr" << addr;
+			qDebug() << kf1.function->Name() << ref.name;
+			qDebug();
+			quint32 z = GLOBALVAR_MASK( opcode );
+			opcode = z;
+			quint32 s = (quint32)PPCGETD( opcode );
+			quint32 a = (quint32)PPCGETA( opcode );
+			quint32 d = (quint32)( opcode & 0xffff );
+			quint32 o = (quint32)( PPCGETIDX( opcode ) - 32 );
+			DU32( o );
+			DU32( d );
+			DU32( s );
+			DU32( a );*/
+			//exit( 0 );
+		}
+	}
+
+	// look at all the variables and see if there is an unknown function in that file that refers to the variable
+
+	QList< const ElfParser::Function * > bitches;
+	foreach( const KnownVariable &var, newVariables )
+	{
+		foreach( const ElfParser::Function &fun, var.file->Functions() )
+		{
+			if( FunctionIsKnown( &fun ) )
+			{
+				continue;
+			}
+			foreach( const SymRef &ref, fun.References() )
+			{
+				if( ref.type != SymRef::R_PPC_EMB_SDA21 )
+				{
+					continue;
+				}
+				if( ref.name != var.name )
+				{
+					continue;
+				}
+				if( !bitches.contains( &fun ) )
+				{
+					bitches << &fun;
+					fileMap[ &fun ] = var.file;
+				}
+			}
+		}
+	}
+
+	// now look at all the references to global variables in each found function and if it refers to a known one,
+	// check the opcode and see that it is correct
+	QMapIterator< const ElfParser::Function *, const ElfParser::File * > it( fileMap );
+	while( it.hasNext() )
+	{
+		it.next();
+		QList< quint32 > addrs = PatternMatches( it.key() );
+		quint32 winner = 0;
+		bool functionFailed = false;
+		foreach( quint32 addr, addrs )
+		{
+			bool fail = false;
+			foreach( const SymRef &ref, it.key()->References() )
+			{
+				if( ref.type != SymRef::R_PPC_EMB_SDA21 )
+				{
+					continue;
+				}
+				quint32 varSig = 0xb00b5;
+				foreach( const KnownVariable &kv, newVariables )
+				{
+					if( kv.file == it.value() && kv.name == ref.name )
+					{
+						varSig = kv.sig;
+						break;
+					}
+				}
+				if( varSig == 0xb00b5 )// we dont know this variable
+				{
+					continue;
+				}
+				quint32 opAddr = addr + ( ref.off & ~3 );
+				quint32 opcode = GetOpcodeFromAddr( opAddr );
+				if( opcode == 0xdeadbeef )
+				{
+					DBG << "opcode" << hex << opcode;
+					continue;
+				}
+				if( GLOBALVAR_MASK( opcode ) != varSig )
+				{
+					fail = true;
+					break;
+				}
+			}
+			if( fail )
+			{
+				continue;
+			}
+			if( winner )// found more than 1 match for this little guy
+			{
+				functionFailed = true;
+				break;
+			}
+			winner = addr;
+		}
+		if( winner && !functionFailed )
+		{
+			winners[ it.key() ] = winner;
+		}
+	}
+
+	knownVariables << newVariables;
+
+	//DBG << "added these bad boys";
+	QMapIterator< const ElfParser::Function *, quint32 > ret( winners );
+	while( ret.hasNext() )
+	{
+		ret.next();
+		//qDebug() << hex << ret.value()
+		//		 << NStr( ret.key()->Pattern().size() / 2, 4 )
+		//		 << ret.key()->Name()
+		//		 << fileMap.find( ret.key() ).value()->Name();
+		AddFunctionToKnownList( ret.key(), fileMap.find( ret.key() ).value(), ret.value() );
+	}
+	RemoveOverlaps();
+
+}
+
 void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatchingBranches )
 {
 	QStringList wholeDolHex = dolDataHex + dolTextHex;
@@ -1290,11 +1490,11 @@ QList< QPair< const ElfParser::Function *, quint32> > TryToMatchFunctions4( QLis
 	// cleanup the list
 	CleanupList( maybeMatches );
 	int s = maybeMatches.size();
-	qDebug() << "Functions that only have 1 pattern match, contain wildcards, and are larger than 0x" << hex << minLen << "bytes:";
+	//qDebug() << "Functions that only have 1 pattern match, contain wildcards, and are larger than 0x" << hex << minLen << "bytes:";
 	for( int i = 0; i < s; i++ )
 	{
 		const QPair< const ElfParser::Function *, quint32 > &p = maybeMatches.at( i );
-		qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
+		//qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
 
 		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
 	}
@@ -1518,8 +1718,10 @@ int main(int argc, char *argv[])
 	//dolPath = "/home/j/c/hackmiiHaxx/disassembly/mem1-decrypt_60.bin";
 	//libPath = "/home/j/devkitPRO/libogc/lib/wii";
 
+	//dolPath = "/home/j/c/WiiQt/93/symbolizer/00000043_60.dol";
 	//dolPath = "/home/j/c/WWE12_haxx/main.dol";
 	//libPath = "/home/j/devkitPRO/libogc/lib/wii";
+	//libPath += "/os.a";
 
 	qDebug() << "Loading dol...";
 	if( !LoadDol( dolPath ) )
@@ -1544,8 +1746,14 @@ int main(int argc, char *argv[])
 	// find first round of functions
 	TryToMatchFunctions1();
 
+	// add functions by looking at rtoc and r13
+	FindGlobalVariables();
+	//exit( 0 );
+
 	// find branches from the first round of functions
 	TryToMatchFunctions2( nonMatchingBranches );
+
+	FindGlobalVariables();
 
 	// looking for functions that dont branch anywhere or use global variables or anything
 	TryToMatchFunctions0();
@@ -1564,6 +1772,11 @@ int main(int argc, char *argv[])
 		}
 		qDebug() << " - added" << newFunctions.size() << "new functions -";
 	}
+
+	// add functions by looking at rtoc and r13
+	FindGlobalVariables();
+
+
 
 	qDebug() << "Total functions found:" << knownFunctions.size();
 
@@ -1591,8 +1804,11 @@ int main(int argc, char *argv[])
 	num = knownFunctions.size();
 	for( int i = 0; i < maxRetries; i++ )
 	{
-		qDebug() << " -- Round" << i << '/' << maxRetries << " following branches --";
+		qDebug() << " -- Round" << i << '/' << maxRetries << " following branches and global variables --";
 		TryToMatchFunctions2( nonMatchingBranches );
+
+		// add functions by looking at rtoc and r13
+		FindGlobalVariables();
 
 		int num2 = knownFunctions.size();
 		if( num2 == num )
@@ -1603,8 +1819,9 @@ int main(int argc, char *argv[])
 		num = num2;
 	}
 
-	qDebug() << "Total data matches:   " << knownData.size();
-	qDebug() << "Total functions found:" << knownFunctions.size();
+	qDebug() << "Total global variables: " << knownVariables.size();
+	qDebug() << "Total data matches:     " << knownData.size();
+	qDebug() << "Total functions found:  " << knownFunctions.size();
 
 	qDebug() << "Generating idc file...";
 	QString idc = MakeIDC( dolPath, libPath, nonMatchingBranches );
