@@ -68,7 +68,7 @@ bool LoadDol( const QString &path )
 	}
 	else
 	{
-		//ba.resize( 0x807B3E88 - 0x80004000 );
+		ba.resize( 0x807B3E88 - 0x80004000 );
 		dol = Dol::FakeDol( ba, 0x80004000 );
 	}
 	foreach( const DolSection &sec, dol.TextSections() )
@@ -669,14 +669,14 @@ void TryToMatchData()
 		}
 		knownData << kd;
 		/*qDebug() << hex << kd.addr << kd.len << kd.name << "from" << kd.file->Name();
-		// print aliases
-		foreach( const SymAlias &alias, kd.file->Aliases() )
-		{
-			if( alias.containerName == kd.name )
-			{
-				qDebug() << hex << "  " << ( kd.addr + alias.offset ) << alias.size << alias.name;
-			}
-		}*/
+  // print aliases
+  foreach( const SymAlias &alias, kd.file->Aliases() )
+  {
+   if( alias.containerName == kd.name )
+   {
+	qDebug() << hex << "  " << ( kd.addr + alias.offset ) << alias.size << alias.name;
+   }
+  }*/
 	}
 	RemoveOverlaps();
 }
@@ -1229,6 +1229,79 @@ QList< QPair< const ElfParser::Function *, quint32> > TryToMatchFunctions3( QLis
 	return maybeMatches;
 }
 
+// looks for functions that DO contain a wildcard and only have 1 pattern match
+QList< QPair< const ElfParser::Function *, quint32> > TryToMatchFunctions4( QList< const ElfParser::Function * > &ignoreFunctions, quint32 minLen )
+{
+	QMap< const ElfParser::Function *, const ElfParser::File * >fileMap;
+
+	QList< QPair< const ElfParser::Function *, quint32> > maybeMatches;// keep track of functions to check
+
+	foreach( const ElfParser::File &f, libFiles )// search each file
+	{
+		foreach( const ElfParser::Function &fun, f.Functions() )// search each function in each file
+		{
+			if( ignoreFunctions.contains( &fun ) ||  FunctionIsKnown( &fun ) )
+			{
+				continue;
+			}
+			quint32 len = fun.Pattern().length() / 2;
+			if( len < minLen )
+			{
+				continue;
+			}
+
+			const QList< quint32 > &addrs = PatternMatches( &fun );
+			if( addrs.size() != 1 )
+			{
+				continue;
+			}
+			quint32 addr = addrs.at( 0 );
+
+			quint32 fEnd = addr + len;
+
+
+			// see if inserting this function at this address will colide with any existing known data
+			bool fail = false;
+			foreach( const KnownFunction &kf1, knownFunctions )
+			{
+				if( !kf1.function )
+				{
+					continue;
+				}
+				quint32 start = kf1.addr;
+				quint32 end = start + ( kf1.function->Pattern().size() / 2 );
+				if( ( start >= addr && end < fEnd )
+						|| ( addr >= start && fEnd < end ) )
+				{
+					fail = true;
+					break;
+				}
+			}
+			if( fail )
+			{
+				continue;
+			}
+			maybeMatches << QPair< const ElfParser::Function *, quint32 >( &fun, addr );
+			fileMap[ &fun ] = &f;
+		}
+	}
+
+
+	// cleanup the list
+	CleanupList( maybeMatches );
+	int s = maybeMatches.size();
+	qDebug() << "Functions that only have 1 pattern match, contain wildcards, and are larger than 0x" << hex << minLen << "bytes:";
+	for( int i = 0; i < s; i++ )
+	{
+		const QPair< const ElfParser::Function *, quint32 > &p = maybeMatches.at( i );
+		qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
+
+		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
+	}
+	RemoveOverlaps();
+	return maybeMatches;
+}
+
 #define INDENT_TXT	QString( "    " )
 
 QString CleanupNameString( const QString &name )// gcc puts the section name at the front of the user-given name
@@ -1259,13 +1332,13 @@ QString CleanupNameString( const QString &name )// gcc puts the section name at 
 QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< const ElfParser::Function *, quint32 > &nonMatchingBranches )
 {
 	QString ret = QString(
-			"/***********************************************************\n"
-			"* This file was created automatically with\n"
-			"* DolPath: \"%1\"\n"
-			"* LibPath: \"%2\"\n"
-			"***********************************************************/\n"
-			"\n"
-			"#include <idc.idc>\n"
+				"/***********************************************************\n"
+				"* This file was created automatically with\n"
+				"* DolPath: \"%1\"\n"
+				"* LibPath: \"%2\"\n"
+				"***********************************************************/\n"
+				"\n"
+				"#include <idc.idc>\n"
 				"\n" )
 			.arg( QFileInfo( dolPath ).absoluteFilePath() )
 			.arg( QFileInfo( libPath ).absoluteFilePath() );
@@ -1339,7 +1412,7 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 				if( kf.file->Name() != libPath )
 				{
 					line += QString( "MakeComm( 0x%1, \"File: %2\" );" )
-						.arg( kf.addr, 8, 16, QChar( '0' ) ).arg( kf.file->Name() );
+							.arg( kf.addr, 8, 16, QChar( '0' ) ).arg( kf.file->Name() );
 				}
 
 				line += '\n';
@@ -1384,7 +1457,8 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 					.arg( it.key()->Pattern().size() / 2, 4, 16, QChar( '0' ) )
 					.arg( CleanupNameString( it.key()->Name() ) );
 			// do something cool here with the r13/rtoc references
-			foreach( const SymRef &ref, it.key()->References() )
+			// these cant be trusted since the functions here dont match expected patterns
+			/*foreach( const SymRef &ref, it.key()->References() )
 			{
 				if( ref.type == SymRef::R_PPC_EMB_SDA21 )
 				{
@@ -1392,7 +1466,7 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 							.arg( it.value() + ( ref.off & ~3 ), 8, 16, QChar( '0' ) )
 							.arg( CleanupNameString( ref.name ) );
 				}
-			}
+			}*/
 		}
 		ret += "\n}\n";
 	}
@@ -1439,6 +1513,13 @@ int main(int argc, char *argv[])
 	QString dolPath( argv[ 1 ] );
 	QString libPath( argv[ 2 ] );
 	QString outName( argv[ 3 ] );
+
+	// derp
+	//dolPath = "/home/j/c/hackmiiHaxx/disassembly/mem1-decrypt_60.bin";
+	//libPath = "/home/j/devkitPRO/libogc/lib/wii";
+
+	//dolPath = "/home/j/c/WWE12_haxx/main.dol";
+	//libPath = "/home/j/devkitPRO/libogc/lib/wii";
 
 	qDebug() << "Loading dol...";
 	if( !LoadDol( dolPath ) )
@@ -1488,6 +1569,26 @@ int main(int argc, char *argv[])
 
 	// find branches from the known functions
 	int num = knownFunctions.size();
+	for( int i = 0; i < maxRetries; i++ )
+	{
+		qDebug() << " -- Round" << i << '/' << maxRetries << " following branches --";
+		TryToMatchFunctions2( nonMatchingBranches );
+
+		int num2 = knownFunctions.size();
+		if( num2 == num )
+		{
+			break;
+		}
+		qDebug() << " - added" << ( num2 - num ) << "new functions -";
+		num = num2;
+	}
+
+	// look for functions that only match 1 place, have a certain minimum length, and dont overlap any known data.
+	TryToMatchFunctions4( ignoreFunctions, 0x40 );
+	TryToMatchFunctions4( ignoreFunctions, 0x30 );
+
+	// try to follow branches from these functions until no new ones are discovered
+	num = knownFunctions.size();
 	for( int i = 0; i < maxRetries; i++ )
 	{
 		qDebug() << " -- Round" << i << '/' << maxRetries << " following branches --";
