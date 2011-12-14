@@ -1644,7 +1644,7 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 							.arg( kf.addr, 8, 16, QChar( '0' ) ).arg( kf.file->Name() );
 				}
 
-				line += "  // " + kf.debug;
+			//	line += "  // " + kf.debug;
 
 				line += '\n';
 
@@ -1665,7 +1665,7 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 						.arg( kf.addr, 8, 16, QChar( '0' ) )
 						.arg( CleanupNameString( kf.name ) );
 
-				line += "  // " + kf.debug;
+			//	line += "  // " + kf.debug;
 
 				line += '\n';
 			}
@@ -1747,7 +1747,6 @@ int main(int argc, char *argv[])
 	QString dolPath( argv[ 1 ] );
 	QString libPath( argv[ 2 ] );
 	QString outName( argv[ 3 ] );
-
 
 	qDebug() << "Loading dol...";
 	if( !LoadDol( dolPath ) )
@@ -1853,6 +1852,7 @@ int main(int argc, char *argv[])
 	//qDebug() << idc;
 
 	WriteFile( outName, idc.toLatin1() );
+
 
 	return 0;
 }
