@@ -21,6 +21,7 @@ struct KnownData
 // holds info about a function that is assumed correct
 struct KnownFunction
 {
+	QString debug;// just for debugging this program
 	const ElfParser::Function *function;
 	const ElfParser::File *file;
 	const quint32 addr;
@@ -311,7 +312,8 @@ void RemoveOverlaps()
 	knownFunctions = knownFunctions2;
 }
 
-void AddFunctionToKnownList( const ElfParser::Function *function, const ElfParser::File *file, quint32 addr )
+void AddFunctionToKnownList( const ElfParser::Function *function, const ElfParser::File *file, quint32 addr, const QString &debug = QString() );
+void AddFunctionToKnownList( const ElfParser::Function *function, const ElfParser::File *file, quint32 addr, const QString &debug )
 {
 	foreach( const KnownFunction &kf, knownFunctions )
 	{
@@ -325,10 +327,13 @@ void AddFunctionToKnownList( const ElfParser::Function *function, const ElfParse
 			return;
 		}
 	}
-	knownFunctions << KnownFunction( function, file, addr );
+	KnownFunction kf( function, file, addr );
+	kf.debug = debug;
+	knownFunctions << kf;
 }
 
-void AddFunctionToKnownList( const QString &name, quint32 addr )
+void AddFunctionToKnownList( const QString &name, quint32 addr, const QString &debug = QString() );
+void AddFunctionToKnownList( const QString &name, quint32 addr, const QString &debug )
 {
 	foreach( const KnownFunction &kf, knownFunctions )
 	{
@@ -342,7 +347,9 @@ void AddFunctionToKnownList( const QString &name, quint32 addr )
 			return;
 		}
 	}
-	knownFunctions << KnownFunction( NULL, NULL, addr, name );
+	KnownFunction kf( NULL, NULL, addr, name );
+	kf.debug = debug;
+	knownFunctions << kf;
 }
 
 int PatternSearch( const QString &needle, const QString &haystack, qint64 start = 0 );
@@ -499,83 +506,117 @@ bool ListContains( const QList< QPair< const ElfParser::Function *, quint32 > > 
 void CleanupList( QList< QPair< const ElfParser::Function *, quint32 > > &list )
 {
 	QList< const ElfParser::Function * >dupFunctions;
-	QList< const ElfParser::Function * >foundFunctions;
-
 	QList< quint32 >dupAddrs;
-	QList< quint32 >foundAddrs;
 
 	QList< QPair< const ElfParser::Function *, quint32 > > ret;
 
 	int s = list.size();
-
-	// search for stuff to remove
 	for( int i = 0; i < s; i++ )
 	{
-		const QPair< const ElfParser::Function *, quint32 > &p = list.at( i );
-		if( foundFunctions.contains( p.first ) )
+		const QPair< const ElfParser::Function *, quint32 > &p1 = list.at( i );
+		for( int j = 0; j < s; j++ )
 		{
-			dupFunctions << p.first;
+			const QPair< const ElfParser::Function *, quint32 > &p2 = list.at( j );
+			if( p1.second == p2.second )// is address the same
+			{
+				if( p1.first != p2.first )// is function the same
+				{
+					dupAddrs << p1.second;// same address but 2 different functions
+				}
+			}
+			else if( p1.first == p2.first )
+			{
+				dupFunctions << p1.first;// different address but same function
+			}
 		}
-		foundFunctions << p.first;
-
-		if( foundAddrs.contains( p.second ) )
-		{
-			dupAddrs << p.second;
-		}
-		foundAddrs << p.second;
 	}
 
-	// build a new list
+	// now build a new list
 	for( int i = 0; i < s; i++ )
 	{
-		const QPair< const ElfParser::Function *, quint32 > &p = list.at( i );
-		if( dupFunctions.contains( p.first ) || dupAddrs.contains( p.second ) )
+		const QPair< const ElfParser::Function *, quint32 > &p1 = list.at( i );
+
+		// this one clashed with another function
+		if( dupAddrs.contains( p1.second ) || dupFunctions.contains( p1.first ) )
 		{
 			continue;
 		}
-		ret << p;
+
+		// make sure this function isnt already in the list
+		int t = ret.size();
+		bool alreadyHaveIt = false;
+		for( int j = 0; j < t; j++ )
+		{
+			const QPair< const ElfParser::Function *, quint32 > &p2 = ret.at( j );
+			if( p1.second == p2.second )
+			{
+				alreadyHaveIt = true;
+				break;
+			}
+		}
+		if( !alreadyHaveIt )
+		{
+			ret << p1;
+		}
 	}
 	list = ret;
 }
 
 void CleanupList( QList< QPair< QString, quint32 > > &list )
 {
-	QStringList dupFunctions;
-	QStringList foundFunctions;
-
+	QStringList dupNames;
 	QList< quint32 >dupAddrs;
-	QList< quint32 >foundAddrs;
 
 	QList< QPair< QString, quint32 > > ret;
 
 	int s = list.size();
-
-	// search for stuff to remove
 	for( int i = 0; i < s; i++ )
 	{
-		const QPair< QString, quint32 > &p = list.at( i );
-		if( foundFunctions.contains( p.first ) )
+		const QPair< QString, quint32 > &p1 = list.at( i );
+		for( int j = 0; j < s; j++ )
 		{
-			dupFunctions << p.first;
+			const QPair< QString, quint32 > &p2 = list.at( j );
+			if( p1.second == p2.second )// is address the same
+			{
+				if( p1.first != p2.first )// is name the same
+				{
+					dupAddrs << p1.second;// same address but 2 different names
+				}
+			}
+			else if( p1.first == p2.first )
+			{
+				dupNames << p1.first;// different address but same names
+			}
 		}
-		foundFunctions << p.first;
-
-		if( foundAddrs.contains( p.second ) )
-		{
-			dupAddrs << p.second;
-		}
-		foundAddrs << p.second;
 	}
 
-	// build a new list
+	// now build a new list
 	for( int i = 0; i < s; i++ )
 	{
-		const QPair< QString, quint32 > &p = list.at( i );
-		if( dupFunctions.contains( p.first ) || dupAddrs.contains( p.second ) )
+		const QPair< QString, quint32 > &p1 = list.at( i );
+
+		// this one clashed with another function
+		if( dupAddrs.contains( p1.second ) || dupNames.contains( p1.first ) )
 		{
 			continue;
 		}
-		ret << p;
+
+		// make sure this function isnt already in the list
+		int t = ret.size();
+		bool alreadyHaveIt = false;
+		for( int j = 0; j < t; j++ )
+		{
+			const QPair< QString, quint32 > &p2 = ret.at( j );
+			if( p1.second == p2.second )
+			{
+				alreadyHaveIt = true;
+				break;
+			}
+		}
+		if( !alreadyHaveIt )
+		{
+			ret << p1;
+		}
 	}
 	list = ret;
 }
@@ -745,7 +786,7 @@ void TryToMatchFunctions0()
 		}
 	}
 
-	qDebug() << " -- Matched by searching for patterns with no wildcards --";
+	//qDebug() << " -- Matched by searching for patterns with no wildcards --";
 	int ss = maybeMatches.size();
 	for( int i = 0; i < ss; i++ )
 	{
@@ -755,8 +796,8 @@ void TryToMatchFunctions0()
 			//qDebug() << "tossing out" << p.first->Name() << "because addr" << hex << p.second << "is reused";
 			continue;
 		}
-		qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
-		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
+		//qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
+		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second, __FUNCTION__ );
 	}
 	RemoveOverlaps();
 }
@@ -812,7 +853,7 @@ void TryToMatchFunctions1()
 					//qDebug() << "      " << kd.name;
 					if( kd.name == ref.name )
 					{
-						qDebug() << "function:" << fun.Name() << "references" << kd.name << kd.file->Name();
+						//qDebug() << "function:" << fun.Name() << "references" << kd.name << kd.file->Name();
 						//qDebug() << ref.name;
 						maybeMatches << QPair< const ElfParser::Function *, const KnownData *>( &fun, &kd );
 						doneWithFunction = true;
@@ -824,7 +865,7 @@ void TryToMatchFunctions1()
 						bool ok = false;
 						if( alias.containerName == kd.name && alias.name == ref.name )
 						{
-							qDebug() << "function:" << fun.Name() << "references" << kd.name << "through alias" << alias.name << " in" << kd.file->Name();
+							//qDebug() << "function:" << fun.Name() << "references" << kd.name << "through alias" << alias.name << " in" << kd.file->Name();
 							//qDebug() << "container str" << alias.containerName;
 							QPair< const ElfParser::Function *, const KnownData *> np( &fun, &kd );
 							maybeMatches << np;
@@ -966,7 +1007,7 @@ void TryToMatchFunctions1()
 	{
 		const QPair< const ElfParser::Function *, quint32 > &p = probablyMatches.at( i );
 		//qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
-		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
+		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second, __FUNCTION__ );
 	}
 	RemoveOverlaps();
 }
@@ -1136,7 +1177,7 @@ void FindGlobalVariables()
 		//		 << NStr( ret.key()->Pattern().size() / 2, 4 )
 		//		 << ret.key()->Name()
 		//		 << fileMap.find( ret.key() ).value()->Name();
-		AddFunctionToKnownList( ret.key(), fileMap.find( ret.key() ).value(), ret.value() );
+		AddFunctionToKnownList( ret.key(), fileMap.find( ret.key() ).value(), ret.value(), __FUNCTION__ );
 	}
 	RemoveOverlaps();
 
@@ -1159,8 +1200,9 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 			continue;
 		}
 		const ElfParser::Function * fun = kf.function;
+
 		QStringList doneRefs;
-		bool alreadyKnown = false;
+
 		foreach( const SymRef &ref, fun->References() )// look at each reference from each function
 		{
 			switch( ref.type )
@@ -1171,10 +1213,14 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 				continue;
 				break;
 			}
+
 			if( doneRefs.contains( ref.name ) )// dont check branches to the same function from within the same calling function
 			{
 				continue;
 			}
+			doneRefs << ref.name;
+
+			bool alreadyKnown = false;
 			foreach( const KnownFunction &kf, knownFunctions )// dont bother checking branches if we already know the function it is branching to
 			{
 				if( !kf.function )// wont have these for functions we dont have symbols for
@@ -1194,9 +1240,9 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 			}
 			if( alreadyKnown )
 			{
-				break;
+				continue;
 			}
-			doneRefs << ref.name;
+
 
 			quint32 addr = kf.addr + ref.off;
 			quint32 opcode = GetOpcodeFromAddr( addr );
@@ -1215,6 +1261,7 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 			//qDebug() << hex << res << ref.name << "from" << kf.addr << fun->Name() << addr << opcode;
 
 			bool branchHasSymbols = false;
+			bool skipIt = false;
 
 			foreach( const ElfParser::File &f, libFiles )
 			{
@@ -1222,9 +1269,15 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 				foreach( const ElfParser::Function &fun2, f.Functions() )
 				{
 					//qDebug() << "    fun.Name():" << fun.Name() << ref.name;
+
 					if( fun2.Name() == ref.name )
 					{
 						branchHasSymbols = true;
+						if( nonMatchingBranches.find( &fun2 ) != nonMatchingBranches.end() )// already looked for this one
+						{
+							skipIt = true;
+							break;
+						}
 						qint64 textOffset = res - wholeDol.at( dolIdx ).addr;
 						textOffset *= 2;
 						if( PattenMatches( fun2.Pattern(), wholeDolHex.at( dolIdx ), textOffset ) )
@@ -1234,12 +1287,27 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 						}
 						else
 						{
+							/*if( fun2.Name() == "NANDPrivateCreateAsync" )
+							{
+								qDebug() << "expected" << fun2.Name() << "at" << hex << res << "but pattern didnt match";
+								qDebug() << "being called from" << fun->Name() << "at" << hex << addr;
+								qDebug() << "offset" << NStr( textOffset ) << "in section" << dolIdx;
+								qDebug() << fun2.Pattern();
+								qDebug() << wholeDolHex.at( dolIdx ).mid( textOffset, fun2.Pattern().size() );
+								exit( 0 );
+
+							}*/
 							//qDebug() << "expected" << fun2.Name() << "at" << hex << res << "but pattern didnt match";
 							//qDebug() << "being called from" << fun->Name() << "at" << hex << addr;
 							nonMatchingBranches[ &fun2 ] = res;
 						}
 						break;
 					}
+				}
+				if( skipIt )
+				{
+					break;
+					//continue;
 				}
 				if( branchHasSymbols )
 				{
@@ -1260,56 +1328,17 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 	{
 		const QPair< const ElfParser::Function *, quint32 > &p = probablyMatches.at( i );
 		//qDebug() << hex << p.second << p.first->Name();
-		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
+		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second, __FUNCTION__ );
 	}
 
-
-
-
-	QStringList dupFunctions;
-	QStringList foundFunctions;
-
-	QList< quint32 >dupAddrs;
-	QList< quint32 >foundAddrs;
-
-	QList< QPair< QString, quint32 > > cleanList;
-
-	s = probablyMatches2.size();
-
-	// search for stuff to remove
-	for( int i = 0; i < s; i++ )
-	{
-		const QPair< QString, quint32 > &p = probablyMatches2.at( i );
-		if( foundFunctions.contains( p.first ) )
-		{
-			dupFunctions << p.first;
-		}
-		foundFunctions << p.first;
-
-		if( foundAddrs.contains( p.second ) )
-		{
-			dupAddrs << p.second;
-		}
-		foundAddrs << p.second;
-	}
-
-	// build a new list
-	for( int i = 0; i < s; i++ )
-	{
-		const QPair< QString, quint32 > &p = probablyMatches2.at( i );
-		if( dupFunctions.contains( p.first ) || dupAddrs.contains( p.second ) )
-		{
-			continue;
-		}
-		cleanList << p;
-	}
+	CleanupList( probablyMatches2 );
 	//qDebug() << " -- Functions matched by branches from known functions --";
-	s = cleanList.size();
+	s = probablyMatches2.size();
 	for( int i = 0; i < s; i++ )
 	{
-		const QPair< QString, quint32 > &p = cleanList.at( i );
+		const QPair< QString, quint32 > &p = probablyMatches2.at( i );
 		//qDebug() << hex << p.second << p.first;
-		AddFunctionToKnownList( p.first, p.second );
+		AddFunctionToKnownList( p.first, p.second, __FUNCTION__ );
 	}
 	RemoveOverlaps();
 }
@@ -1423,7 +1452,7 @@ QList< QPair< const ElfParser::Function *, quint32> > TryToMatchFunctions3( QLis
 		const QPair< const ElfParser::Function *, quint32 > &p = maybeMatches.at( i );
 		//qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
 
-		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
+		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second, __FUNCTION__ );
 	}
 	RemoveOverlaps();
 	return maybeMatches;
@@ -1496,7 +1525,7 @@ QList< QPair< const ElfParser::Function *, quint32> > TryToMatchFunctions4( QLis
 		const QPair< const ElfParser::Function *, quint32 > &p = maybeMatches.at( i );
 		//qDebug() << hex << p.second << NStr( p.first->Pattern().size() / 2, 4 ) << p.first->Name();
 
-		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second );
+		AddFunctionToKnownList( p.first, fileMap.find( p.first ).value(), p.second, __FUNCTION__ );
 	}
 	RemoveOverlaps();
 	return maybeMatches;
@@ -1615,6 +1644,8 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 							.arg( kf.addr, 8, 16, QChar( '0' ) ).arg( kf.file->Name() );
 				}
 
+				line += "  // " + kf.debug;
+
 				line += '\n';
 
 				// do something cool here with the r13/rtoc references
@@ -1630,9 +1661,13 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 			}
 			else
 			{
-				line += INDENT_TXT + QString( "CreateFunction( 0x%1, BADADDR, \"%2\" );\n" )
+				line += INDENT_TXT + QString( "CreateFunction( 0x%1, BADADDR, \"%2\" );" )
 						.arg( kf.addr, 8, 16, QChar( '0' ) )
 						.arg( CleanupNameString( kf.name ) );
+
+				line += "  // " + kf.debug;
+
+				line += '\n';
 			}
 			ret += line;
 		}
@@ -1652,9 +1687,8 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 		while( it.hasNext() )
 		{
 			it.next();
-			ret += INDENT_TXT + QString( "CreateFunction( 0x%1, 0x%2, \"%3\" );\n" )
+			ret += INDENT_TXT + QString( "CreateFunction( 0x%1, BADADDR, \"%2\" );\n" )	// BADADDR because we cant trust the pattern size when it doesnt match the expected
 					.arg( it.value(), 8, 16, QChar( '0' ) )
-					.arg( it.key()->Pattern().size() / 2, 4, 16, QChar( '0' ) )
 					.arg( CleanupNameString( it.key()->Name() ) );
 			// do something cool here with the r13/rtoc references
 			// these cant be trusted since the functions here dont match expected patterns
@@ -1714,14 +1748,6 @@ int main(int argc, char *argv[])
 	QString libPath( argv[ 2 ] );
 	QString outName( argv[ 3 ] );
 
-	// derp
-	//dolPath = "/home/j/c/hackmiiHaxx/disassembly/mem1-decrypt_60.bin";
-	//libPath = "/home/j/devkitPRO/libogc/lib/wii";
-
-	//dolPath = "/home/j/c/WiiQt/93/symbolizer/00000043_60.dol";
-	//dolPath = "/home/j/c/WWE12_haxx/main.dol";
-	//libPath = "/home/j/devkitPRO/libogc/lib/wii";
-	//libPath += "/os.a";
 
 	qDebug() << "Loading dol...";
 	if( !LoadDol( dolPath ) )
@@ -1748,7 +1774,6 @@ int main(int argc, char *argv[])
 
 	// add functions by looking at rtoc and r13
 	FindGlobalVariables();
-	//exit( 0 );
 
 	// find branches from the first round of functions
 	TryToMatchFunctions2( nonMatchingBranches );
@@ -1828,7 +1853,6 @@ int main(int argc, char *argv[])
 	//qDebug() << idc;
 
 	WriteFile( outName, idc.toLatin1() );
-
 
 	return 0;
 }
