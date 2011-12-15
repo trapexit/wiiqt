@@ -37,7 +37,7 @@ struct KnownFunction
 struct KnownVariable
 {
 	quint32 sig;							// signature for opcodes dealing with this variable when GLOBALVAR_MASK()'d
-											//! given lwz     %r0, -0x5460(%r13), it will store the -0x5460(%r13)
+	//! given lwz     %r0, -0x5460(%r13), it will store the -0x5460(%r13)
 	QString name;							// symbol name
 	ElfParser::File *file;					// pointer to the file object that contains the data
 };
@@ -744,7 +744,7 @@ void TryToMatchData()
   {
    if( alias.containerName == kd.name )
    {
-	qDebug() << hex << "  " << ( kd.addr + alias.offset ) << alias.size << alias.name;
+ qDebug() << hex << "  " << ( kd.addr + alias.offset ) << alias.size << alias.name;
    }
   }*/
 	}
@@ -950,9 +950,24 @@ void TryToMatchFunctions1()
 
 				switch( ref.type )
 				{
+				case SymRef::R_PPC_ADDR16_HA:// upper 16 bits
+				{
+					quint32 symbol = ( it.second->addr + ref.symOff + aliasDiff );
+					quint16 upper = ( ( symbol & 0xffff0000 ) >> 16 ) + ( ( symbol & 0x8000 ) ? 1 : 0 );
+					if( ( opcode & 0xffff ) != upper )
+					{
+						fail = true;
+
+						//qDebug() << "bad high" << hex <<  opcode << refOff << ref.name << ref.symOff;
+						//qDebug() << hex << "expected" << (quint32)( ( ( it.second->addr + ref.symOff + aliasDiff ) & 0xffff0000 ) >> 16 );
+						//DumpRefs( *( it.first ) );
+					}
+				}
+				break;
 				case SymRef::R_PPC_ADDR16_HI:// upper 16 bits
 				{
-					if( ( opcode & 0xffff ) != ( ( ( it.second->addr + ref.symOff + aliasDiff ) & 0xffff0000 ) >> 16 ) )
+					quint16 upper = ( ( ( it.second->addr + ref.symOff + aliasDiff ) & 0xffff0000 ) >> 16 );
+					if( ( opcode & 0xffff ) != upper )
 					{
 						fail = true;
 						//qDebug() << "bad high" << hex <<  opcode << refOff << ref.name << ref.symOff;
@@ -1059,18 +1074,18 @@ void FindGlobalVariables()
 			newVariables << nw;
 
 			/*qDebug() << "opcode" << hex << opcode << "addr" << addr;
-			qDebug() << kf1.function->Name() << ref.name;
-			qDebug();
-			quint32 z = GLOBALVAR_MASK( opcode );
-			opcode = z;
-			quint32 s = (quint32)PPCGETD( opcode );
-			quint32 a = (quint32)PPCGETA( opcode );
-			quint32 d = (quint32)( opcode & 0xffff );
-			quint32 o = (quint32)( PPCGETIDX( opcode ) - 32 );
-			DU32( o );
-			DU32( d );
-			DU32( s );
-			DU32( a );*/
+   qDebug() << kf1.function->Name() << ref.name;
+   qDebug();
+   quint32 z = GLOBALVAR_MASK( opcode );
+   opcode = z;
+   quint32 s = (quint32)PPCGETD( opcode );
+   quint32 a = (quint32)PPCGETA( opcode );
+   quint32 d = (quint32)( opcode & 0xffff );
+   quint32 o = (quint32)( PPCGETIDX( opcode ) - 32 );
+   DU32( o );
+   DU32( d );
+   DU32( s );
+   DU32( a );*/
 			//exit( 0 );
 		}
 	}
@@ -1288,15 +1303,15 @@ void TryToMatchFunctions2( QMap< const ElfParser::Function *, quint32 > &nonMatc
 						else
 						{
 							/*if( fun2.Name() == "NANDPrivateCreateAsync" )
-							{
-								qDebug() << "expected" << fun2.Name() << "at" << hex << res << "but pattern didnt match";
-								qDebug() << "being called from" << fun->Name() << "at" << hex << addr;
-								qDebug() << "offset" << NStr( textOffset ) << "in section" << dolIdx;
-								qDebug() << fun2.Pattern();
-								qDebug() << wholeDolHex.at( dolIdx ).mid( textOffset, fun2.Pattern().size() );
-								exit( 0 );
+	{
+  qDebug() << "expected" << fun2.Name() << "at" << hex << res << "but pattern didnt match";
+  qDebug() << "being called from" << fun->Name() << "at" << hex << addr;
+  qDebug() << "offset" << NStr( textOffset ) << "in section" << dolIdx;
+  qDebug() << fun2.Pattern();
+  qDebug() << wholeDolHex.at( dolIdx ).mid( textOffset, fun2.Pattern().size() );
+  exit( 0 );
 
-							}*/
+	}*/
 							//qDebug() << "expected" << fun2.Name() << "at" << hex << res << "but pattern didnt match";
 							//qDebug() << "being called from" << fun->Name() << "at" << hex << addr;
 							nonMatchingBranches[ &fun2 ] = res;
@@ -1533,6 +1548,18 @@ QList< QPair< const ElfParser::Function *, quint32> > TryToMatchFunctions4( QLis
 
 #define INDENT_TXT	QString( "    " )
 
+QString MakeUniqueName( const QString &name, QStringList &list )
+{
+	quint32 fix = 0;
+	QString ret( name );
+	while( list.contains( ret ) )
+	{
+		ret = name + QString( "_%1" ).arg( fix++ );
+	}
+	list << ret;
+	return ret;
+}
+
 QString CleanupNameString( const QString &name )// gcc puts the section name at the front of the user-given name
 {
 	if( name.startsWith( ".sbss." ) )
@@ -1579,6 +1606,7 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 			+ INDENT_TXT + "MakeFunction( addr, len );\n"
 			+ INDENT_TXT + "MakeName( addr, name );\n"
 			+"}\n\n";
+	QStringList uniquiFunctionNames;
 	bool insertedMakeCode = false;
 	bool haveData = knownData.size() != 0;
 	if( haveData )
@@ -1635,16 +1663,17 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 			QString line;
 			if( kf.function )
 			{
+				QString name = MakeUniqueName( CleanupNameString( kf.function->Name() ), uniquiFunctionNames );
 				line += INDENT_TXT + QString( "CreateFunction( 0x%1, 0x%2, \"%3\" );  " )
 						.arg( kf.addr, 8, 16, QChar( '0' ) ).arg( kf.function->Pattern().size() / 2, 4, 16, QChar( '0' ) )
-						.arg( CleanupNameString( kf.function->Name() ) );
+						.arg( name );
 				if( kf.file->Name() != libPath )
 				{
 					line += QString( "MakeComm( 0x%1, \"File: %2\" );" )
 							.arg( kf.addr, 8, 16, QChar( '0' ) ).arg( kf.file->Name() );
 				}
 
-			//	line += "  // " + kf.debug;
+				//	line += "  // " + kf.debug;
 
 				line += '\n';
 
@@ -1661,11 +1690,12 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 			}
 			else
 			{
+				QString name = MakeUniqueName( CleanupNameString( kf.name ), uniquiFunctionNames );
 				line += INDENT_TXT + QString( "CreateFunction( 0x%1, BADADDR, \"%2\" );" )
 						.arg( kf.addr, 8, 16, QChar( '0' ) )
-						.arg( CleanupNameString( kf.name ) );
+						.arg( name );
 
-			//	line += "  // " + kf.debug;
+				//	line += "  // " + kf.debug;
 
 				line += '\n';
 			}
@@ -1687,20 +1717,21 @@ QString MakeIDC( const QString &dolPath, const QString &libPath, const QMap< con
 		while( it.hasNext() )
 		{
 			it.next();
+			QString name = MakeUniqueName( CleanupNameString( it.key()->Name() ), uniquiFunctionNames );
 			ret += INDENT_TXT + QString( "CreateFunction( 0x%1, BADADDR, \"%2\" );\n" )	// BADADDR because we cant trust the pattern size when it doesnt match the expected
 					.arg( it.value(), 8, 16, QChar( '0' ) )
-					.arg( CleanupNameString( it.key()->Name() ) );
+					.arg( name );
 			// do something cool here with the r13/rtoc references
 			// these cant be trusted since the functions here dont match expected patterns
 			/*foreach( const SymRef &ref, it.key()->References() )
-			{
-				if( ref.type == SymRef::R_PPC_EMB_SDA21 )
-				{
-					ret += INDENT_TXT + INDENT_TXT + QString( "MakeComm( 0x%1, \"%2\" );\n" )
-							.arg( it.value() + ( ref.off & ~3 ), 8, 16, QChar( '0' ) )
-							.arg( CleanupNameString( ref.name ) );
-				}
-			}*/
+   {
+ if( ref.type == SymRef::R_PPC_EMB_SDA21 )
+ {
+  ret += INDENT_TXT + INDENT_TXT + QString( "MakeComm( 0x%1, \"%2\" );\n" )
+	.arg( it.value() + ( ref.off & ~3 ), 8, 16, QChar( '0' ) )
+	.arg( CleanupNameString( ref.name ) );
+ }
+   }*/
 		}
 		ret += "\n}\n";
 	}
@@ -1747,6 +1778,7 @@ int main(int argc, char *argv[])
 	QString dolPath( argv[ 1 ] );
 	QString libPath( argv[ 2 ] );
 	QString outName( argv[ 3 ] );
+
 
 	qDebug() << "Loading dol...";
 	if( !LoadDol( dolPath ) )

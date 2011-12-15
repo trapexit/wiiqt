@@ -348,6 +348,7 @@ bool ElfParser::ParseFileText( const QStringList &strs, const QStringList &secti
 
 			switch( refType )
 			{
+			case SymRef::R_PPC_ADDR16_HA:
 			case SymRef::R_PPC_ADDR16_HI:
 			case SymRef::R_PPC_ADDR16_LO:
 			{
@@ -560,7 +561,11 @@ QString ElfParser::GetNonOperRef( const QString &str, quint32 *off, SymRef::Type
 		{
 			*type = SymRef::R_PPC_EMB_SDA21;
 		}
-		else if( str.contains( "R_PPC_ADDR16_HA" ) || str.contains( "R_PPC_ADDR16_HI" ) )
+		else if( str.contains( "R_PPC_ADDR16_HA" ) )
+		{
+			*type = SymRef::R_PPC_ADDR16_HA;
+		}
+		else if( str.contains( "R_PPC_ADDR16_HI" ) )
 		{
 			*type = SymRef::R_PPC_ADDR16_HI;
 		}

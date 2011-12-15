@@ -11,7 +11,8 @@ struct SymRef
 {
 	enum Type
 	{
-		R_PPC_ADDR16_HI,	// reference to the upper 16 bits of the variable.  ie "lis"
+		R_PPC_ADDR16_HA,	// reference to the upper 16 bits of the variable and treats stuff as signed.  ie "lis, addi"
+		R_PPC_ADDR16_HI,	// reference to the upper 16 bits of the variable and treats the valuas as unsigned.  ie "lis, ori"
 		R_PPC_ADDR16_LO,	// refers to the lower 16 bits.  ie "addi"
 		R_PPC_REL24,		// refers by branching.  ie "bl"
 		R_PPC_SDAREL16,		// no clue wtf this one does
