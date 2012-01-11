@@ -24,8 +24,8 @@ struct KnownFunction
 	QString debug;// just for debugging this program
 	const ElfParser::Function *function;
 	const ElfParser::File *file;
-	const quint32 addr;
-	const QString name;// name is only used for functinos that dont have symbols
+	quint32 addr;
+	QString name;// name is only used for functinos that dont have symbols
 	KnownFunction( const ElfParser::Function *f = NULL, const ElfParser::File *fi = NULL, quint32 a = 0, const QString &n = QString() )
 		: function( f ), file( fi ), addr( a ), name( n )
 	{
