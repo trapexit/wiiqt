@@ -4,10 +4,13 @@
 #
 #-------------------------------------------------
 
-QT       += core gui multimedia
+QT       += core gui
 
 TARGET = thp_player
 TEMPLATE = app
+
+CONFIG += mobility
+#MOBILITY = multimedia
 
 
 SOURCES += main.cpp\
@@ -19,7 +22,7 @@ HEADERS  += thpwindow.h \
 
 FORMS    += thpwindow.ui
 
-CONFIG += static
+#CONFIG += static
 win32 {
 	message("win32 build")
     INCLUDEPATH += . ./libpng/include
