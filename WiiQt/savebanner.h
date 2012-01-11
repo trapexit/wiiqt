@@ -6,20 +6,30 @@
 class SaveBanner
 {
 public:
+
     SaveBanner();
     SaveBanner( const QString &bannerpath );
     SaveBanner( QByteArray stuff );
 
-    QImage BannerImg(){ return bannerImg; }
-    QList< QImage > IconImgs() { return iconImgs; }
+	const QImage &BannerImg() const { return bannerImg; }
+	const QList< QImage > &IconImgs() const { return iconImgs; }
 
-    QString Title(){ return saveTitle; }
-    QString SubTitle(){ return saveTitle2; }
+	const QString &Title() const { return saveTitle; }
+	const QString &SubTitle() const { return saveTitle2; }
+
+	quint32 Attributes() { return attributes; }
+	quint16 Speeds() { return speeds; }
 
 private:
     bool ok;
     QImage bannerImg;
     QList< QImage > iconImgs;
+
+	quint32 attributes;		// bit 5 = animation type.  if its set, the animation plays forward and backward
+							// if its not set, the animation just plays forward and loops
+
+	quint16 speeds;			// 2 bits per frame.  0 signifies the last frame?
+
     QString saveTitle;
     QString saveTitle2;
 

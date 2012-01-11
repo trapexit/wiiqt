@@ -1,6 +1,7 @@
 #ifndef U8_H
 #define U8_H
 
+#include "lz77.h"
 #include "includes.h"
 
 /*order of the names in the imet header
@@ -163,7 +164,8 @@ private:
     bool wii_cs_error;
 
     //if this archive as a whole is lz77 compressed
-    bool isLz77;
+	//bool isLz77;
+	LZ77::CompressionType lz77Type;
 
     QStringList imetNames;
     int headerType;

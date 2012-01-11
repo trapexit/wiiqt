@@ -440,7 +440,7 @@ bool NandDump::InstallNusItem( const NusJob &job )
 
 bool NandDump::InstallWad( Wad wad )
 {
-    if( !wad.Tid() || wad.content_count() < 3 )
+	if( !wad.Tid() || wad.content_count() < 1 )
     {
         qWarning() << "NandDump::InstallNusItem -> invalid item";
         return false;

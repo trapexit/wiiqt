@@ -1,5 +1,4 @@
 #include "u8.h"
-#include "lz77.h"
 #include "tools.h"
 //#include "md5.h"
 #include "ash.h"
@@ -18,7 +17,8 @@ static quint32 swap24( quint32 i )
 U8::U8( bool initialize, int type, const QStringList &names )
 {
     ok = false;
-    isLz77 = false;
+	//isLz77 = false;
+	lz77Type = LZ77::None;
     wii_cs_error = false;
     paths.clear();
     nestedU8s.clear();
@@ -37,7 +37,8 @@ U8::U8( bool initialize, int type, const QStringList &names )
 
 bool U8::CreateEmptyData()
 {
-    isLz77 = false;
+	//isLz77 = false;
+	lz77Type = LZ77::None;
     nestedU8s.clear();
     data = QByteArray( 0x20, '\0' );
 
@@ -319,10 +320,15 @@ bool U8::ReplaceEntry( const QString &path, const QByteArray &nba, bool autoComp
     if( autoCompress )
     {
         QByteArray oldData = data.mid( qFromBigEndian( fst[ entryToReplace ].FileOffset ), qFromBigEndian( fst[ entryToReplace ].FileLength ) );
-        bool oldCompressed = ( LZ77::GetLz77Offset( oldData ) > -1 || IsAshCompressed( oldData ) );
-        if( oldCompressed && LZ77::GetLz77Offset( newData ) == -1 && !IsAshCompressed( newData ) )
+		LZ77::CompressionType ct = LZ77::GetCompressedType( oldData );
+		bool oldCompressed = ( ct != LZ77::None || IsAshCompressed( oldData ) );
+		if( oldCompressed && LZ77::GetCompressedType( newData ) == LZ77::None && !IsAshCompressed( newData ) )
         {
-            newData = LZ77::Compress( newData );
+			if( ct == LZ77::None )
+			{
+				ct = LZ77::v10;
+			}
+			newData = LZ77::Compress( newData, ct );
         }
     }
 
@@ -940,7 +946,8 @@ void U8::Load( const QByteArray &ba )
 {
     ok = false;
     wii_cs_error = false;
-    isLz77 = false;
+	//isLz77 = false;
+	lz77Type = LZ77::None;
     headerType = U8_Hdr_none;
     paths.clear();
     imetNames.clear();
@@ -955,14 +962,39 @@ void U8::Load( const QByteArray &ba )
         data = DecryptAsh( data );
 
     quint32 tmp;
-    int off = LZ77::GetLz77Offset( data );
-    int off2 = GetU8Offset( data );
+	int off;
+	int off2;
+	LZ77::CompressionType type = LZ77::GetCompressedType( data, &off );
+	if( type == LZ77::v10 )
+	{
+		lz77Type = type;
+		data = LZ77::Decompress_v10( data, 0 );
+	}
+	else if( type == LZ77::v11 )
+	{
+		lz77Type = type;
+		data = LZ77_11::Decompress( data );
+	}
+	else if( type == LZ77::v10_w_magic )
+	{
+		off2 = GetU8Offset( data );
+		if( off2 >= 0 && off < off2 )
+		{
+			lz77Type = LZ77::v10_w_magic;
+			data = LZ77::Decompress_v10( data, off + 4 );
+		}
+	}
+	off2 = GetU8Offset( data );
+	//int off = LZ77::GetLz77Offset( data );
+	/*int off2 = GetU8Offset( data );
     if( off != -1 && ( off2 == -1 || ( off2 != -1 && off < off2 ) ) )
     {
-        isLz77 = true;
-        data = LZ77::Decompress( data );
+		//isLz77 = true;
+		lz77Type = LZ77::v10_w_magic;
+		//data = LZ77::Decompress( data );
+		data = LZ77::Decompress_v10( data, off + 4 );
         off2 = GetU8Offset( data );
-    }
+	}*/
 
     if( off2 == -1 )
     {
@@ -1111,8 +1143,9 @@ const QByteArray U8::GetData( const QString &str, bool onlyPayload )
             break;
         case U8_Hdr_IMD5:
             {
-                if( isLz77 )
-                    ret = LZ77::Compress( ret );
+				//if( isLz77 )
+				if( lz77Type == LZ77::v10_w_magic )
+					ret = LZ77::Compress_v10( ret );
 
                 ret = AddIMD5( ret );
 
@@ -1151,11 +1184,17 @@ const QByteArray U8::GetData( const QString &str, bool onlyPayload )
     //hexdump( ret, 0, 0x40 );
     if( onlyPayload )
     {
-        if( LZ77::GetLz77Offset( ret ) != -1 )
-            ret = LZ77::Decompress( ret );
+		LZ77::CompressionType ct;
+		ret = LZ77::Decompress( ret, &ct );
+		if( ct == LZ77::None && IsAshCompressed( ret ) )
+		{
+			ret = DecryptAsh( ret );
+		}
+		//if( LZ77::GetLz77Offset( ret ) != -1 )
+		//    ret = LZ77::Decompress( ret );
 
-        else if( IsAshCompressed( ret ) )
-            ret = DecryptAsh( ret );
+		//else if( IsAshCompressed( ret ) )
+		//    ret = DecryptAsh( ret );
     }
     return ret;
 }
@@ -1166,6 +1205,18 @@ quint32 U8::GetSize( const QString &str )
     {
         return data.size();
     }
+	//check if this is a path to a file in a nested archive
+	QMap<QString, U8 >::iterator i = nestedU8s.begin();
+	while( i != nestedU8s.constEnd() )
+	{
+		if( str.startsWith( i.key() ) && str != i.key() )
+		{
+			QString subPath = str;
+			subPath.remove( 0, i.key().size() + 1 );//remove the path of the archive itself + the slash
+			return i.value().GetSize( subPath );
+		}
+		++i;
+	}
     int index = FindEntry( str );
     if( index < 0 )
     {
@@ -1197,9 +1248,7 @@ bool U8::IsU8( const QByteArray &ba )
     if( IsAshCompressed( data ) )//decrypt ASH0 files
         data = DecryptAsh( data );
 
-    int off = LZ77::GetLz77Offset( data );//decrypt LZ77
-    if( off != -1 )
-        data = LZ77::Decompress( data );
+	data = LZ77::Decompress( data );
 
     QByteArray start = data.left( 5000 );
     return start.indexOf( "U\xAA\x38\x2d" ) != -1;
@@ -1413,10 +1462,11 @@ const QByteArray U8::AddIMET( int paddingType )
         soundSize = ret.size() - 0x20;
 
     ret = GetIMET( imetNames, paddingType, iconSize, bannerSize, soundSize );
-    if( isLz77 )//really?  can the entire banner be lz77 compressed?
-        ret += LZ77::Compress( data );
-    else
-        ret += data;
+	//if( isLz77 )//really?  can the entire banner be lz77 compressed?
+	//    ret += LZ77::Compress( data );
+	//else
+	//    ret += data;
+	ret += LZ77::Compress( data, lz77Type );
 
     return ret;
 }

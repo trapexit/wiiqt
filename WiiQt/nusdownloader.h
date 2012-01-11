@@ -12,7 +12,8 @@
 #define UPDATING_USER_AGENT		"wii libnup/1.0"
 #define VIRTUAL_CONSOLE_USER_AGENT	"libec-3.0.7.06111123"
 #define WIICONNECT24_USER_AGENT		"WiiConnect24/1.0FC4plus1 (build 061114161108)"
-#define NUS_BASE_URL			"http://ccs.shop.wii.com/ccs/download/"
+//#define NUS_BASE_URL			"http://ccs.shop.wii.com/ccs/download/"
+#define NUS_BASE_URL			"http://nus.cdn.shop.wii.com/ccs/download/"
 
 
 

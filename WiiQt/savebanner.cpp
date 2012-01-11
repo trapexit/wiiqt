@@ -29,13 +29,13 @@ SaveBanner::SaveBanner( QByteArray stuff )
         qWarning() << "SaveBanner::SaveBanner -> bad file magic" << hex << qFromBigEndian( magic );
         return;
     }
-    //no clue what this stuff is, dont really need it though
-    //i suspect instructions for animation ? ( VC icons display forwards and backwards in the system menu )
-    //also speed is not always the same
-    quint32 tmp;
-    f.read( (char*)&tmp, 4 );
-    quint32 tmp2;
-    f.read( (char*)&tmp2, 4 );
+
+	f.read( (char*)&attributes, 4 );
+	f.read( (char*)&speeds, 2 );
+
+	attributes = qFromBigEndian( attributes );
+	speeds = qFromBigEndian( speeds );
+
     f.seek( 0x20 );
 
     quint16 name[ 0x20 ];
@@ -50,7 +50,48 @@ SaveBanner::SaveBanner( QByteArray stuff )
 
     saveTitle = saveTitle.trimmed();
 
-    //qDebug() << hex << qFromBigEndian( tmp ) << qFromBigEndian( tmp2 ) << saveTitle;
+
+	QString speedStr;
+	// 0 = lastimage, speed range from 1 - 3
+	for( int i = 0; i < 8; i++ )
+	{
+		speedStr += QString::number( ( speeds >> ( 2 * ( i ) ) ) & 3 );
+		if( i < 7 )
+		{
+			speedStr += " ";
+		}
+	}
+
+	QString flags;
+	// nocopy bit
+	if( attributes & 1 )
+	{
+		flags += "nocopy";
+	}
+
+	// animation type bit
+	if( attributes & 0x10 )
+	{
+		if( !flags.isEmpty() )
+		{
+			flags += ", ";
+		}
+		flags += "forward and reverse";
+	}
+	else
+	{
+		if( !flags.isEmpty() )
+		{
+			flags += ", ";
+		}
+		flags += "loop";
+	}
+	flags = flags.leftJustified( 27, QChar( ' ' ) );
+	qDebug() << hex << //QString( "%1" ).arg( tmp, 8, 16, QChar( '0' ) ) <<
+						//QString( "%1" ).arg( speeds, 4, 16, QChar( '0' ) ) <<
+				speedStr <<
+				flags <<
+				saveTitle;
 
     //QString title2;
     for( int i = 0; i < 0x20 && name2[ i ] != 0; i++ )
@@ -72,33 +113,25 @@ SaveBanner::SaveBanner( QByteArray stuff )
     }
 
     //get the images that make up the icon
-    while( f.pos() != size )
-    {
-        QByteArray icn = f.read( 0x1200 );
-        //check that there is actually data.  some banners use all 0x00 for some images
-        bool null = true;
-        for( int i = 0; i < 0x1200; i++ )
-        {
-            if( icn.at( i ) )//this buffer contains at least 1 byte of data, try to turn it into an image
-            {
-                null = false;
-                break;
-            }
-        }
-        if( null )
-        {
-            //qDebug() << "skipping empty image";
-            break;
-        }
+	for( quint8 i = 0; i < 8 && f.pos() < size; i++ )
+	{
+		QByteArray icn = f.read( 0x1200 );
 
-        //make this texture int an image
-        QImage iconImg = ConvertTextureToImage( icn, 0x30, 0x30 );
-        if( iconImg.isNull() )
-            break;
+		//make this texture int an image
+		QImage iconImg = ConvertTextureToImage( icn, 0x30, 0x30 );
+		if( iconImg.isNull() )
+			break;
 
-        //add the image to the list
-        iconImgs << iconImg;
-    }
+		//add the image to the list
+		iconImgs << iconImg;
+
+		if( !( ( speeds >> ( 2 * i ) ) & 3 ) )// this is the last image
+		{
+			break;
+		}
+	}
+
+	qDebug() << "imgCnt:" << iconImgs.size();
     f.close();
     ok = true;
 
