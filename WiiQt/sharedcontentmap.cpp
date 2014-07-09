@@ -121,7 +121,7 @@ void SharedContentMap::AddEntry( const QString &app, const QByteArray &hash )
         qWarning() << "SharedContentMap::AddEntry -> bas size" << hex << app.size() << hash.size();
         return;
     }
-    data += app.toAscii() + hash;
+    data += app.toLatin1() + hash;
 }
 
 const QByteArray SharedContentMap::Hash( quint16 i )

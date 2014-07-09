@@ -111,7 +111,7 @@ void SettingTxtDialog::on_buttonBox_accepted()
                 "VIDEO=" + ui->lineEdit_video->text() + "\r\n" +
                 "GAME=" + ui->lineEdit_game->text() + "\r\n";
 
-    ret = s.toAscii();
+    ret = s.toLatin1();
     ret = PaddedByteArray( ret, 0x100 );
     //hexdump( ret );
     ret = LolCrypt( ret );

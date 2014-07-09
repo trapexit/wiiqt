@@ -1,7 +1,7 @@
 #ifndef INCLUDES_H
 #define INCLUDES_H
 
-#include <QtGui/QApplication>
+#include <QApplication>
 #include <QAction>
 #include <QBuffer>
 #include <QDialog>
@@ -25,7 +25,7 @@
 #include <QtDebug>
 #include <QTimer>
 #include <QtGui>
-#include <QtGui/QMainWindow>
+#include <QMainWindow>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <qpushbutton.h>
