@@ -4,8 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui\
-	network
+QT += core gui network widgets
 
 TARGET = nand
 TEMPLATE = app
