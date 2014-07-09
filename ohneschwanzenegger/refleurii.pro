@@ -2,8 +2,10 @@
 # Project created by QtCreator 2010-12-02T23:30:12
 # -------------------------------------------------
 QT += core \
-    gui \
-    network
+      gui \
+      network \
+      widgets
+
 TARGET = ohneschwanzenegger
 TEMPLATE = app
 DEFINES += NAND_BIN_CAN_WRITE
