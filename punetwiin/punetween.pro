@@ -11,6 +11,8 @@ DEFINES += NAND_BIN_CAN_WRITE
 
 TEMPLATE = app
 
+QT += core \
+      widgets
 
 SOURCES += main.cpp \
 	../WiiQt/blocks0to7.cpp \
@@ -24,4 +26,4 @@ SOURCES += main.cpp \
 HEADERS += ../WiiQt/nandbin.h \
     ../WiiQt/tools.h \
     ../WiiQt/blocks0to7.h \
-	../WiiQt/nandspare.h
+    ../WiiQt/nandspare.h

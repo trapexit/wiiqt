@@ -373,7 +373,7 @@ int main( int argc, char *argv[] )
     origColor = GetColor();
     hConsole = GetStdHandle( STD_OUTPUT_HANDLE );
 #endif
-    qInstallMsgHandler( DebugHandler );
+    //    qInstallMsgHandler( DebugHandler );
     args = QCoreApplication::arguments();
 
     if( args.contains( "-nocolor", Qt::CaseInsensitive ) )
