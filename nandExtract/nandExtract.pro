@@ -1,6 +1,8 @@
 # -------------------------------------------------
 # Project created by QtCreator 2010-12-06T03:40:50
 # -------------------------------------------------
+QT = core gui widgets
+
 TARGET = nandExtract
 TEMPLATE = app
 SOURCES += main.cpp \
