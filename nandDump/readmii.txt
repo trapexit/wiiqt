@@ -1,0 +1,5 @@
+this program downloads files from NUS.  currently it supports installing them to an extracted nand dump for use in sneek/dolphin.
+downloaded files can be cached to a local file so next time you try to download that title, you wont need to get it from NUS.
+
+TODO...
+saving content to a seperate folder and packing wads is only partially done
